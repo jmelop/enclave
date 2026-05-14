@@ -15,7 +15,7 @@ const rajdhani = Rajdhani({
 })
 
 export const metadata: Metadata = {
-  title: 'ENCLAVE // UNIFIED APPLICATION PORTAL',
+  title: 'Enclave // Unified Application Portal',
   description: 'Enclave — Self-hosted unified application portal powered by Venator UI',
   icons: {
     icon: '/enclave-favicon-32.png',
