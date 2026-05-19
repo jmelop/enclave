@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Button } from '@venator-ui/ui'
 import { StatCards } from '@/components/inventory/StatCards'
 import { Toolbar } from '@/components/inventory/Toolbar'
 import { Catalog } from '@/components/inventory/Catalog'
@@ -81,12 +82,8 @@ export function InventoryPage() {
               Inventory<span className="hero-dot">.</span>
             </h1>
             <div className="hero-actions">
-              <button className="btn btn-ghost">
-                <span className="btn-icon">↑</span> Export
-              </button>
-              <button className="btn btn-primary" onClick={openAdd}>
-                <span className="btn-icon">+</span> Add Item
-              </button>
+              <Button variant="ghost">↑ Export</Button>
+              <Button variant="accent" onClick={openAdd}>+ Add Item</Button>
             </div>
           </div>
           <div className="hero-sub">

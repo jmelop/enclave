@@ -1,3 +1,4 @@
+import { Input } from '@venator-ui/ui'
 import { CATEGORIES, useInventoryStore } from '@/store/inventoryStore'
 import { catDot } from '@/lib/utils'
 import { catBg, catBorder } from '@/lib/utils'
@@ -41,13 +42,13 @@ export function Toolbar() {
   return (
     <div className="toolbar">
       <div className="tb-search">
-        <span className="tb-prompt mono">$</span>
-        <input
+        <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="search by name, model or location…"
+          leftIcon={<span className="tb-prompt mono">$</span>}
+          rightIcon={<span className="tb-search-meta mono">{filtered.length} match</span>}
         />
-        <span className="tb-search-meta mono">{filtered.length} match</span>
       </div>
 
       <div className="tb-row">

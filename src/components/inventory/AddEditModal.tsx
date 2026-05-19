@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Bracket } from '@/components/ui/Bracket'
+import { Button, Input, Modal, ModalContent, ModalFooter, ModalHeader } from '@venator-ui/ui'
 import { CATEGORIES } from '@/store/inventoryStore'
 import { catBg, catBorder, catDot } from '@/lib/utils'
 import type { CategoryId, ItemStatus } from '@/types/inventory'
@@ -39,15 +39,7 @@ export function AddEditModal({ open, draft, isEdit, onChange, onCancel, onSave }
 
   useEffect(() => {
     if (open && firstRef.current) firstRef.current.focus()
-    if (!open) return
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel()
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [open, onCancel])
-
-  if (!open) return null
+  }, [open])
 
   const set = <K extends keyof ItemDraft>(k: K, v: ItemDraft[K]) =>
     onChange({ ...draft, [k]: v })
@@ -55,26 +47,20 @@ export function AddEditModal({ open, draft, isEdit, onChange, onCancel, onSave }
   const valid = draft.name.trim().length > 0
 
   return (
-    <div className="modal-scrim" onClick={onCancel}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <Bracket corner="tl" />
-        <Bracket corner="tr" />
-        <Bracket corner="bl" />
-        <Bracket corner="br" />
+    <Modal open={open} onClose={onCancel} size="lg" className="!border-[var(--border-default)] !rounded-[12px]">
+      <ModalHeader
+        title={isEdit ? 'Edit Item' : 'Add Item to Inventory'}
+        onClose={onCancel}
+      />
 
-        <header className="modal-head">
-          <div>
-            <div className="modal-tag">{isEdit ? 'EDIT' : 'NEW ENTRY'}</div>
-            <h3>{isEdit ? 'Edit Item' : 'Add Item to Inventory'}</h3>
-            <div className="modal-sub">Fill the fields below · all but Notes recommended</div>
-          </div>
-          <button className="icon-btn" onClick={onCancel} aria-label="Close">✕</button>
-        </header>
+      <ModalContent>
+        <div className="modal-tag mono">{isEdit ? 'EDIT' : 'NEW ENTRY'}</div>
+        <div className="modal-sub">Fill the fields below · all but Notes recommended</div>
 
         <div className="modal-body">
           <div className="field f-full">
             <label>Name</label>
-            <input
+            <Input
               ref={firstRef}
               value={draft.name}
               onChange={(e) => set('name', e.target.value)}
@@ -93,11 +79,7 @@ export function AddEditModal({ open, draft, isEdit, onChange, onCancel, onSave }
                     key={c.id}
                     onClick={() => set('category', c.id as CategoryId)}
                     className={`cat-chip ${sel ? 'sel' : ''}`}
-                    style={
-                      sel
-                        ? { background: catBg(c.hue), borderColor: catBorder(c.hue) }
-                        : {}
-                    }
+                    style={sel ? { background: catBg(c.hue), borderColor: catBorder(c.hue) } : {}}
                   >
                     <span className="cat-dot" style={{ background: catDot(c.hue) }} />
                     <span>{c.label}</span>
@@ -109,7 +91,7 @@ export function AddEditModal({ open, draft, isEdit, onChange, onCancel, onSave }
 
           <div className="field">
             <label>Model / Reference</label>
-            <input
+            <Input
               className="mono"
               value={draft.model}
               onChange={(e) => set('model', e.target.value)}
@@ -120,24 +102,26 @@ export function AddEditModal({ open, draft, isEdit, onChange, onCancel, onSave }
           <div className="field">
             <label>Quantity</label>
             <div className="stepper">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => set('qty', Math.max(0, (Number(draft.qty) || 0) - 1))}
               >
                 −
-              </button>
-              <input
+              </Button>
+              <Input
                 className="mono"
                 type="number"
                 value={draft.qty}
                 onChange={(e) => set('qty', e.target.value)}
               />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => set('qty', (Number(draft.qty) || 0) + 1)}
               >
                 +
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -164,7 +148,7 @@ export function AddEditModal({ open, draft, isEdit, onChange, onCancel, onSave }
 
           <div className="field f-full">
             <label>Location</label>
-            <input
+            <Input
               className="mono"
               value={draft.location}
               onChange={(e) => set('location', e.target.value)}
@@ -182,17 +166,15 @@ export function AddEditModal({ open, draft, isEdit, onChange, onCancel, onSave }
             />
           </div>
         </div>
+      </ModalContent>
 
-        <footer className="modal-foot">
-          <div className="modal-hint mono">↵ to save · ESC to cancel</div>
-          <div className="modal-actions">
-            <button className="btn btn-ghost" onClick={onCancel}>Cancel</button>
-            <button className="btn btn-primary" disabled={!valid} onClick={onSave}>
-              {isEdit ? 'Save changes' : 'Add item'}
-            </button>
-          </div>
-        </footer>
-      </div>
-    </div>
+      <ModalFooter>
+        <div className="modal-hint mono">↵ to save · ESC to cancel</div>
+        <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+        <Button variant="accent" disabled={!valid} onClick={onSave}>
+          {isEdit ? 'Save changes' : 'Add item'}
+        </Button>
+      </ModalFooter>
+    </Modal>
   )
 }

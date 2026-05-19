@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { Button } from '@venator-ui/ui'
 import { CatBadge } from '@/components/ui/CatBadge'
 import { StatusPill } from '@/components/ui/StatusPill'
 import { HistoryChart } from './HistoryChart'
@@ -89,12 +90,8 @@ export function DetailPanel({ item, history, onClose, onEdit }: DetailPanelProps
             </section>
 
             <footer className="dt-foot">
-              <button className="btn btn-ghost" onClick={() => handleDelete(item)}>
-                <span className="btn-icon">⊗</span> Delete
-              </button>
-              <button className="btn btn-primary" onClick={() => onEdit(item)}>
-                <span className="btn-icon">◈</span> Edit Item
-              </button>
+              <Button variant="ghost" onClick={() => handleDelete(item)}>⊗ Delete</Button>
+              <Button variant="accent" onClick={() => onEdit(item)}>◈ Edit Item</Button>
             </footer>
           </>
         )}
