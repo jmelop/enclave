@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { create } from 'zustand'
 import type { CategoryId, Density, HistoryEntry, InventoryItem, ItemStatus, ViewMode } from '@/types/inventory'
 import { CATEGORIES, SEED_HISTORY, SEED_ITEMS } from '@/lib/seed'
@@ -111,21 +112,27 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
 }))
 
 export function useFilteredItems() {
-  return useInventoryStore((s) => {
-    const q = s.search.trim().toLowerCase()
-    let out = s.items.filter((it) => {
-      if (s.selectedCategory && it.category !== s.selectedCategory) return false
-      if (s.statusFilter && it.status !== s.statusFilter) return false
+  const items           = useInventoryStore((s) => s.items)
+  const search          = useInventoryStore((s) => s.search)
+  const selectedCategory = useInventoryStore((s) => s.selectedCategory)
+  const statusFilter    = useInventoryStore((s) => s.statusFilter)
+  const sortBy          = useInventoryStore((s) => s.sortBy)
+
+  return useMemo(() => {
+    const q = search.trim().toLowerCase()
+    const out = items.filter((it) => {
+      if (selectedCategory && it.category !== selectedCategory) return false
+      if (statusFilter && it.status !== statusFilter) return false
       if (!q) return true
       return [it.name, it.model, it.location, it.notes].some(
         (v) => v && v.toLowerCase().includes(q),
       )
     })
     out.sort((a, b) => {
-      if (s.sortBy === 'name') return a.name.localeCompare(b.name)
-      if (s.sortBy === 'qty') return b.qty - a.qty
+      if (sortBy === 'name') return a.name.localeCompare(b.name)
+      if (sortBy === 'qty') return b.qty - a.qty
       return a.id.localeCompare(b.id)
     })
     return out
-  })
+  }, [items, search, selectedCategory, statusFilter, sortBy])
 }
