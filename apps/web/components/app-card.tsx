@@ -1,5 +1,3 @@
-"use client"
-
 import { useState } from "react"
 import { type AppEntry, type AppStatus } from "@/lib/apps-data"
 import {

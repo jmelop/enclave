@@ -1,5 +1,3 @@
-"use client"
-
 import { type AppCategory, CATEGORIES } from "@/lib/apps-data"
 import {
   Radio,

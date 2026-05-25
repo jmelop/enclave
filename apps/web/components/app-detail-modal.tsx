@@ -1,5 +1,3 @@
-"use client"
-
 import { type AppEntry } from "@/lib/apps-data"
 import {
   Radio, Eye, Package, FlaskConical, ShieldAlert, Wrench,

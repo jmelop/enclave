@@ -1,5 +1,3 @@
-"use client"
-
 import { useEffect, useState } from "react"
 import { APPS } from "@/lib/apps-data"
 import { Activity, HardDrive, Thermometer, Shield } from "lucide-react"

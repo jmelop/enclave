@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { Wifi, Cpu, Zap } from "lucide-react"
 

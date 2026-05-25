@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useMemo, useCallback, useEffect } from "react"
 import { APPS, type AppCategory, type AppEntry } from "@/lib/apps-data"
 import { TerminalHeader } from "./terminal-header"

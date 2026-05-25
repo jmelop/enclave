@@ -5,6 +5,10 @@
 @source "../node_modules/@venator-ui/patterns/dist";
 
 :root {
+  /* Fonts (Share Tech Mono + Rajdhani loaded via Google Fonts in index.html) */
+  --font-share-tech-mono: 'Share Tech Mono', 'Courier New', monospace;
+  --font-rajdhani: 'Rajdhani', sans-serif;
+
   /* Enclave base */
   --background: #0c0e0c;
   --foreground: #d4d8cc;
@@ -46,8 +50,8 @@
   --enclave-danger: #c44040;
 
   /* Typography */
-  --font-mono: 'Share Tech Mono', 'Geist Mono', ui-monospace, monospace;
-  --font-display: 'Rajdhani', sans-serif;
+  --font-mono: var(--font-share-tech-mono);
+  --font-display: var(--font-rajdhani);
 }
 
 @theme inline {
@@ -85,6 +89,8 @@
     @apply bg-background text-foreground;
     font-family: var(--font-mono);
     line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
