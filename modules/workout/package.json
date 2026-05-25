@@ -10,9 +10,9 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@venator-ui/tokens": "file:../venator/packages/tokens",
-    "@venator-ui/ui": "file:../venator/packages/ui",
-    "@venator-ui/patterns": "file:../venator/packages/patterns",
+    "@venator-ui/tokens": "^0.1.6",
+    "@venator-ui/ui": "^0.1.8",
+    "@venator-ui/patterns": "^0.1.6",
     "lucide-react": "^0.460.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

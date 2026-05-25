@@ -9,14 +9,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@venator-ui/patterns": "^0.1.5",
-    "@venator-ui/ui": "^0.1.7",
+    "@venator-ui/patterns": "^0.1.6",
+    "@venator-ui/ui": "^0.1.8",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.30.0",
     "zustand": "^5.0.4"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",

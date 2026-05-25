@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Card } from '@venator-ui/ui'
 import { CATEGORIES, CATEGORY_ORDER, assetValueEUR, eurCompact, pctRaw } from '../../lib/utils'
-import type { Asset } from '../../types/portfolio'
+import type { Asset, AssetCategory } from '../../types/portfolio'
 
 interface AllocationWidgetProps {
   assets: Asset[]
@@ -9,7 +9,7 @@ interface AllocationWidgetProps {
 }
 
 export function AllocationWidget({ assets, hideValues }: AllocationWidgetProps) {
-  const [hover, setHover] = useState<string | null>(null)
+  const [hover, setHover] = useState<AssetCategory | null>(null)
 
   const totals = useMemo(() => {
     const m: Record<string, number> = {}

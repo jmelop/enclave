@@ -1,9 +1,9 @@
-import { venatorPreset } from '@venator-ui/tokens'
+import { venatorUIPreset } from '@venator-ui/tokens'
 
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: 'class',
-  presets: [venatorPreset],
+  presets: [venatorUIPreset],
   content: [
     './index.html',
     './src/**/*.{ts,tsx}',
