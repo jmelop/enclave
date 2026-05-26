@@ -14,7 +14,11 @@
     "strict": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@enclave/sdk": ["../../../packages/sdk/src/index.ts"]
+    }
   },
-  "include": ["src"]
+  "include": [".", "../module/client.config.tsx"],
+  "exclude": ["../node_modules"]
 }
