@@ -6,7 +6,7 @@ module.exports = {
   presets: [venatorUIPreset],
   content: [
     './client/**/*.{ts,tsx}',
-    './index.html',
+    './client/index.html',
     './node_modules/@venator-ui/ui/dist/**/*.{js,mjs}',
     './node_modules/@venator-ui/patterns/dist/**/*.{js,mjs}',
   ],

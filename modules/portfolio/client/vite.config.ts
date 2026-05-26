@@ -6,10 +6,11 @@ import path from 'path'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
+  root: __dirname,
   plugins: [react()],
   resolve: {
     alias: {
-      '@enclave/sdk': path.resolve(__dirname, '../../packages/sdk/src/index.ts'),
+      '@enclave/sdk': path.resolve(__dirname, '../../../packages/sdk/src/index.ts'),
     },
   },
 })

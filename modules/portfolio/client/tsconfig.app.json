@@ -16,9 +16,9 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@enclave/sdk": ["../../packages/sdk/src/index.ts"]
+      "@enclave/sdk": ["../../../packages/sdk/src/index.ts"]
     }
   },
-  "include": ["client", "module.meta.ts", "client.config.tsx"],
-  "exclude": ["server", "server.config.ts", "node_modules"]
+  "include": [".", "../module/meta.ts", "../module/client.config.tsx"],
+  "exclude": ["../server", "../module/server.config.ts", "../node_modules"]
 }
