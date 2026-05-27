@@ -47,16 +47,22 @@ export function AddEditModal({ open, draft, isEdit, onChange, onCancel, onSave }
   const valid = draft.name.trim().length > 0
 
   return (
-    <Modal open={open} onClose={onCancel} size="lg" className="!border-[var(--border-default)] !rounded-[12px]">
+    <Modal
+      open={open}
+      onClose={onCancel}
+      size="xl"
+      className="inventory-modal !border-[var(--border-default)] !rounded-[12px]"
+      backdropClassName="inventory-modal-backdrop"
+    >
       <ModalHeader
         title={isEdit ? 'Edit Item' : 'Add Item to Inventory'}
         onClose={onCancel}
+        tag={isEdit ? 'EDIT' : 'NEW ENTRY'}
+        description="Fill the fields below - all but Notes recommended"
+        className="inventory-modal-header"
       />
 
-      <ModalContent>
-        <div className="modal-tag mono">{isEdit ? 'EDIT' : 'NEW ENTRY'}</div>
-        <div className="modal-sub">Fill the fields below · all but Notes recommended</div>
-
+      <ModalContent className="inventory-modal-content">
         <div className="modal-body">
           <div className="field f-full">
             <label>Name</label>
@@ -68,7 +74,7 @@ export function AddEditModal({ open, draft, isEdit, onChange, onCancel, onSave }
             />
           </div>
 
-          <div className="field">
+          <div className="field f-full">
             <label>Category</label>
             <div className="cat-grid">
               {CATEGORIES.map((c) => {
@@ -168,7 +174,7 @@ export function AddEditModal({ open, draft, isEdit, onChange, onCancel, onSave }
         </div>
       </ModalContent>
 
-      <ModalFooter>
+      <ModalFooter className="inventory-modal-footer">
         <div className="modal-hint mono">↵ to save · ESC to cancel</div>
         <Button variant="ghost" onClick={onCancel}>Cancel</Button>
         <Button variant="accent" disabled={!valid} onClick={onSave}>

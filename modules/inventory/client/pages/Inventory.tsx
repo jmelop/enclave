@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@venator-ui/ui'
 import { StatCards } from '@/components/inventory/StatCards'
 import { Toolbar } from '@/components/inventory/Toolbar'
@@ -12,6 +12,11 @@ import type { InventoryItem } from '@/types/inventory'
 interface ModalState {
   mode: 'add' | 'edit'
   draft: ItemDraft
+}
+
+function formatTime(d: Date) {
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
 }
 
 function toItemDraft(item: InventoryItem): ItemDraft {
@@ -40,6 +45,28 @@ export function InventoryPage() {
   const filtered = useFilteredItems()
 
   const [modal, setModal] = useState<ModalState | null>(null)
+  const [time, setTime] = useState(() => formatTime(new Date()))
+
+  useEffect(() => {
+    const id = setInterval(() => setTime(formatTime(new Date())), 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  const lowCount = items.filter((i) => i.status === 'low').length
+  const outCount = items.filter((i) => i.status === 'out').length
+  const hasAlerts = lowCount + outCount > 0
+
+  const [theme, setTheme] = useState<string>(() =>
+    document.documentElement.getAttribute('data-theme') ?? 'dark'
+  )
+  const toggleTheme = () => {
+    setTheme(t => {
+      const next = t === 'dark' ? 'light' : 'dark'
+      document.documentElement.setAttribute('data-theme', next)
+      localStorage.setItem('enclave-theme', next)
+      return next
+    })
+  }
 
   const openItem = (it: InventoryItem) => setSelected(it)
   const closeDetail = () => setSelected(null)
@@ -75,6 +102,38 @@ export function InventoryPage() {
   return (
     <>
       <div className="canvas with-grid">
+        <div className="v-topbar">
+          <span className="crumb">enclave</span>
+          <span className="sep">/</span>
+          <span className="crumb active">inventory</span>
+          <span className="v-cursor">▊</span>
+          <span className="spacer" />
+          {hasAlerts && (
+            <span className="alert-strip">
+              <span>⚠</span>
+              {outCount > 0 && <span className="alert-seg-out">{outCount} OUT</span>}
+              {outCount > 0 && lowCount > 0 && <span className="alert-sep">·</span>}
+              {lowCount > 0 && <span className="alert-seg-low">{lowCount} LOW</span>}
+            </span>
+          )}
+          <span className="pill"><span className="dot" />INDEX SYNCED · {time}</span>
+          <span style={{ color: 'var(--fg-5)' }}>·</span>
+          <button
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            style={{ appearance: 'none', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-3)', display: 'flex', alignItems: 'center', padding: 0 }}
+          >
+            {theme === 'dark' ? (
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="8" cy="8" r="3.5"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.2 3.2l1 1M11.8 11.8l1 1M11.8 3.2l-1 1M4.2 11.8l-1 1"/>
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M13.5 9A6 6 0 0 1 7 2.5a6 6 0 1 0 6.5 6.5z"/>
+              </svg>
+            )}
+          </button>
+        </div>
         <header className="hero">
           <div className="hero-tag mono">// MODULE · enclave-inventory</div>
           <div className="hero-row">
@@ -82,8 +141,8 @@ export function InventoryPage() {
               Inventory<span className="hero-dot">.</span>
             </h1>
             <div className="hero-actions">
-              <Button variant="ghost">↑ Export</Button>
-              <Button variant="accent" onClick={openAdd}>+ Add Item</Button>
+              <Button variant="ghost" size="sm">↑ Export</Button>
+              <Button variant="accent" size="sm" onClick={openAdd}>+ Add Item</Button>
             </div>
           </div>
           <div className="hero-sub">
