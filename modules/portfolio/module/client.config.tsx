@@ -1,7 +1,6 @@
 import type { ModuleClientConfig } from '@enclave/sdk';
 import '../client/index.css';
 import { portfolioMeta } from './meta';
-import { AppShell } from '../client/components/layout/AppShell';
 import { Portfolio } from '../client/pages/Portfolio';
 
 export const portfolioClient: ModuleClientConfig = {
@@ -9,6 +8,10 @@ export const portfolioClient: ModuleClientConfig = {
   navLabel: 'Portfolio',
   basePath: portfolioMeta.basePath,
   routes: [
-    { index: true, element: <div className="v-shell"><AppShell><Portfolio /></AppShell></div> },
+    { index: true, element: <Portfolio /> },
   ],
+  nav: [
+    { label: 'Portfolio', path: '', icon: 'wallet' },
+  ],
+  accent: 'linear-gradient(135deg, #3b82f6, #2563eb)',
 };

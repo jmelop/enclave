@@ -6,6 +6,7 @@ import { AllocationWidget } from '../components/portfolio/AllocationWidget'
 import { TargetVsCurrentWidget } from '../components/portfolio/TargetVsCurrentWidget'
 import { FXExposureWidget } from '../components/portfolio/FXExposureWidget'
 import { AssetTable } from '../components/portfolio/AssetTable'
+import AddAssetModal from '../components/portfolio/AddAssetModal'
 import { usePortfolioStore } from '../store/portfolioStore'
 import { CATEGORIES, CATEGORY_ORDER } from '../lib/utils'
 import type { AssetCategory } from '../types/portfolio'
@@ -36,10 +37,11 @@ function useTheme() {
 }
 
 export function Portfolio() {
-  const { assets } = usePortfolioStore()
+  const { assets, addAsset } = usePortfolioStore()
   const [activeTab, setActiveTab] = useState<AssetCategory>('stock')
   const [hideValues, setHideValues] = useState(false)
   const [modes, setModes] = useState<Modes>(DEFAULT_MODES)
+  const [showAddModal, setShowAddModal] = useState(false)
   const { theme, toggle: toggleTheme } = useTheme()
 
   // Keyboard shortcuts: 1–7 for tabs, N for add
@@ -71,6 +73,7 @@ export function Portfolio() {
         <span className="crumb">enclave</span>
         <span className="sep">/</span>
         <span className="crumb active">portfolio</span>
+        <span className="v-cursor">▊</span>
         <span className="spacer" />
         <span className="pill">
           <span className="dot" /> sync ok · 12s ago
@@ -124,7 +127,7 @@ export function Portfolio() {
           <Button variant="secondary" size="sm">
             <Icon name="refresh" /> Refresh
           </Button>
-          <Button variant="primary" size="sm">
+          <Button variant="primary" size="sm" onClick={() => setShowAddModal(true)}>
             <Icon name="plus" /> Add Asset
           </Button>
         </div>
@@ -169,6 +172,13 @@ export function Portfolio() {
         mode={modes[activeTab]}
         onModeChange={(m) => setModes((prev) => ({ ...prev, [activeTab]: m }))}
       />
+      {showAddModal && (
+        <AddAssetModal
+          onClose={() => setShowAddModal(false)}
+          onAdd={(asset) => { addAsset(asset); setShowAddModal(false) }}
+          defaultCategory={activeTab}
+        />
+      )}
     </main>
   )
 }
