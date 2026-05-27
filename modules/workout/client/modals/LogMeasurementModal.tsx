@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import {
-  Modal, ModalHeader, ModalContent, ModalFooter,
-  Button, Input, Label,
+  Modal, ModalContent, ModalFooter,
+  Button, Input,
   useToast,
 } from '@venator-ui/ui';
-import { Check, ChevronRight } from 'lucide-react';
+import { Check, ChevronRight, X } from 'lucide-react';
 import type { BodyEntry } from '../data/data';
 
 interface Props {
@@ -37,9 +37,8 @@ export default function LogMeasurementModal({ onClose, onSubmit, defaultDate, la
   });
   const [errors, setErrors] = useState<Record<string, boolean>>({});
 
-  const setOpt = (key: keyof OptMeasurements, val: string) => {
+  const setOpt = (key: keyof OptMeasurements, val: string) =>
     setOptM(prev => ({ ...prev, [key]: val }));
-  };
 
   const submit = () => {
     const errs: Record<string, boolean> = {};
@@ -69,82 +68,77 @@ export default function LogMeasurementModal({ onClose, onSubmit, defaultDate, la
     }
 
     onSubmit(entry);
-    toast({
-      title: `Medición registrada · ${entry.weight} kg`,
-      variant: 'success',
-    });
+    toast({ title: `Medición registrada · ${entry.weight} kg`, variant: 'success' });
   };
 
   const optField = (key: keyof OptMeasurements, label: string) => (
     <div key={key} className="flex flex-col gap-1.5">
-      <Label>
-        {label} <span className="text-fg-5 ml-1">cm</span>
-      </Label>
+      <label className="wm-label">
+        {label} <span className="text-fg-5 ml-1 normal-case font-normal">cm</span>
+      </label>
       <Input
-        type="number"
-        step="0.1"
+        type="number" step="0.1"
         value={optM[key]}
         onChange={e => setOpt(key, e.target.value)}
         placeholder="—"
-        className="font-mono"
+        className="wm-mono"
       />
     </div>
   );
 
   return (
-    <Modal open onClose={onClose} size="md">
-      <ModalHeader title="New body measurement" tag="LOG MEASUREMENT" onClose={onClose} />
+    <Modal open onClose={onClose} size="md" className="workout-modal">
+      <div className="wm-header">
+        <h3 className="wm-title">New body measurement</h3>
+        <button type="button" className="wm-close" onClick={onClose} aria-label="Close">
+          <X size={15} />
+        </button>
+      </div>
 
-      <ModalContent className="overflow-y-auto max-h-[70vh]">
+      <ModalContent className="overflow-y-auto max-h-[70vh] !px-[22px] !py-5">
         {/* Date / weight / waist */}
         <div className="flex gap-3 mb-4">
           <div className="flex flex-col gap-1.5 flex-1">
-            <Label htmlFor="meas-date">Date</Label>
+            <label className="wm-label">Date</label>
             <Input
-              id="meas-date"
               type="date"
               value={date}
               onChange={e => setDate(e.target.value)}
               error={errors.date}
-              className="font-mono"
+              className="wm-mono"
             />
           </div>
           <div className="flex flex-col gap-1.5 flex-1">
-            <Label htmlFor="meas-weight">
-              Body weight <span className="text-fg-5 ml-1">kg</span>
-            </Label>
+            <label className="wm-label">
+              Body weight <span className="text-fg-5 ml-1 normal-case font-normal">kg</span>
+            </label>
             <Input
-              id="meas-weight"
-              type="number"
-              step="0.1"
+              type="number" step="0.1"
               value={weight}
               onChange={e => setWeight(e.target.value)}
               placeholder="80.0"
               error={errors.weight}
-              className="font-mono"
+              className="wm-mono"
             />
           </div>
           <div className="flex flex-col gap-1.5 flex-1">
-            <Label htmlFor="meas-waist">
-              Waist <span className="text-fg-5 ml-1">cm</span>
-            </Label>
+            <label className="wm-label">
+              Waist <span className="text-fg-5 ml-1 normal-case font-normal">cm</span>
+            </label>
             <Input
-              id="meas-waist"
-              type="number"
-              step="0.1"
+              type="number" step="0.1"
               value={waist}
               onChange={e => setWaist(e.target.value)}
               placeholder="—"
-              className="font-mono"
+              className="wm-mono"
             />
           </div>
         </div>
 
         {/* Notes */}
         <div className="flex flex-col gap-1.5 mb-2">
-          <Label htmlFor="meas-notes">Notes</Label>
+          <label className="wm-label">Notes</label>
           <Input
-            id="meas-notes"
             value={notes}
             onChange={e => setNotes(e.target.value)}
             placeholder="Cardio extra, refeed, sleep quality…"
@@ -159,22 +153,16 @@ export default function LogMeasurementModal({ onClose, onSubmit, defaultDate, la
         >
           <ChevronRight
             size={12}
-            style={{
-              transition: 'transform 150ms ease',
-              transform: expanded ? 'rotate(90deg)' : 'none',
-            }}
+            style={{ transition: 'transform 150ms ease', transform: expanded ? 'rotate(90deg)' : 'none' }}
           />
           Optional measurements
         </button>
 
-        {/* Animated grid collapse */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateRows: expanded ? '1fr' : '0fr',
-            transition: 'grid-template-rows 220ms ease',
-          }}
-        >
+        <div style={{
+          display: 'grid',
+          gridTemplateRows: expanded ? '1fr' : '0fr',
+          transition: 'grid-template-rows 220ms ease',
+        }}>
           <div style={{ overflow: 'hidden' }}>
             <div className="grid gap-3 pt-2" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
               {optField('chest',  'Chest')}
@@ -190,11 +178,10 @@ export default function LogMeasurementModal({ onClose, onSubmit, defaultDate, la
         </div>
       </ModalContent>
 
-      <ModalFooter>
+      <ModalFooter className="!px-[22px]">
         <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
         <Button variant="primary" size="sm" onClick={submit}>
-          <Check size={14} />
-          Save measurement
+          <Check size={14} /> Save measurement
         </Button>
       </ModalFooter>
     </Modal>

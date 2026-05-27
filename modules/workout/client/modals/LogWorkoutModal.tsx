@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  Modal, ModalHeader, ModalContent, ModalFooter,
-  Button, Input, Label, Separator,
+  Modal, ModalContent, ModalFooter,
+  Button, Input, Separator,
   useToast,
 } from '@venator-ui/ui';
-import { Check, Trash2, Plus, Minus } from 'lucide-react';
+import { Check, Trash2, Plus, Minus, X } from 'lucide-react';
 import { EXERCISE_LIBRARY } from '../data/data';
 import type { WorkoutEntry } from '../data/data';
 
@@ -33,47 +33,40 @@ export default function LogWorkoutModal({ onClose, onSubmit, defaultDate }: Prop
 
   const totalVolume = useMemo(() => {
     let total = 0;
-    for (const ex of exercises) {
+    for (const ex of exercises)
       for (const s of ex.sets) total += (Number(s.reps) || 0) * (Number(s.kg) || 0);
-    }
     return Math.round(total);
   }, [exercises]);
 
   const totalSets = exercises.reduce((n, e) => n + e.sets.length, 0);
 
-  const addExercise = () => {
+  const addExercise = () =>
     setExercises(prev => [...prev, { name: '', sets: [{ reps: '8', kg: '20' }] }]);
-  };
 
-  const removeExercise = (i: number) => {
+  const removeExercise = (i: number) =>
     setExercises(prev => prev.filter((_, idx) => idx !== i));
-  };
 
-  const updateExName = (i: number, n: string) => {
+  const updateExName = (i: number, n: string) =>
     setExercises(prev => prev.map((e, idx) => idx === i ? { ...e, name: n } : e));
-  };
 
-  const addSet = (ei: number) => {
+  const addSet = (ei: number) =>
     setExercises(prev => prev.map((e, idx) => {
       if (idx !== ei) return e;
       const last = e.sets[e.sets.length - 1] ?? { reps: '8', kg: '20' };
       return { ...e, sets: [...e.sets, { ...last }] };
     }));
-  };
 
-  const removeSet = (ei: number, si: number) => {
+  const removeSet = (ei: number, si: number) =>
     setExercises(prev => prev.map((e, idx) => {
       if (idx !== ei) return e;
       return { ...e, sets: e.sets.filter((_, j) => j !== si) };
     }));
-  };
 
-  const updateSet = (ei: number, si: number, field: 'reps' | 'kg', value: string) => {
+  const updateSet = (ei: number, si: number, field: 'reps' | 'kg', value: string) =>
     setExercises(prev => prev.map((e, idx) => {
       if (idx !== ei) return e;
       return { ...e, sets: e.sets.map((s, j) => j === si ? { ...s, [field]: value } : s) };
     }));
-  };
 
   const submit = () => {
     const errs: Record<string, boolean> = {};
@@ -102,16 +95,27 @@ export default function LogWorkoutModal({ onClose, onSubmit, defaultDate }: Prop
   };
 
   return (
-    <Modal open onClose={onClose} size="lg">
-      <ModalHeader title="New workout session" tag="LOG WORKOUT" onClose={onClose} />
+    <Modal
+      open
+      onClose={onClose}
+      size="lg"
+      className="workout-modal !max-w-[640px]"
+      backdropClassName="workout-modal-backdrop"
+    >
+      {/* Custom header — no venator-ui tag, matches the mockup */}
+      <div className="wm-header">
+        <h3 className="wm-title">New workout session</h3>
+        <button type="button" className="wm-close" onClick={onClose} aria-label="Close">
+          <X size={15} />
+        </button>
+      </div>
 
-      <ModalContent className="overflow-y-auto max-h-[60vh]">
-        {/* Name + date row */}
+      <ModalContent className="overflow-y-auto max-h-[60vh] !px-[22px] !py-5">
+        {/* Name + date */}
         <div className="flex gap-3 mb-4">
           <div className="flex flex-col gap-1.5 flex-[2]">
-            <Label htmlFor="session-name">Session name</Label>
+            <label className="wm-label">Session name</label>
             <Input
-              id="session-name"
               ref={nameRef}
               placeholder="Push A, Pull B, Legs…"
               value={name}
@@ -120,21 +124,20 @@ export default function LogWorkoutModal({ onClose, onSubmit, defaultDate }: Prop
             />
           </div>
           <div className="flex flex-col gap-1.5 flex-1">
-            <Label htmlFor="session-date">Date</Label>
+            <label className="wm-label">Date</label>
             <Input
-              id="session-date"
               type="date"
               value={date}
               onChange={e => setDate(e.target.value)}
               error={errors.date}
-              className="font-mono"
+              className="wm-mono"
             />
           </div>
         </div>
 
         {/* Exercises divider */}
         <div className="flex items-center gap-3 my-4">
-          <span className="text-[11px] uppercase tracking-[1px] text-fg-4 font-semibold whitespace-nowrap">Exercises</span>
+          <span className="wm-divider-label">Exercises</span>
           <Separator />
         </div>
 
@@ -145,11 +148,8 @@ export default function LogWorkoutModal({ onClose, onSubmit, defaultDate }: Prop
               className="border border-[var(--border-subtle)] rounded-lg p-3 flex flex-col gap-2.5"
               style={{ background: 'var(--bg-2)' }}
             >
-              {/* Exercise header */}
               <div className="flex items-center gap-2">
-                <span className="font-mono text-[12px] text-fg-4 min-w-[22px]">
-                  {String(ei + 1).padStart(2, '0')}
-                </span>
+                <span className="wm-idx min-w-[22px]">{String(ei + 1).padStart(2, '0')}</span>
                 <Input
                   list="exercise-options"
                   placeholder="Exercise name"
@@ -160,66 +160,57 @@ export default function LogWorkoutModal({ onClose, onSubmit, defaultDate }: Prop
                 <button
                   type="button"
                   onClick={() => removeExercise(ei)}
-                  className="w-[26px] h-[26px] grid place-items-center rounded-[5px] border border-[var(--border-subtle)] text-fg-4 bg-transparent cursor-pointer transition-all hover:text-danger hover:border-danger hover:bg-[var(--danger-bg)] shrink-0"
+                  className="wm-tiny del shrink-0"
                   title="Remove exercise"
                 >
                   <Trash2 size={12} />
                 </button>
               </div>
 
-              {/* Sets header */}
               <div className="grid items-center gap-2" style={{ gridTemplateColumns: '40px 1fr 1fr 28px' }}>
-                <span className="text-[10px] uppercase tracking-[0.6px] text-fg-4 font-semibold">Set</span>
-                <span className="text-[10px] uppercase tracking-[0.6px] text-fg-4 font-semibold">Reps</span>
-                <span className="text-[10px] uppercase tracking-[0.6px] text-fg-4 font-semibold">Weight (kg)</span>
+                <span className="wm-col-label">Set</span>
+                <span className="wm-col-label">Reps</span>
+                <span className="wm-col-label">Weight (kg)</span>
                 <span />
               </div>
 
-              {/* Set rows */}
               {ex.sets.map((s, si) => (
                 <div key={si} className="grid items-center gap-2" style={{ gridTemplateColumns: '40px 1fr 1fr 28px' }}>
-                  <span className="font-mono text-[12px] text-fg-4">{String(si + 1).padStart(2, '0')}</span>
+                  <span className="wm-idx">{String(si + 1).padStart(2, '0')}</span>
                   <Input
-                    type="number"
-                    min="0"
+                    type="number" min="0"
                     value={s.reps}
                     onChange={e => updateSet(ei, si, 'reps', e.target.value)}
-                    className="font-mono"
+                    className="wm-mono"
                     size="sm"
                   />
                   <Input
-                    type="number"
-                    step="0.5"
-                    min="0"
+                    type="number" step="0.5" min="0"
                     value={s.kg}
                     onChange={e => updateSet(ei, si, 'kg', e.target.value)}
-                    className="font-mono"
+                    className="wm-mono"
                     size="sm"
                   />
                   <button
                     type="button"
                     onClick={() => removeSet(ei, si)}
                     disabled={ex.sets.length <= 1}
-                    className="w-[26px] h-[26px] grid place-items-center rounded-[5px] border border-[var(--border-subtle)] text-fg-4 bg-transparent cursor-pointer transition-all hover:bg-bg-3 hover:text-fg-2 disabled:opacity-35 disabled:cursor-not-allowed"
+                    className="wm-tiny disabled:opacity-35 disabled:cursor-not-allowed"
                   >
                     <Minus size={12} />
                   </button>
                 </div>
               ))}
 
-              {/* Add set */}
               <button type="button" className="add-row-btn" onClick={() => addSet(ei)}>
-                <Plus size={12} />
-                Add set
+                <Plus size={12} /> Add set
               </button>
             </div>
           ))}
         </div>
 
-        {/* Add exercise */}
         <button type="button" className="add-row-btn mt-3" onClick={addExercise}>
-          <Plus size={12} />
-          Add exercise
+          <Plus size={12} /> Add exercise
         </button>
 
         <datalist id="exercise-options">
@@ -227,15 +218,14 @@ export default function LogWorkoutModal({ onClose, onSubmit, defaultDate }: Prop
         </datalist>
       </ModalContent>
 
-      <ModalFooter>
-        <div className="mr-auto flex gap-3.5 font-mono text-[11px] text-fg-4">
+      <ModalFooter className="!px-[22px]">
+        <div className="mr-auto wm-stats">
           <span>{exercises.length} ex · {totalSets} sets</span>
-          <span style={{ color: 'var(--accent)' }}>{totalVolume.toLocaleString()} kg vol</span>
+          <span className="vol">{totalVolume.toLocaleString()} kg vol</span>
         </div>
         <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
         <Button variant="primary" size="sm" onClick={submit}>
-          <Check size={14} />
-          Save session
+          <Check size={14} /> Save session
         </Button>
       </ModalFooter>
     </Modal>
