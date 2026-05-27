@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom"
 import { type AppEntry } from "@/lib/apps-data"
 import {
   Radio, Eye, Package, FlaskConical, ShieldAlert, Wrench,
@@ -18,6 +19,7 @@ interface AppDetailModalProps {
 }
 
 export function AppDetailModal({ app, onClose }: AppDetailModalProps) {
+  const navigate = useNavigate()
   if (!app) return null
 
   const Icon = ICON_MAP[app.icon] ?? Wrench
@@ -101,7 +103,10 @@ export function AppDetailModal({ app, onClose }: AppDetailModalProps) {
             <Button
               variant="primary"
               fullWidth
-              onClick={() => { if (app.url) window.open(app.url, "_blank"); onClose() }}
+              onClick={() => {
+                if (app.route) { navigate(app.route); onClose() }
+                else if (app.url) { window.open(app.url, "_blank"); onClose() }
+              }}
               className="font-mono tracking-widest uppercase text-xs !bg-primary/10 !text-primary !border-primary/40"
             >
               <ExternalLink className="w-3.5 h-3.5 mr-2" />

@@ -15,7 +15,11 @@
     "esModuleInterop": true,
     "allowJs": true,
     "paths": {
-      "@/*": ["./*"]
+      "@/*": [
+        "../../modules/inventory/client/*",
+        "./*"
+      ],
+      "@enclave/sdk": ["../../packages/sdk/src/index.ts"]
     }
   },
   "include": ["src", "components", "lib", "vite.config.ts"],

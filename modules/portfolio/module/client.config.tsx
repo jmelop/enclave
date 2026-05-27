@@ -1,6 +1,7 @@
 import type { ModuleClientConfig } from '@enclave/sdk';
+import '../client/index.css';
 import { portfolioMeta } from './meta';
-import { Overview } from '../client/pages/Overview';
+import { AppShell } from '../client/components/layout/AppShell';
 import { Portfolio } from '../client/pages/Portfolio';
 
 export const portfolioClient: ModuleClientConfig = {
@@ -8,7 +9,6 @@ export const portfolioClient: ModuleClientConfig = {
   navLabel: 'Portfolio',
   basePath: portfolioMeta.basePath,
   routes: [
-    { index: true, element: <Overview /> },
-    { path: 'detail', element: <Portfolio /> },
+    { index: true, element: <div className="v-shell"><AppShell><Portfolio /></AppShell></div> },
   ],
 };

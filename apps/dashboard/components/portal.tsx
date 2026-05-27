@@ -1,12 +1,12 @@
 import { useState, useMemo, useCallback, useEffect } from "react"
 import { APPS, type AppCategory, type AppEntry } from "@/lib/apps-data"
+import { AppDetailModal } from "./app-detail-modal"
 import { TerminalHeader } from "./terminal-header"
 import { CategoryNav } from "./category-nav"
 import { TerminalSearch } from "./terminal-search"
 import { AppCard } from "./app-card"
 import { StatusPanel } from "./status-panel"
 import { TerminalLog } from "./terminal-log"
-import { AppDetailModal } from "./app-detail-modal"
 import { EnclaveEmblem } from "./enclave-emblem"
 
 export function Portal() {
