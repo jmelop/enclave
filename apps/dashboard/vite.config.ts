@@ -17,7 +17,11 @@ export default defineConfig({
       { find: '@/lib/utils',                     replacement: `${invClient}/lib/utils.ts` },
       { find: '@/lib/seed',                      replacement: `${invClient}/lib/seed.ts` },
       // Shared
-      { find: '@enclave/sdk', replacement: path.resolve(__dirname, '../../packages/sdk/src/index.ts') },
+      { find: '@enclave/sdk',      replacement: path.resolve(__dirname, '../../packages/sdk/src/index.ts') },
+      { find: '@enclave/ui-shell', replacement: path.resolve(__dirname, '../../packages/ui-shell/src/index.ts') },
+      // Pin ui-shell peer deps to dashboard node_modules (ui-shell has no own node_modules)
+      { find: /^@venator-ui\/ui$/, replacement: path.resolve(__dirname, 'node_modules/@venator-ui/ui') },
+      { find: /^lucide-react$/,    replacement: path.resolve(__dirname, 'node_modules/lucide-react') },
       // Dashboard catch-all (portal, app-card, etc.)
       { find: '@', replacement: path.resolve(__dirname, '.') },
     ],

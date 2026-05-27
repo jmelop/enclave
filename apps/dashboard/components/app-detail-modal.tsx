@@ -107,7 +107,7 @@ export function AppDetailModal({ app, onClose }: AppDetailModalProps) {
                 if (app.route) { navigate(app.route); onClose() }
                 else if (app.url) { window.open(app.url, "_blank"); onClose() }
               }}
-              className="font-mono tracking-widest uppercase text-xs !bg-primary/10 !text-primary !border-primary/40"
+              className="font-mono tracking-widest uppercase text-xs !bg-[var(--enclave-amber-glow)] !text-[var(--enclave-amber)] !border-[var(--enclave-amber-dim)]"
             >
               <ExternalLink className="w-3.5 h-3.5 mr-2" />
               Launch application

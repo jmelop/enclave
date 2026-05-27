@@ -52,7 +52,7 @@ export function Portal() {
   }, [])
 
   return (
-    <div className="h-screen flex flex-col bg-[#0c0e0c] text-foreground font-mono relative overflow-hidden">
+    <div className="portal-root h-screen flex flex-col bg-[#0c0e0c] text-foreground font-mono relative overflow-hidden">
       {/* Header */}
       <div className="relative z-10 shrink-0">
         <TerminalHeader />
