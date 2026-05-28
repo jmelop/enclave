@@ -1,0 +1,15 @@
+{
+  "name": "@enclave/sdk",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "peerDependencies": {
+    "express": "*",
+    "react-router-dom": "*"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "typescript": "^5.3.3"
+  }
+}

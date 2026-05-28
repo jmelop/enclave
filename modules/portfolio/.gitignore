@@ -17,7 +17,6 @@ npm-debug.log*
 # claude
 .claude/
 
-# editor
 .vscode/
 .idea/
 *.suo

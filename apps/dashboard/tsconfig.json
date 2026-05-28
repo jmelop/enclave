@@ -15,7 +15,17 @@
     "esModuleInterop": true,
     "allowJs": true,
     "paths": {
-      "@/*": ["./*"]
+      "@/*": [
+        "../../modules/inventory/client/*",
+        "./*"
+      ],
+      "@enclave/sdk": ["../../packages/sdk/src/index.ts"],
+      "@enclave/ui-shell": ["../../packages/ui-shell/src/index.ts"],
+      "react": ["./node_modules/@types/react"],
+      "react/*": ["./node_modules/@types/react/*"],
+      "react-router-dom": ["./node_modules/react-router-dom"],
+      "@venator-ui/ui": ["./node_modules/@venator-ui/ui"],
+      "lucide-react": ["./node_modules/lucide-react"]
     }
   },
   "include": ["src", "components", "lib", "vite.config.ts"],

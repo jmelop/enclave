@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview",
+    "dev": "vite --config client/vite.config.ts",
+    "build": "tsc -b client/tsconfig.json && vite build --config client/vite.config.ts",
+    "preview": "vite preview --config client/vite.config.ts",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
@@ -20,6 +20,7 @@
     "zustand": "^4.5.4"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",
     "@vitejs/plugin-react": "^4.2.1",

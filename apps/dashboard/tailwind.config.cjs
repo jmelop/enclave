@@ -11,9 +11,15 @@ module.exports = {
     './index.html',
     './node_modules/@venator-ui/ui/dist/**/*.{js,mjs}',
     './node_modules/@venator-ui/patterns/dist/**/*.{js,mjs}',
+    '../../modules/*/client/**/*.{ts,tsx}',
+    '../../modules/*/module/**/*.{ts,tsx}',
+    '../../packages/ui-shell/src/**/*.{ts,tsx}',
   ],
   theme: {
     extend: {
+      fontFamily: {
+        mono: ['Share Tech Mono', 'Courier New', 'monospace'],
+      },
       colors: {
         background: 'var(--background)',
         foreground: 'var(--foreground)',

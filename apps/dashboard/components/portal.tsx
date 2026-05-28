@@ -1,12 +1,12 @@
 import { useState, useMemo, useCallback, useEffect } from "react"
 import { APPS, type AppCategory, type AppEntry } from "@/lib/apps-data"
+import { AppDetailModal } from "./app-detail-modal"
 import { TerminalHeader } from "./terminal-header"
 import { CategoryNav } from "./category-nav"
 import { TerminalSearch } from "./terminal-search"
 import { AppCard } from "./app-card"
 import { StatusPanel } from "./status-panel"
 import { TerminalLog } from "./terminal-log"
-import { AppDetailModal } from "./app-detail-modal"
 import { EnclaveEmblem } from "./enclave-emblem"
 
 export function Portal() {
@@ -52,7 +52,7 @@ export function Portal() {
   }, [])
 
   return (
-    <div className="h-screen flex flex-col bg-[#0c0e0c] text-foreground font-mono relative overflow-hidden">
+    <div className="portal-root h-screen flex flex-col bg-[#0c0e0c] text-foreground font-mono relative overflow-hidden">
       {/* Header */}
       <div className="relative z-10 shrink-0">
         <TerminalHeader />

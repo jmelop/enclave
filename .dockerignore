@@ -1,0 +1,9 @@
+**/node_modules
+**/dist
+**/.git
+**/*.tsbuildinfo
+**/.claude
+**/.idea
+**/.vscode
+**/npm-debug.log*
+**/*.log

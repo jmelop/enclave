@@ -1,2 +1,3 @@
 .claude/
 *.tsbuildinfo
+packages/sdk/node_modules/

@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@enclave/sdk":      ["../../../packages/sdk/src/index.ts"],
+      "@enclave/ui-shell": ["../../../packages/ui-shell/src/index.ts"],
+      "react":             ["../node_modules/@types/react"],
+      "react/*":           ["../node_modules/@types/react/*"],
+      "react-router-dom":  ["../node_modules/react-router-dom"],
+      "@venator-ui/ui":    ["../node_modules/@venator-ui/ui"],
+      "lucide-react":      ["../node_modules/lucide-react"]
+    }
+  },
+  "include": [".", "../module/meta.ts", "../module/client.config.tsx"],
+  "exclude": ["../server", "../module/server.config.ts", "../node_modules"]
+}

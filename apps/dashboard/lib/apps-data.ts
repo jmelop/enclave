@@ -25,6 +25,7 @@ export interface AppEntry {
   clearanceLevel: number
   icon: string
   url?: string
+  route?: string
 }
 
 export const CATEGORIES: Record<AppCategory, { label: string; icon: string }> = {
@@ -51,6 +52,7 @@ export const APPS: AppEntry[] = [
     clearanceLevel: 2,
     icon: "TrendingUp",
     url: undefined,
+    route: '/portfolio',
   },
   {
     id: "icloud-calendar",
