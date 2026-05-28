@@ -8,6 +8,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 export default defineConfig({
   root: __dirname,
   plugins: [react()],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:4000',
+        changeOrigin: true,
+      },
+    },
+  },
   resolve: {
     dedupe: ['react', 'react-dom', 'react-router-dom'],
     alias: [

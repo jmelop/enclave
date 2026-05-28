@@ -3,7 +3,7 @@ import path from 'path';
 import type { Pool } from 'pg';
 
 export async function runSchemas(pool: Pool): Promise<void> {
-  const schemaDir = path.join(process.cwd(), 'schema');
+  const schemaDir = path.join(__dirname, '../../schema');
 
   let files: string[];
   try {

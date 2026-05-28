@@ -5,3 +5,5 @@ export interface ModuleServerConfig {
   basePath: string;
   router: Router;
 }
+
+export * from './domain';
