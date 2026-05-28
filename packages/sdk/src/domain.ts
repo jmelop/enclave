@@ -32,3 +32,5 @@ export interface Asset {
 export interface DbPool {
   query(sql: string, params?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
 }
+
+export type AssetInput = Omit<Asset, 'id'>
