@@ -2,21 +2,12 @@
 -- Orden importa: asset_categories antes que sus referenciadoras.
 
 CREATE TABLE IF NOT EXISTS asset_categories (
-  id       TEXT PRIMARY KEY,   -- 'stock'|'fund'|'crypto'|'savings'|'realestate'|'collectible'|'investment'
-  label    TEXT NOT NULL,
-  short    TEXT NOT NULL,
-  color    TEXT NOT NULL,      -- hex
-  pricing  TEXT NOT NULL       -- 'auto'|'manual'
+  id  TEXT PRIMARY KEY   -- 'stock'|'fund'|'crypto'|'savings'|'realestate'|'collectible'|'investment'
 );
 
-INSERT INTO asset_categories (id, label, short, color, pricing) VALUES
-  ('stock',       'Stocks',                'Stocks',                  '#5b9dff', 'auto'),
-  ('fund',        'Funds',                 'Funds & ETFs',            '#5eead4', 'auto'),
-  ('crypto',      'Crypto',                'Crypto',                  '#f7a23a', 'auto'),
-  ('savings',     'Savings',               'Savings accounts',        '#86efac', 'manual'),
-  ('realestate',  'Real Estate',           'Real Estate',             '#b08968', 'manual'),
-  ('collectible', 'Metals & Collectibles', 'Collectibles',            '#d4a574', 'manual'),
-  ('investment',  'Investments',           'Alternative investments', '#c4a3ff', 'manual')
+INSERT INTO asset_categories (id) VALUES
+  ('stock'), ('fund'), ('crypto'), ('savings'),
+  ('realestate'), ('collectible'), ('investment')
 ON CONFLICT (id) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS assets (
