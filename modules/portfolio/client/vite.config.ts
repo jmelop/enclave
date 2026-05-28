@@ -18,6 +18,8 @@ export default defineConfig({
       { find: /^react-router-dom$/, replacement: path.resolve(__dirname, '../node_modules/react-router-dom') },
       { find: /^@venator-ui\/ui$/,  replacement: path.resolve(__dirname, '../node_modules/@venator-ui/ui') },
       { find: /^lucide-react$/,     replacement: path.resolve(__dirname, '../node_modules/lucide-react') },
+      // inventory client uses @/ aliases — needed because enclave.modules.client.ts pulls it in eagerly
+      { find: '@', replacement: path.resolve(__dirname, '../../inventory/client') },
     ],
   },
 })

@@ -37,12 +37,16 @@ function useTheme() {
 }
 
 export function Portfolio() {
-  const { assets, addAsset } = usePortfolioStore()
+  const { assets, addAsset, loading, error, hydrated, hydrate } = usePortfolioStore()
   const [activeTab, setActiveTab] = useState<AssetCategory>('stock')
   const [hideValues, setHideValues] = useState(false)
   const [modes, setModes] = useState<Modes>(DEFAULT_MODES)
   const [showAddModal, setShowAddModal] = useState(false)
   const { theme, toggle: toggleTheme } = useTheme()
+
+  useEffect(() => {
+    hydrate()
+  }, [])
 
   // Keyboard shortcuts: 1–7 for tabs, N for add
   useEffect(() => {
@@ -143,35 +147,56 @@ export function Portfolio() {
         <FXExposureWidget assets={assets} hideValues={hideValues} />
       </div>
 
-      {/* Tabs */}
-      <div className="v-tabs" role="tablist">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            className={`v-tab${activeTab === t.id ? ' active' : ''}`}
-            role="tab"
-            aria-selected={activeTab === t.id}
-            onClick={() => setActiveTab(t.id)}
-          >
-            {t.label}
-            <span className="count">{counts[t.id] ?? 0}</span>
-          </button>
-        ))}
-        <div className="v-tabs-trail">
-          <button className="v-btn v-btn-sm v-btn-ghost">
-            <Icon name="search" size={14} /> Search
+      {/* Asset list area — exclusive states */}
+      {(loading && !hydrated) ? (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '64px 0', color: 'var(--fg-3)', fontSize: 13 }}>
+          Loading…
+        </div>
+      ) : (error && !hydrated) ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '64px 0' }}>
+          <p style={{ margin: 0, color: 'var(--fg-3)', fontSize: 13 }}>{error}</p>
+          <button className="v-btn v-btn-sm v-btn-secondary" onClick={() => hydrate()}>
+            Retry
           </button>
         </div>
-      </div>
+      ) : (hydrated && assets.length === 0) ? (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '64px 0', color: 'var(--fg-3)', fontSize: 13 }}>
+          No assets yet.
+        </div>
+      ) : (
+        <>
+          {/* Tabs */}
+          <div className="v-tabs" role="tablist">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                className={`v-tab${activeTab === t.id ? ' active' : ''}`}
+                role="tab"
+                aria-selected={activeTab === t.id}
+                onClick={() => setActiveTab(t.id)}
+              >
+                {t.label}
+                <span className="count">{counts[t.id] ?? 0}</span>
+              </button>
+            ))}
+            <div className="v-tabs-trail">
+              <button className="v-btn v-btn-sm v-btn-ghost">
+                <Icon name="search" size={14} /> Search
+              </button>
+            </div>
+          </div>
 
-      {/* Asset list */}
-      <AssetTable
-        assets={assets}
-        category={activeTab}
-        hideValues={hideValues}
-        mode={modes[activeTab]}
-        onModeChange={(m) => setModes((prev) => ({ ...prev, [activeTab]: m }))}
-      />
+          {/* Asset list */}
+          <AssetTable
+            assets={assets}
+            category={activeTab}
+            hideValues={hideValues}
+            mode={modes[activeTab]}
+            onModeChange={(m) => setModes((prev) => ({ ...prev, [activeTab]: m }))}
+          />
+        </>
+      )}
+
       {showAddModal && (
         <AddAssetModal
           onClose={() => setShowAddModal(false)}
