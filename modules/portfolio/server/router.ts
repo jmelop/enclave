@@ -1,9 +1,6 @@
 import { Router } from 'express';
+import type { DbPool } from '@enclave/sdk';
 import { INITIAL_ASSETS } from './seed';
-
-interface DbPool {
-  query(sql: string, params?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
-}
 
 type AssetRow = Record<string, unknown>;
 
