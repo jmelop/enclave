@@ -1,6 +1,6 @@
-import type { Asset, AssetCategory, Currency } from '@enclave/sdk'
+import type { Asset, AssetCategory, Currency, AssetInput } from '@enclave/sdk'
 
-export type { Asset, AssetCategory, Currency }
+export type { Asset, AssetCategory, Currency, AssetInput }
 
 export interface AllocationTarget {
   category: AssetCategory
