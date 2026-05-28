@@ -1,3 +1,6 @@
-import { portfolioServer } from '../../../modules/portfolio/module/server.config';
+import type { Pool } from 'pg';
+import { createPortfolioServer } from '../../../modules/portfolio/module/server.config';
 
-export const serverModules = [portfolioServer];
+export function createModules(pool: Pool) {
+  return [createPortfolioServer(pool)];
+}
