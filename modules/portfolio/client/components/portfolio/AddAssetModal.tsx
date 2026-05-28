@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useToast } from '@venator-ui/ui'
 import { CATEGORIES } from '../../lib/utils'
-import type { Asset, AssetCategory } from '../../types/portfolio'
+import type { AssetCategory, AssetInput } from '../../types/portfolio'
 
 const SUBTYPES = {
   collectible: [
@@ -47,7 +47,7 @@ const TYPE_TABS: { id: AssetCategory; label: string; hint: string }[] = [
 
 interface Props {
   onClose: () => void
-  onAdd: (asset: Asset) => void
+  onAdd: (input: AssetInput) => Promise<void>
   defaultCategory?: AssetCategory
 }
 
@@ -105,6 +105,7 @@ export default function AddAssetModal({ onClose, onAdd, defaultCategory }: Props
   const [type, setType] = useState<AssetCategory>(defaultCategory ?? 'stock')
   const [form, setForm] = useState<FormState>({ currency: 'EUR' })
   const [validated, setValidated] = useState<'ok' | 'err' | null>(null)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -141,9 +142,36 @@ export default function AddAssetModal({ onClose, onAdd, defaultCategory }: Props
     }
   }
 
-  const submit = () => {
-    const base: Asset = {
-      id: 'a' + Date.now(),
+  const submit = async () => {
+    // Client-side validation
+    if (type === 'savings') {
+      if (!form.bank?.trim()) {
+        toast({ title: 'Bank / Institution is required', variant: 'error' })
+        return
+      }
+    } else {
+      if (!form.name?.trim()) {
+        toast({ title: 'Name is required', variant: 'error' })
+        return
+      }
+    }
+
+    if (type === 'crypto' || type === 'stock' || type === 'fund') {
+      if (!form.symbol?.trim()) {
+        toast({ title: 'Symbol is required', variant: 'error' })
+        return
+      }
+    }
+
+    if (type === 'savings' || type === 'realestate' || type === 'collectible' || type === 'investment') {
+      const amount = parseFloat(form.amount ?? '')
+      if (!amount || amount <= 0) {
+        toast({ title: 'Amount must be greater than 0', variant: 'error' })
+        return
+      }
+    }
+
+    const base: AssetInput = {
       type,
       name: form.name ?? '',
       currency: form.currency ?? 'EUR',
@@ -180,9 +208,16 @@ export default function AddAssetModal({ onClose, onAdd, defaultCategory }: Props
       base.subtype = form.subtype || 'other'
     }
 
-    onAdd(base)
-    toast({ title: `${base.name} added to ${CATEGORIES[type].label}`, variant: 'success' })
-    onClose()
+    setSaving(true)
+    try {
+      await onAdd(base)
+      toast({ title: `${base.name} added to ${CATEGORIES[type].label}`, variant: 'success' })
+      onClose()
+    } catch (err) {
+      toast({ title: err instanceof Error ? err.message : 'Error saving asset', variant: 'error' })
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -461,11 +496,15 @@ export default function AddAssetModal({ onClose, onAdd, defaultCategory }: Props
 
         <div className="v-modal-foot">
           <button className="v-btn" onClick={onClose}>Cancel</button>
-          <button className="v-btn v-btn-primary" onClick={submit}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <path d="M8 3v10M3 8h10"/>
-            </svg>
-            Add
+          <button className="v-btn v-btn-primary" onClick={submit} disabled={saving}>
+            {saving ? 'Saving…' : (
+              <>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <path d="M8 3v10M3 8h10"/>
+                </svg>
+                Add
+              </>
+            )}
           </button>
         </div>
       </div>
