@@ -1,6 +1,11 @@
 import { Router } from 'express';
-import type { DbPool } from '@enclave/sdk';
+import { randomUUID } from 'crypto';
+import type { DbPool, AssetInput } from '@enclave/sdk';
 import { INITIAL_ASSETS } from './seed';
+
+const VALID_TYPES = new Set([
+  'stock', 'fund', 'crypto', 'savings', 'realestate', 'collectible', 'investment',
+]);
 
 type AssetRow = Record<string, unknown>;
 
@@ -42,6 +47,63 @@ export function createPortfolioRouter(pool: DbPool): Router {
     } catch (err) {
       console.warn('[portfolio] /holdings db unavailable, using seed:', err);
       res.json(INITIAL_ASSETS);
+    }
+  });
+
+  router.post('/holdings', async (req, res) => {
+    const input = req.body as AssetInput;
+
+    if (!VALID_TYPES.has(input.type)) {
+      return res.status(400).json({ error: 'Invalid asset type' });
+    }
+    if (!input.name?.trim()) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+    if (!input.currency?.trim()) {
+      return res.status(400).json({ error: 'Currency is required' });
+    }
+
+    const id = randomUUID();
+
+    try {
+      const { rows } = await pool.query(
+        `INSERT INTO assets (
+          id, type, name, description, currency,
+          symbol, price, quantity, change_pct_24h,
+          isin, ter, distribution,
+          amount, subtype, valuation_date,
+          bank, apy, updated_at
+        ) VALUES (
+          $1, $2, $3, $4, $5,
+          $6, $7, $8, $9,
+          $10, $11, $12,
+          $13, $14, $15,
+          $16, $17, NOW()
+        ) RETURNING *`,
+        [
+          id,
+          input.type,
+          input.name,
+          input.description ?? null,
+          input.currency,
+          input.symbol ?? null,
+          input.price ?? null,
+          input.quantity ?? null,
+          input.changePercent24h ?? null,
+          input.isin ?? null,
+          input.ter ?? null,
+          input.distribution ?? null,
+          input.amount ?? null,
+          input.subtype ?? null,
+          input.valuationDate ?? null,
+          input.bank ?? null,
+          input.apy ?? null,
+        ],
+      );
+      return res.status(201).json(mapAsset(rows[0]));
+    } catch (err) {
+      console.warn('[portfolio] POST /holdings db error:', err);
+      return res.status(503).json({ error: 'Database unavailable, cannot save asset' });
     }
   });
 
