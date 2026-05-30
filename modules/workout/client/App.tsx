@@ -45,7 +45,7 @@ export default function App() {
 
   return (
     <div data-theme={theme} style={{ background: 'var(--bg)', color: 'var(--fg)', minHeight: '100%' }}>
-      <div className="px-7 pt-[22px] pb-[60px]">
+      <div className="canvas with-grid">
         <div className="v-topbar">
           <span className="crumb">enclave</span>
           <span className="sep">/</span>
@@ -74,6 +74,15 @@ export default function App() {
             )}
           </button>
         </div>
+        <header className="hero">
+          <div className="hero-tag mono">// MODULE · enclave-workout</div>
+          <div className="hero-row">
+            <h1 className="hero-title">Workout<span className="hero-dot">.</span></h1>
+          </div>
+          <div className="hero-sub">
+            Track your training — sessions, exercises, and body composition over time.
+          </div>
+        </header>
         <Routes>
           <Route index element={<OverviewPage workouts={workouts} bodyLog={bodyLog} />} />
           <Route path="workouts" element={<WorkoutsPage workouts={workouts} onAddWorkout={addWorkout} />} />

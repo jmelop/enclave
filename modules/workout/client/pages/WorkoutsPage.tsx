@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { PageHeader } from '@venator-ui/patterns';
 import { Button, Badge, Separator, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Input } from '@venator-ui/ui';
 import { Plus, ChevronRight, Search } from 'lucide-react';
 import LogWorkoutModal from '../modals/LogWorkoutModal';
@@ -29,31 +28,27 @@ export default function WorkoutsPage({ workouts, onAddWorkout }: Props) {
 
   return (
     <>
-      <PageHeader
-        title="Workouts"
-        description={`${workouts.length} sessions logged — sorted by date`}
-        actions={
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search
-                size={13}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-fg-4 pointer-events-none"
-              />
-              <Input
-                placeholder="Search exercise or session…"
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                className="pl-8 w-56 text-sm"
-              />
-            </div>
-            <Button variant="primary" size="sm" onClick={() => setModalOpen(true)}>
-              <Plus size={14} />
-              Log Workout
-            </Button>
+      <div className="flex items-center justify-between gap-4 mb-5">
+        <p className="text-sm text-fg-3">{workouts.length} sessions logged — sorted by date</p>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search
+              size={13}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-fg-4 pointer-events-none"
+            />
+            <Input
+              placeholder="Search exercise or session…"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              className="pl-8 w-56 text-sm"
+            />
           </div>
-        }
-        className="mb-5"
-      />
+          <Button variant="primary" size="sm" onClick={() => setModalOpen(true)}>
+            <Plus size={14} />
+            Log Workout
+          </Button>
+        </div>
+      </div>
 
       <div className="flex flex-col gap-2">
         {filtered.length === 0 && (

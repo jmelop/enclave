@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { PageHeader, StatCard } from '@venator-ui/patterns';
+import { StatCard } from '@venator-ui/patterns';
 import { Button, Separator, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge } from '@venator-ui/ui';
 import { Plus } from 'lucide-react';
 import LineChart from '../components/LineChart';
@@ -42,17 +42,13 @@ export default function BodyPage({ bodyLog, onAddEntry }: Props) {
 
   return (
     <>
-      <PageHeader
-        title="Body Tracking"
-        description={`${bodyLog.length} entries · ${formatDate(bodyLog[0].date, { short: true })} → ${formatDate(latest.date, { short: true })}`}
-        actions={
-          <Button variant="primary" size="sm" onClick={() => setModalOpen(true)}>
-            <Plus size={14} />
-            Log Measurement
-          </Button>
-        }
-        className="mb-5"
-      />
+      <div className="flex items-center justify-between gap-4 mb-5">
+        <p className="text-sm text-fg-3">{bodyLog.length} entries · {formatDate(bodyLog[0].date, { short: true })} → {formatDate(latest.date, { short: true })}</p>
+        <Button variant="primary" size="sm" onClick={() => setModalOpen(true)}>
+          <Plus size={14} />
+          Log Measurement
+        </Button>
+      </div>
 
       {/* Weight chart */}
       <div
