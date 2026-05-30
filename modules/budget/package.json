@@ -1,0 +1,33 @@
+{
+  "name": "enclave-budget",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --config client/vite.config.ts",
+    "build": "tsc -b client/tsconfig.json && vite build --config client/vite.config.ts",
+    "preview": "vite preview --config client/vite.config.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@venator-ui/patterns": "^0.1.6",
+    "@venator-ui/ui": "^0.1.8",
+    "lucide-react": "^0.460.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.0",
+    "zustand": "^5.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "@venator-ui/tokens": "^0.1.6",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.14",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.7.2",
+    "vite": "^6.3.5"
+  }
+}
