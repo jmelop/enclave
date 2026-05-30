@@ -230,7 +230,7 @@ body {
   padding: 4px 8px;
   border: 1px solid var(--border-subtle);
   border-radius: 999px;
-  background: var(--bg-1);
+  background: var(--bg-3);
 }
 .v-topbar .dot {
   width: 6px; height: 6px; border-radius: 50%;
@@ -247,7 +247,18 @@ body {
 .p-header {
   display: flex; align-items: flex-end; justify-content: space-between;
   gap: 24px;
+  padding-bottom: 24px;
   margin-bottom: 22px;
+  position: relative;
+}
+.p-header::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    color-mix(in oklab, var(--warn) 65%, transparent) 0%,
+    var(--border-subtle) 18%,
+    var(--border-subtle) 82%,
+    transparent 100%);
 }
 .p-title {
   font-size: 30px;
@@ -255,6 +266,11 @@ body {
   letter-spacing: -0.02em;
   margin: 0;
   line-height: 1.1;
+}
+.p-title-dot { color: var(--warn); }
+.p-tag {
+  font-size: 10.5px; color: var(--fg-3); letter-spacing: 0.08em;
+  text-transform: uppercase; margin-bottom: 12px;
 }
 .p-subtitle {
   color: var(--fg-3);
