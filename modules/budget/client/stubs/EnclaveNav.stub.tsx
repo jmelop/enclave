@@ -18,8 +18,22 @@ export function EnclaveNav() {
   return (
     <aside className="sidebar">
       <div className="brand">
-        <div className="brand-name mono" style={{ fontSize: 11.5, letterSpacing: '0.04em' }}>
-          enclave / budget
+        <div
+          className="brand-mark"
+          style={{
+            background: 'linear-gradient(135deg, #fcd34d, #f97316)',
+            fontFamily: 'JetBrains Mono, monospace',
+            fontSize: 13,
+            fontWeight: 700,
+            color: '#fff',
+            boxShadow: 'none',
+          }}
+        >
+          E
+        </div>
+        <div>
+          <div className="brand-name" style={{ fontSize: 13 }}>enclave</div>
+          <div className="brand-sub">budget</div>
         </div>
       </div>
       <div className="side-section">
