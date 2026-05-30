@@ -116,7 +116,9 @@ export function InventoryPage() {
               {lowCount > 0 && <span className="alert-seg-low">{lowCount} LOW</span>}
             </span>
           )}
-          <span className="pill"><span className="dot" />INDEX SYNCED · {time}</span>
+          <span className="pill"><span className="dot" />synced</span>
+          <span style={{ color: 'var(--fg-5)' }}>·</span>
+          <span>{new Date().toISOString().slice(0, 10)}</span>
           <span style={{ color: 'var(--fg-5)' }}>·</span>
           <button
             onClick={toggleTheme}
