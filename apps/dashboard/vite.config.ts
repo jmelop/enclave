@@ -5,43 +5,38 @@ import path from 'path'
 const root      = path.resolve(__dirname, '../..')
 const invClient = path.resolve(root, 'modules/inventory/client').replace(/\\/g, '/')
 const bdgClient = path.resolve(root, 'modules/budget/client').replace(/\\/g, '/')
+const labClient = path.resolve(root, 'modules/lab/client').replace(/\\/g, '/')
 
 /**
- * `@/lib/utils` and `@/lib/seed` exist in BOTH inventory and budget but
- * resolve to different files.  Static Vite aliases can't disambiguate because
- * they are global (no per-importer context).
+ * Rewrites ALL `@/` imports from module files so that each module's source
+ * resolves against its own client directory, not the dashboard root.
  *
- * The `resolveId` hook also can't help: in Vite 5, `resolve.alias` processing
- * happens before user pre-plugins' resolveId, so the `@` catch-all has already
- * rewritten the id to an absolute dashboard path by the time our hook fires.
- *
- * The `transform` hook runs BEFORE `vite:import-analysis` even when that
- * analysis is what discovers the import.  We rewrite the specifier in-source
- * so import-analysis sees an absolute path that resolves cleanly.
+ * Static Vite aliases are global (no per-importer context), so a single `@`
+ * catch-all can't distinguish between budget's `@/lib/utils` and lab's.
+ * The `transform` hook fires before `vite:import-analysis` and rewrites
+ * specifiers in-source so import-analysis sees absolute paths.
  */
-function rewriteConflictingAtImports(): Plugin {
+function rewriteModuleAtImports(): Plugin {
   const n = (p: string) => p.replace(/\\/g, '/').toLowerCase()
 
   const MODULES = [
     { dir: n(path.resolve(root, 'modules/inventory/client')), client: invClient },
     { dir: n(path.resolve(root, 'modules/budget/client')),    client: bdgClient },
+    { dir: n(path.resolve(root, 'modules/lab/client')),       client: labClient },
   ]
 
   return {
-    name: 'rewrite-conflicting-at-imports',
+    name: 'rewrite-module-at-imports',
     enforce: 'pre',
     transform(code, id) {
-      if (!/@\/lib\/(utils|seed)/.test(code)) return   // fast exit
-
+      if (!code.includes('@/')) return
       const idNorm = n(id)
       const mod = MODULES.find(m => idNorm.startsWith(m.dir + '/'))
       if (!mod) return
-
       const result = code.replace(
-        /from\s*(["'])@\/lib\/(utils|seed)\1/g,
-        (_, q, name) => `from ${q}${mod.client}/lib/${name}.ts${q}`,
+        /from\s*(["'])(@\/[^"']+)\1/g,
+        (_, q, importPath) => `from ${q}${mod.client}/${importPath.slice(2)}${q}`,
       )
-
       if (result === code) return
       return { code: result, map: null }
     },
@@ -49,22 +44,10 @@ function rewriteConflictingAtImports(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), rewriteConflictingAtImports()],
+  plugins: [react(), rewriteModuleAtImports()],
   resolve: {
     dedupe: ['react', 'react-dom', 'react-router-dom'],
     alias: [
-      // ── Inventory @/ paths ────────────────────────────────────────────────
-      { find: /^@\/components\/inventory\/(.+)/, replacement: `${invClient}/components/inventory/$1` },
-      { find: /^@\/components\/ui\/(.+)/,        replacement: `${invClient}/components/ui/$1` },
-      { find: '@/store/inventoryStore',           replacement: `${invClient}/store/inventoryStore.ts` },
-      { find: '@/types/inventory',               replacement: `${invClient}/types/inventory.ts` },
-
-      // ── Budget @/ paths ───────────────────────────────────────────────────
-      { find: /^@\/components\/budget\/(.+)/, replacement: `${bdgClient}/components/budget/$1` },
-      { find: /^@\/pages\/(.+)/,              replacement: `${bdgClient}/pages/$1` },
-      { find: '@/store/budgetStore',          replacement: `${bdgClient}/store/budgetStore.ts` },
-      { find: '@/types/budget',              replacement: `${bdgClient}/types/budget.ts` },
-
       // ── Shared enclave packages ───────────────────────────────────────────
       { find: '@enclave/sdk',      replacement: path.resolve(root, 'packages/sdk/src/index.ts') },
       { find: '@enclave/ui-shell', replacement: path.resolve(root, 'packages/ui-shell/src/index.ts') },

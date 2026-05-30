@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { NavGroup, NavItem } from '@venator-ui/ui';
-import { LayoutDashboard, Dumbbell, Activity, Wallet, LayoutGrid, Receipt, CalendarDays, BarChart2, PieChart } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, Activity, Wallet, LayoutGrid, Receipt, CalendarDays, BarChart2, PieChart, Lightbulb, Code2, Kanban, Tag, Archive } from 'lucide-react';
 import { clientModules } from '../../../enclave.modules.client';
 import type { ModuleClientConfig } from '@enclave/sdk';
 
@@ -31,6 +31,11 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   'calendar-days':     <CalendarDays size={16} />,
   'bar-chart-2':       <BarChart2 size={16} />,
   'pie-chart':         <PieChart size={16} />,
+  'lightbulb':         <Lightbulb size={16} />,
+  'code-2':            <Code2 size={16} />,
+  'kanban':            <Kanban size={16} />,
+  'tag':               <Tag size={16} />,
+  'archive':           <Archive size={16} />,
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
