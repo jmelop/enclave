@@ -5,6 +5,7 @@ import { APPS } from '../lib/apps-data'
 import { portfolioClient } from '../../../modules/portfolio/module/client.config'
 import { inventoryClient } from '../../../modules/inventory/module/client.config'
 import { workoutClient } from '../../../modules/workout/module/client.config'
+import { budgetClient } from '../../../modules/budget/module/client.config'
 
 const externalLinks: ExternalLink[] = APPS
   .filter(a => a.url)
@@ -31,6 +32,7 @@ const router = createBrowserRouter([
       { path: portfolioClient.basePath, children: portfolioClient.routes },
       { path: inventoryClient.basePath, children: inventoryClient.routes },
       { path: workoutClient.basePath, children: workoutClient.routes },
+      { path: budgetClient.basePath, children: budgetClient.routes },
     ],
   },
 ])
