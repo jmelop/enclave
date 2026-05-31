@@ -101,15 +101,16 @@ button { font-family: inherit; }
   border-radius: 2px;
 }
 
-::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--border-subtle);
+  background: var(--border-default);
   border-radius: 8px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--border-default);
+  background: var(--fg-5);
   background-clip: content-box;
 }
 
