@@ -44,7 +44,7 @@ export const useLabStore = create<LabState>((set) => ({
     const id = uid()
     const blank: Idea = {
       id,
-      title: 'Nueva idea',
+      title: 'New idea',
       category: 'dev',
       phase: 'spark',
       updated: today(),

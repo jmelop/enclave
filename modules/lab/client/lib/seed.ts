@@ -1,20 +1,20 @@
 import type { Phase, Category, Idea } from '@/types/lab'
 
 export const PHASES: Phase[] = [
-  { id: 'spark',    label: 'Semilla',    color: '#93c5fd' },
-  { id: 'explore',  label: 'Explorando', color: '#c4b5fd' },
-  { id: 'proto',    label: 'Prototipo',  color: '#f7a25e' },
-  { id: 'valid',    label: 'Validado',   color: '#5eead4' },
-  { id: 'archived', label: 'Archivado',  color: '#8a8f98' },
+  { id: 'spark',    label: 'Seed',      color: '#93c5fd' },
+  { id: 'explore',  label: 'Exploring', color: '#c4b5fd' },
+  { id: 'proto',    label: 'Prototype', color: '#f7a25e' },
+  { id: 'valid',    label: 'Validated', color: '#5eead4' },
+  { id: 'archived', label: 'Archived',  color: '#8a8f98' },
 ]
 
 export const CATEGORIES: Category[] = [
   { id: 'dev',      label: 'Dev' },
-  { id: 'producto', label: 'Producto' },
+  { id: 'producto', label: 'Product' },
   { id: 'research', label: 'Research' },
   { id: 'infra',    label: 'Infra' },
-  { id: 'ia',       label: 'IA' },
-  { id: 'diseno',   label: 'Diseño' },
+  { id: 'ia',       label: 'AI' },
+  { id: 'diseno',   label: 'Design' },
 ]
 
 export const SEED_IDEAS: Idea[] = [

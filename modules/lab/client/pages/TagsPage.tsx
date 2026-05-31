@@ -44,7 +44,7 @@ export function TagsPage({ onOpen }: TagsPageProps) {
       <div className="empty-state">
         <div className="empty-state-icon">#</div>
         <div className="empty-state-text">
-          Añade tags a tus snippets para verlos aquí.
+          Add tags to your snippets to see them here.
         </div>
       </div>
     )
@@ -56,7 +56,7 @@ export function TagsPage({ onOpen }: TagsPageProps) {
         <div key={tag} className="tag-card">
           <div className="tag-card-header">
             <span className="tag-name">#{tag}</span>
-            <span className="tag-count">{usages.length} uso{usages.length !== 1 ? 's' : ''}</span>
+            <span className="tag-count">{usages.length} use{usages.length !== 1 ? 's' : ''}</span>
           </div>
           <div className="tag-usages">
             {usages.map((u, i) => (
