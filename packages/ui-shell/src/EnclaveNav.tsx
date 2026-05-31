@@ -85,27 +85,50 @@ export function EnclaveNav({ externalLinks = [] }: Props) {
       </div>
 
       {/* Module nav */}
-      <div className="flex-1 overflow-y-auto px-2.5 py-3 flex flex-col gap-4">
-        {clientModules.map((mod) => (
-          <NavGroup key={mod.id} label={mod.navLabel}>
-            {mod.nav.map((entry) => {
-              const href = resolveHref(mod.basePath, entry.path);
-              const isIndex = entry.path === '';
-              const isActive = isIndex
-                ? pathname === mod.basePath
-                : pathname === href || pathname.startsWith(href + '/');
-              return (
-                <NavItem
-                  key={href}
-                  label={entry.label}
-                  icon={entry.icon ? ICON_MAP[entry.icon] : undefined}
-                  active={isActive}
-                  onClick={() => navigate(href)}
+      <div className="flex-1 overflow-y-auto px-2.5 py-3 flex flex-col gap-1">
+        {clientModules.map((mod, i) => {
+          const isModActive = pathname === mod.basePath || pathname.startsWith(mod.basePath + '/');
+          return (
+            <div key={mod.id}>
+              {/* Module group header */}
+              <div
+                className="flex items-center gap-2 px-3 py-2 mt-1"
+                style={i > 0 ? { borderTop: '1px solid var(--border-subtle)', paddingTop: '14px', marginTop: '6px' } : undefined}
+              >
+                <span
+                  className="w-1.5 h-1.5 rounded-full shrink-0"
+                  style={{ background: isModActive ? mod.accent : 'var(--border-default)' }}
                 />
-              );
-            })}
-          </NavGroup>
-        ))}
+                <span
+                  className="text-[11px] font-semibold tracking-[0.06em] uppercase"
+                  style={{ color: isModActive ? 'var(--fg-2)' : 'var(--fg-4)' }}
+                >
+                  {mod.navLabel}
+                </span>
+              </div>
+
+              {/* Nav items */}
+              <div className="flex flex-col gap-0.5">
+                {mod.nav.map((entry) => {
+                  const href = resolveHref(mod.basePath, entry.path);
+                  const isIndex = entry.path === '';
+                  const isActive = isIndex
+                    ? pathname === mod.basePath
+                    : pathname === href || pathname.startsWith(href + '/');
+                  return (
+                    <NavItem
+                      key={href}
+                      label={entry.label}
+                      icon={entry.icon ? ICON_MAP[entry.icon] : undefined}
+                      active={isActive}
+                      onClick={() => navigate(href)}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
 
         {externalLinks.length > 0 && (
           <NavGroup label="External">
