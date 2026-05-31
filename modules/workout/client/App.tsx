@@ -8,17 +8,24 @@ import type { WorkoutEntry, BodyEntry } from './data/data';
 
 type Theme = 'slate-dark' | 'slate-light';
 
+// Map enclave-wide theme key to workout slate variant
+function enclaveToSlate(t: string | null): Theme {
+  return t === 'light' ? 'slate-light' : 'slate-dark';
+}
+
 export default function App() {
-  const [theme, setTheme] = useState<Theme>(() => {
-    return (localStorage.getItem('theme') as Theme) || 'slate-dark';
-  });
+  const [theme, setTheme] = useState<Theme>(() =>
+    enclaveToSlate(localStorage.getItem('enclave-theme')),
+  );
   const [workouts, setWorkouts] = useState<WorkoutEntry[]>(WORKOUTS);
   const [bodyLog, setBodyLog] = useState<BodyEntry[]>(BODY_LOG);
   const location = useLocation();
 
   useEffect(() => {
-    localStorage.setItem('theme', theme);
-    document.documentElement.setAttribute('data-theme', theme);
+    // Write VenatorUI-compatible value to html (sidebar/nav reads this)
+    const enclaveValue = theme === 'slate-light' ? 'light' : 'dark';
+    localStorage.setItem('enclave-theme', enclaveValue);
+    document.documentElement.setAttribute('data-theme', enclaveValue);
     return () => { document.documentElement.removeAttribute('data-theme'); };
   }, [theme]);
 
