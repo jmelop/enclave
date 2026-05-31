@@ -7,31 +7,30 @@ const invClient = path.resolve(root, 'modules/inventory/client').replace(/\\/g, 
 const bdgClient = path.resolve(root, 'modules/budget/client').replace(/\\/g, '/')
 const labClient = path.resolve(root, 'modules/lab/client').replace(/\\/g, '/')
 
+const n = (p: string) => p.replace(/\\/g, '/').toLowerCase()
+
+const MODULE_DIRS = [
+  { dir: n(path.resolve(root, 'modules/inventory/client')), client: invClient },
+  { dir: n(path.resolve(root, 'modules/budget/client')),    client: bdgClient },
+  { dir: n(path.resolve(root, 'modules/lab/client')),       client: labClient },
+]
+
 /**
  * Rewrites ALL `@/` imports from module files so that each module's source
  * resolves against its own client directory, not the dashboard root.
  *
- * Static Vite aliases are global (no per-importer context), so a single `@`
- * catch-all can't distinguish between budget's `@/lib/utils` and lab's.
- * The `transform` hook fires before `vite:import-analysis` and rewrites
- * specifiers in-source so import-analysis sees absolute paths.
+ * This hook fires during Vite's dev-server transform phase (before
+ * vite:import-analysis). The companion esbuildPlugin below mirrors
+ * the same logic for the optimizeDeps pre-scan phase.
  */
 function rewriteModuleAtImports(): Plugin {
-  const n = (p: string) => p.replace(/\\/g, '/').toLowerCase()
-
-  const MODULES = [
-    { dir: n(path.resolve(root, 'modules/inventory/client')), client: invClient },
-    { dir: n(path.resolve(root, 'modules/budget/client')),    client: bdgClient },
-    { dir: n(path.resolve(root, 'modules/lab/client')),       client: labClient },
-  ]
-
   return {
     name: 'rewrite-module-at-imports',
     enforce: 'pre',
     transform(code, id) {
       if (!code.includes('@/')) return
       const idNorm = n(id)
-      const mod = MODULES.find(m => idNorm.startsWith(m.dir + '/'))
+      const mod = MODULE_DIRS.find(m => idNorm.startsWith(m.dir + '/'))
       if (!mod) return
       const result = code.replace(
         /from\s*(["'])(@\/[^"']+)\1/g,
@@ -43,8 +42,34 @@ function rewriteModuleAtImports(): Plugin {
   }
 }
 
+/**
+ * esbuild plugin that mirrors rewriteModuleAtImports for the optimizeDeps
+ * pre-scan. esbuild's onResolve fires during dep discovery, before Vite's
+ * transform hooks, so the transform plugin alone is not enough.
+ */
+function esbuildModuleAtResolver() {
+  return {
+    name: 'esbuild-module-at-resolver',
+    setup(build: { onResolve: (filter: { filter: RegExp }, cb: (args: { path: string; importer: string }) => { path: string } | null) => void }) {
+      build.onResolve({ filter: /^@\// }, (args) => {
+        if (!args.importer) return null
+        const importerNorm = n(args.importer)
+        const mod = MODULE_DIRS.find(m => importerNorm.startsWith(m.dir + '/'))
+        if (!mod) return null
+        const subPath = args.path.slice(2) // strip '@/'
+        return { path: path.resolve(mod.client.replace(/\//g, path.sep), subPath) }
+      })
+    },
+  }
+}
+
 export default defineConfig({
   plugins: [react(), rewriteModuleAtImports()],
+  optimizeDeps: {
+    esbuildOptions: {
+      plugins: [esbuildModuleAtResolver()],
+    },
+  },
   resolve: {
     dedupe: ['react', 'react-dom', 'react-router-dom'],
     alias: [
