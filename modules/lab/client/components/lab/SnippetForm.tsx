@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { Button, Input, Label, Select } from '@venator-ui/ui'
 import type { Snippet, Lang } from '@/types/lab'
-import { LANG_META, today } from '@/lib/utils'
+import { LANG_META } from '@/lib/utils'
 
 interface SnippetFormProps {
   onSave: (snip: Snippet) => void
@@ -20,10 +21,7 @@ export function SnippetForm({ onSave, onCancel }: SnippetFormProps) {
 
   function handleSave() {
     if (!canSave) return
-    const tags = tagsRaw
-      .split(',')
-      .map(t => t.trim())
-      .filter(Boolean)
+    const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean)
     onSave({
       id: `snip-${Date.now()}`,
       title: title.trim(),
@@ -32,12 +30,8 @@ export function SnippetForm({ onSave, onCancel }: SnippetFormProps) {
       desc: desc.trim() || undefined,
       tags: tags.length > 0 ? tags : undefined,
     })
-    // Reset
     setTitle(''); setCode(''); setDesc(''); setTagsRaw('')
   }
-
-  // Suppress TS unused parameter warning — today() used for id uniqueness above
-  void today
 
   return (
     <div
@@ -52,32 +46,32 @@ export function SnippetForm({ onSave, onCancel }: SnippetFormProps) {
       }}
     >
       <div className="field">
-        <label className="field-lbl">Título</label>
-        <input
-          className="search-input"
-          style={{ width: '100%', paddingLeft: 12 }}
-          placeholder="Nombre del snippet"
+        <Label htmlFor="snip-title">Title</Label>
+        <Input
+          id="snip-title"
+          placeholder="Snippet name"
           value={title}
           onChange={e => setTitle(e.target.value)}
         />
       </div>
 
       <div className="field">
-        <label className="field-lbl">Lenguaje</label>
-        <select
-          className="select"
+        <Label htmlFor="snip-lang">Language</Label>
+        <Select
+          id="snip-lang"
           value={lang}
           onChange={e => setLang(e.target.value as Lang)}
         >
           {LANGS.map(l => (
             <option key={l} value={l}>{LANG_META[l].label}</option>
           ))}
-        </select>
+        </Select>
       </div>
 
       <div className="field">
-        <label className="field-lbl">Código</label>
+        <Label htmlFor="snip-code">Code</Label>
         <textarea
+          id="snip-code"
           className="notes-edit"
           style={{
             background: 'var(--bg)',
@@ -88,28 +82,26 @@ export function SnippetForm({ onSave, onCancel }: SnippetFormProps) {
             fontSize: 12.5,
             minHeight: 100,
           }}
-          placeholder="// Pega el código aquí..."
+          placeholder="// Paste your code here..."
           value={code}
           onChange={e => setCode(e.target.value)}
         />
       </div>
 
       <div className="field">
-        <label className="field-lbl">Descripción (opcional)</label>
-        <input
-          className="search-input"
-          style={{ width: '100%', paddingLeft: 12 }}
-          placeholder="Breve descripción"
+        <Label htmlFor="snip-desc">Description (optional)</Label>
+        <Input
+          id="snip-desc"
+          placeholder="Short description"
           value={desc}
           onChange={e => setDesc(e.target.value)}
         />
       </div>
 
       <div className="field">
-        <label className="field-lbl">Tags (coma-separados)</label>
-        <input
-          className="search-input"
-          style={{ width: '100%', paddingLeft: 12 }}
+        <Label htmlFor="snip-tags">Tags (comma-separated)</Label>
+        <Input
+          id="snip-tags"
           placeholder="cache, utils, api"
           value={tagsRaw}
           onChange={e => setTagsRaw(e.target.value)}
@@ -117,15 +109,10 @@ export function SnippetForm({ onSave, onCancel }: SnippetFormProps) {
       </div>
 
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-        <button className="btn btn-ghost" onClick={onCancel}>Cancelar</button>
-        <button
-          className="btn btn-primary"
-          disabled={!canSave}
-          onClick={handleSave}
-          style={{ opacity: canSave ? 1 : 0.4, cursor: canSave ? 'pointer' : 'not-allowed' }}
-        >
-          Guardar
-        </button>
+        <Button variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
+        <Button variant="primary" size="sm" disabled={!canSave} onClick={handleSave}>
+          Save
+        </Button>
       </div>
     </div>
   )

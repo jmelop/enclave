@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Input } from '@venator-ui/ui'
 import { useLabStore } from '@/store/labStore'
 import { IdeaCard } from '@/components/lab/IdeaCard'
 
@@ -25,17 +26,17 @@ export function ArchivePage({ onOpen }: ArchivePageProps) {
     <div>
       {/* Search */}
       <div style={{ marginBottom: 16 }}>
-        <div className="search-wrap">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-          </svg>
-          <input
-            className="search-input"
-            placeholder="Buscar en archivo..."
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-          />
-        </div>
+        <Input
+          placeholder="Search archive..."
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          leftIcon={
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+            </svg>
+          }
+          style={{ width: 280 }}
+        />
       </div>
 
       {filtered.length > 0 ? (
@@ -49,8 +50,8 @@ export function ArchivePage({ onOpen }: ArchivePageProps) {
           <div className="empty-state-icon">⊟</div>
           <div className="empty-state-text">
             {query
-              ? 'No hay ideas archivadas que coincidan.'
-              : 'No hay ideas archivadas. Cambia la fase de una idea a "Archivado" para verla aquí.'}
+              ? 'No archived ideas match your search.'
+              : 'No archived ideas. Change an idea\'s phase to "Archived" to see it here.'}
           </div>
         </div>
       )}

@@ -4,6 +4,7 @@
 //   • dashboard:   client.config.tsx routes expose this directly
 import { useState, useCallback } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
+import { Button } from '@venator-ui/ui'
 import { IdeasPage }   from '@/pages/IdeasPage'
 import { SnippetsPage } from '@/pages/SnippetsPage'
 import { BoardPage }   from '@/pages/BoardPage'
@@ -93,13 +94,13 @@ export default function LabApp() {
           <div className="hero-row">
             <h1 className="hero-title">Lab<span className="hero-dot">.</span></h1>
             <div className="hero-actions">
-              <button className="btn btn-primary" onClick={newIdea}>
-                + Nueva idea
-              </button>
+              <Button variant="primary" size="sm" onClick={newIdea}>
+                + New idea
+              </Button>
             </div>
           </div>
           <div className="hero-sub">
-            Captura ideas, vincula código y traza tu flujo de I+D.
+            Capture ideas, attach code snippets, and track your R&D flow.
           </div>
         </header>
 

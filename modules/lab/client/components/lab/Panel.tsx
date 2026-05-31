@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Badge, Button, Label, Select } from '@venator-ui/ui'
 import type { Idea, PhaseId, CategoryId, Snippet } from '@/types/lab'
 import { PHASES, CATEGORIES } from '@/lib/seed'
 import { SnippetView } from './SnippetView'
@@ -13,7 +14,6 @@ interface PanelProps {
 export function Panel({ idea, onClose, onUpdate }: PanelProps) {
   const [addingSnip, setAddingSnip] = useState(false)
 
-  // Close on Escape
   useEffect(() => {
     function handler(e: KeyboardEvent) {
       if (e.key === 'Escape' && idea) onClose()
@@ -22,7 +22,6 @@ export function Panel({ idea, onClose, onUpdate }: PanelProps) {
     return () => window.removeEventListener('keydown', handler)
   }, [idea, onClose])
 
-  // Reset addingSnip when panel closes
   useEffect(() => {
     if (!idea) setAddingSnip(false)
   }, [idea])
@@ -58,23 +57,17 @@ export function Panel({ idea, onClose, onUpdate }: PanelProps) {
 
   return (
     <>
-      {/* Scrim */}
-      <div
-        className={`lab-scrim${idea ? ' open' : ''}`}
-        onClick={onClose}
-      />
+      <div className={`lab-scrim${idea ? ' open' : ''}`} onClick={onClose} />
 
-      {/* Panel */}
       <div className={`lab-panel${idea ? ' open' : ''}`}>
         {idea && (
           <>
             {/* Header */}
             <div className="panel-header">
               {phase && (
-                <span className="phase-badge">
-                  <span className="dot" style={{ background: phase.color }} />
+                <Badge color={phase.color} dot pill size="sm">
                   {phase.label}
-                </span>
+                </Badge>
               )}
               <span
                 style={{
@@ -89,14 +82,15 @@ export function Panel({ idea, onClose, onUpdate }: PanelProps) {
                 {cat?.label ?? idea.category}
               </span>
               <span style={{ flex: 1 }} />
-              <button
-                className="btn btn-ghost btn-icon"
+              <Button
+                variant="ghost"
+                size="sm"
+                iconOnly
                 onClick={onClose}
                 title="Cerrar (Esc)"
-                style={{ fontSize: 16, color: 'var(--fg-3)' }}
               >
                 ✕
-              </button>
+              </Button>
             </div>
 
             {/* Body */}
@@ -117,33 +111,33 @@ export function Panel({ idea, onClose, onUpdate }: PanelProps) {
               {/* Meta row */}
               <div className="panel-meta">
                 <div className="field">
-                  <label className="field-lbl">Fase</label>
-                  <select
-                    className="select"
+                  <Label htmlFor="panel-phase">Phase</Label>
+                  <Select
+                    id="panel-phase"
                     value={idea.phase}
                     onChange={e => handlePhaseChange(e.target.value as PhaseId)}
                   >
                     {PHASES.map(ph => (
                       <option key={ph.id} value={ph.id}>{ph.label}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 <div className="field">
-                  <label className="field-lbl">Categoría</label>
-                  <select
-                    className="select"
+                  <Label htmlFor="panel-cat">Category</Label>
+                  <Select
+                    id="panel-cat"
                     value={idea.category}
                     onChange={e => handleCategoryChange(e.target.value as CategoryId)}
                   >
                     {CATEGORIES.map(c => (
                       <option key={c.id} value={c.id}>{c.label}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 <div className="field">
-                  <label className="field-lbl">Actualizado</label>
+                  <Label>Updated</Label>
                   <span style={{ fontSize: 12.5, color: 'var(--fg-3)', padding: '5px 0' }}>
                     {idea.updated}
                   </span>
@@ -152,12 +146,13 @@ export function Panel({ idea, onClose, onUpdate }: PanelProps) {
 
               {/* Notes */}
               <div className="field">
-                <label className="field-lbl">Notas</label>
+                <Label htmlFor="panel-notes">Notes</Label>
                 <textarea
+                  id="panel-notes"
                   className="notes-edit"
                   value={idea.notes}
                   onChange={e => handleNotesChange(e.target.value)}
-                  placeholder="Escribe tus notas aquí..."
+                  placeholder="Write your notes here..."
                   rows={4}
                 />
               </div>
@@ -200,12 +195,9 @@ export function Panel({ idea, onClose, onUpdate }: PanelProps) {
                       onCancel={() => setAddingSnip(false)}
                     />
                   ) : (
-                    <button
-                      className="add-snip"
-                      onClick={() => setAddingSnip(true)}
-                    >
+                    <button className="add-snip" onClick={() => setAddingSnip(true)}>
                       <span style={{ fontSize: 16 }}>+</span>
-                      Añadir snippet
+                      Add snippet
                     </button>
                   )}
                 </div>

@@ -1,3 +1,4 @@
+import { Button, Input, Select } from '@venator-ui/ui'
 import { useLabStore } from '@/store/labStore'
 import { PHASES, CATEGORIES } from '@/lib/seed'
 import { IdeaCard } from '@/components/lab/IdeaCard'
@@ -16,7 +17,6 @@ export function IdeasPage({ onOpen }: IdeasPageProps) {
   const setPhase   = useLabStore(s => s.setPhase)
   const setCategory = useLabStore(s => s.setCategory)
 
-  // Active (non-archived) ideas
   const active = ideas.filter(i => i.phase !== 'archived')
 
   const filtered = active.filter(idea => {
@@ -36,53 +36,55 @@ export function IdeasPage({ onOpen }: IdeasPageProps) {
     <div>
       {/* Controls row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
-        {/* Search */}
-        <div className="search-wrap">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-          </svg>
-          <input
-            className="search-input"
-            placeholder="Buscar ideas..."
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-          />
-        </div>
+        <Input
+          placeholder="Search ideas..."
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          leftIcon={
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+            </svg>
+          }
+          style={{ width: 260 }}
+        />
 
-        {/* Category filter */}
-        <select
-          className="select"
+        <Select
           value={category}
           onChange={e => setCategory(e.target.value as CategoryId | 'all')}
+          style={{ width: 200 }}
         >
-          <option value="all">Todas las categorías</option>
+          <option value="all">All categories</option>
           {CATEGORIES.map(c => (
             <option key={c.id} value={c.id}>{c.label}</option>
           ))}
-        </select>
+        </Select>
       </div>
 
       {/* Phase pills */}
       <div className="phase-filter">
-        <button
-          className={`phase-pill${phase === 'all' ? ' active' : ''}`}
+        <Button
+          variant={phase === 'all' ? 'secondary' : 'ghost'}
+          size="sm"
+          className="rounded-full"
           onClick={() => setPhase('all')}
         >
-          Todas
+          All
           <span style={{ color: 'var(--fg-5)', fontSize: 10 }}>{active.length}</span>
-        </button>
+        </Button>
         {PHASES.filter(p => p.id !== 'archived').map(ph => {
           const count = active.filter(i => i.phase === ph.id).length
           return (
-            <button
+            <Button
               key={ph.id}
-              className={`phase-pill${phase === ph.id ? ' active' : ''}`}
+              variant={phase === ph.id ? 'secondary' : 'ghost'}
+              size="sm"
+              className="rounded-full"
               onClick={() => setPhase(ph.id as PhaseId)}
             >
               <span className="dot" style={{ background: ph.color }} />
               {ph.label}
               <span style={{ color: 'var(--fg-5)', fontSize: 10 }}>{count}</span>
-            </button>
+            </Button>
           )
         })}
       </div>
@@ -99,8 +101,8 @@ export function IdeasPage({ onOpen }: IdeasPageProps) {
           <div className="empty-state-icon">◉</div>
           <div className="empty-state-text">
             {query || phase !== 'all' || category !== 'all'
-              ? 'No hay ideas que coincidan con los filtros.'
-              : 'No hay ideas todavía. ¡Crea la primera!'}
+              ? 'No ideas match the current filters.'
+              : 'No ideas yet. Create your first one!'}
           </div>
         </div>
       )}

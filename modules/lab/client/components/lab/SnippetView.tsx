@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Badge, Button } from '@venator-ui/ui'
 import type { Snippet } from '@/types/lab'
 import { LANG_META, copyText } from '@/lib/utils'
 import { CodeBlock } from './CodeBlock'
@@ -21,15 +22,19 @@ export function SnippetView({ snip }: SnippetViewProps) {
     <div className="snip">
       <div className="snip-header">
         <span className="snip-title">{snip.title}</span>
-        <span
-          className="snip-lang"
-          style={{ color: meta.fg, borderColor: `${meta.fg}33` }}
-        >
+
+        <Badge color={meta.fg} size="sm" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
           {meta.label}
-        </span>
-        <button className="snip-copy" onClick={handleCopy}>
-          {copied ? 'Copiado ✓' : 'Copiar'}
-        </button>
+        </Badge>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleCopy}
+          style={{ marginLeft: 'auto', color: copied ? 'var(--success)' : undefined }}
+        >
+          {copied ? 'Copied ✓' : 'Copy'}
+        </Button>
       </div>
 
       <CodeBlock code={snip.code} lang={snip.lang} />
@@ -40,7 +45,9 @@ export function SnippetView({ snip }: SnippetViewProps) {
           {snip.tags && snip.tags.length > 0 && (
             <div className="snip-tags">
               {snip.tags.map(tag => (
-                <span key={tag} className="snip-tag">#{tag}</span>
+                <Badge key={tag} variant="default" size="sm" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                  #{tag}
+                </Badge>
               ))}
             </div>
           )}

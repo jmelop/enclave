@@ -1,3 +1,5 @@
+import { Card } from '@venator-ui/ui'
+import { Badge } from '@venator-ui/ui'
 import type { Idea } from '@/types/lab'
 import { PHASES, CATEGORIES } from '@/lib/seed'
 
@@ -15,10 +17,9 @@ export function IdeaCard({ idea, onOpen }: IdeaCardProps) {
       <div className="idea-card-top">
         <span className="idea-cat">{cat?.label ?? idea.category}</span>
         {phase && (
-          <span className="phase-badge">
-            <span className="dot" style={{ background: phase.color }} />
+          <Badge color={phase.color} dot pill size="sm">
             {phase.label}
-          </span>
+          </Badge>
         )}
       </div>
 
@@ -35,7 +36,7 @@ export function IdeaCard({ idea, onOpen }: IdeaCardProps) {
         {idea.links.length > 0 ? (
           <span className="idea-links">
             {idea.links.map((lk, i) => (
-              <span key={i} className="idea-link-badge">{lk.label}</span>
+              <Badge key={i} variant="default" size="sm">{lk.label}</Badge>
             ))}
           </span>
         ) : (
