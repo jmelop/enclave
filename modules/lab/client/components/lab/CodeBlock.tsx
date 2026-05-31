@@ -6,16 +6,17 @@ interface CodeBlockProps {
 }
 
 export function CodeBlock({ code, lang }: CodeBlockProps) {
-  const lines = code.split('\n')
-  const html = highlight(code, lang)
-  const lineCount = lines.length
-
-  // Build gutter content
-  const gutterHtml = Array.from({ length: lineCount }, (_, i) => i + 1).join('\n')
+  const cleaned = code.replace(/\n$/, '')
+  const lines = cleaned.split('\n')
+  const html = highlight(cleaned, lang)
 
   return (
     <div className="code-wrap">
-      <div className="gutter" dangerouslySetInnerHTML={{ __html: gutterHtml }} />
+      <div className="gutter">
+        {lines.map((_, i) => (
+          <span key={i}>{i + 1}</span>
+        ))}
+      </div>
       <div className="code" dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   )
