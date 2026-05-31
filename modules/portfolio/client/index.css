@@ -752,9 +752,18 @@ body {
 .p-empty p { margin: 0; font-size: 12px; }
 
 /* ===== Scrollbars ===== */
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 6px; border: 2px solid var(--bg); }
+::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--fg-5);
+  background-clip: content-box;
+}
 
 /* ===== Add-asset modal ===== */
 .v-field { display: flex; flex-direction: column; gap: 6px; }
