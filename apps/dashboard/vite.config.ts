@@ -6,6 +6,7 @@ const root      = path.resolve(__dirname, '../..')
 const invClient = path.resolve(root, 'modules/inventory/client').replace(/\\/g, '/')
 const bdgClient = path.resolve(root, 'modules/budget/client').replace(/\\/g, '/')
 const labClient = path.resolve(root, 'modules/lab/client').replace(/\\/g, '/')
+const strClient = path.resolve(root, 'modules/strategy/client').replace(/\\/g, '/')
 
 const n = (p: string) => p.replace(/\\/g, '/').toLowerCase()
 
@@ -13,6 +14,7 @@ const MODULE_DIRS = [
   { dir: n(path.resolve(root, 'modules/inventory/client')), client: invClient },
   { dir: n(path.resolve(root, 'modules/budget/client')),    client: bdgClient },
   { dir: n(path.resolve(root, 'modules/lab/client')),       client: labClient },
+  { dir: n(path.resolve(root, 'modules/strategy/client')),  client: strClient },
 ]
 
 /**

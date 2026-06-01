@@ -4,6 +4,7 @@ import { inventoryClient } from './modules/inventory/module/client.config';
 import { workoutClient } from './modules/workout/module/client.config';
 import { budgetClient } from './modules/budget/module/client.config';
 import { labClient } from './modules/lab/module/client.config';
+import { strategyClient } from './modules/strategy/module/client.config';
 
 export const clientModules: ModuleClientConfig[] = [
   portfolioClient,
@@ -11,4 +12,5 @@ export const clientModules: ModuleClientConfig[] = [
   workoutClient,
   budgetClient,
   labClient,
+  strategyClient,
 ];
