@@ -11,7 +11,7 @@ export function StatCards() {
   const totalUnits = items.reduce((s, i) => s + (i.qty || 0), 0)
 
   return (
-    <div className="stats">
+    <div className="grid grid-cols-4 gap-3.5 mb-8">
       <StatCard title="Total Items"       value={total}    description={`${totalUnits} units across all categories`} />
       <StatCard title="Active Categories" value={cats}     description={`of ${CATEGORIES.length} available · all populated`} />
       <StatCard title="Low Stock"         value={lowCount} description="needs reorder soon"              variant="warning" />
