@@ -1,15 +1,15 @@
 // Standalone-dev replacement for @enclave/ui-shell.
 // The real EnclaveNav imports enclave.modules.client (the root registry),
 // which pulls in every other module's source and causes @/ alias collisions.
-// This stub renders only the budget module's nav — enough for local dev.
+// This stub renders only the lab module's nav — enough for local dev.
 import { useLocation, useNavigate } from 'react-router-dom'
 
 const NAV = [
-  { label: 'Overview',   path: '/budget',            symbol: '◫' },
-  { label: 'Expenses',   path: '/budget/expenses',   symbol: '↓' },
-  { label: 'Recurring',  path: '/budget/recurring',  symbol: '↺' },
-  { label: 'History',    path: '/budget/history',    symbol: '∿' },
-  { label: 'Categories', path: '/budget/categories', symbol: '◒' },
+  { label: 'Ideas',    path: '/lab',          symbol: '◉' },
+  { label: 'Snippets', path: '/lab/snippets', symbol: '</>' },
+  { label: 'Board',    path: '/lab/board',    symbol: '⊞' },
+  { label: 'Tags',     path: '/lab/tags',     symbol: '#' },
+  { label: 'Archive',  path: '/lab/archive',  symbol: '⊟' },
 ]
 
 export function EnclaveNav() {
@@ -21,7 +21,7 @@ export function EnclaveNav() {
         <div
           className="brand-mark"
           style={{
-            background: 'linear-gradient(135deg, #fcd34d, #f97316)',
+            background: 'linear-gradient(135deg, #fdba74, #f97316)',
             fontFamily: 'JetBrains Mono, monospace',
             fontSize: 13,
             fontWeight: 700,
@@ -33,18 +33,15 @@ export function EnclaveNav() {
         </div>
         <div>
           <div className="brand-name" style={{ fontSize: 13 }}>enclave</div>
-          <div className="brand-sub">budget</div>
+          <div className="brand-sub">lab</div>
         </div>
       </div>
       <div className="side-section">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 8px 6px', borderTop: '1px solid var(--border-subtle)' }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'linear-gradient(135deg, #fcd34d, #f97316)', flexShrink: 0 }} />
-          <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--fg-2)' }}>Budget</span>
-        </div>
+        <div className="side-section-h">MENU</div>
         <div className="side-nav">
           {NAV.map(n => {
-            const active = n.path === '/budget'
-              ? pathname === '/budget'
+            const active = n.path === '/lab'
+              ? pathname === '/lab'
               : pathname.startsWith(n.path)
             return (
               <button

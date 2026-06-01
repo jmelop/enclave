@@ -18,5 +18,5 @@ export const budgetClient: ModuleClientConfig = {
     { label: 'History',    path: 'history',    icon: 'bar-chart-2' },
     { label: 'Categories', path: 'categories', icon: 'pie-chart' },
   ],
-  accent: 'linear-gradient(135deg, #f59e0b, #fb923c)',
+  accent: 'linear-gradient(135deg, #fcd34d, #f97316)',
 };

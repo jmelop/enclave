@@ -101,15 +101,16 @@ button { font-family: inherit; }
   border-radius: 2px;
 }
 
-::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--border-subtle);
+  background: var(--border-default);
   border-radius: 8px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--border-default);
+  background: var(--fg-5);
   background-clip: content-box;
 }
 
@@ -143,7 +144,7 @@ button { font-family: inherit; }
   padding: 4px 8px;
   border: 1px solid var(--border-subtle);
   border-radius: 999px;
-  background: var(--bg-1);
+  background: var(--bg-3);
 }
 .v-topbar .dot {
   width: 6px; height: 6px; border-radius: 50%;
@@ -299,7 +300,9 @@ button { font-family: inherit; }
 .safe-mini-val { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
 
 .gauge-card {
-  background: var(--bg-1);
+  background:
+    radial-gradient(ellipse 90% 55% at 50% 0%, rgba(245, 158, 11, 0.13) 0%, transparent 70%),
+    var(--bg-1);
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   padding: 20px 24px;

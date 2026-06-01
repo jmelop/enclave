@@ -8,17 +8,24 @@ import type { WorkoutEntry, BodyEntry } from './data/data';
 
 type Theme = 'slate-dark' | 'slate-light';
 
+// Map enclave-wide theme key to workout slate variant
+function enclaveToSlate(t: string | null): Theme {
+  return t === 'light' ? 'slate-light' : 'slate-dark';
+}
+
 export default function App() {
-  const [theme, setTheme] = useState<Theme>(() => {
-    return (localStorage.getItem('theme') as Theme) || 'slate-dark';
-  });
+  const [theme, setTheme] = useState<Theme>(() =>
+    enclaveToSlate(localStorage.getItem('enclave-theme')),
+  );
   const [workouts, setWorkouts] = useState<WorkoutEntry[]>(WORKOUTS);
   const [bodyLog, setBodyLog] = useState<BodyEntry[]>(BODY_LOG);
   const location = useLocation();
 
   useEffect(() => {
-    localStorage.setItem('theme', theme);
-    document.documentElement.setAttribute('data-theme', theme);
+    // Write VenatorUI-compatible value to html (sidebar/nav reads this)
+    const enclaveValue = theme === 'slate-light' ? 'light' : 'dark';
+    localStorage.setItem('enclave-theme', enclaveValue);
+    document.documentElement.setAttribute('data-theme', enclaveValue);
     return () => { document.documentElement.removeAttribute('data-theme'); };
   }, [theme]);
 
@@ -45,7 +52,7 @@ export default function App() {
 
   return (
     <div data-theme={theme} style={{ background: 'var(--bg)', color: 'var(--fg)', minHeight: '100%' }}>
-      <div className="px-7 pt-[22px] pb-[60px]">
+      <div className="canvas with-grid">
         <div className="v-topbar">
           <span className="crumb">enclave</span>
           <span className="sep">/</span>
@@ -74,6 +81,15 @@ export default function App() {
             )}
           </button>
         </div>
+        <header className="hero">
+          <div className="hero-tag mono">// MODULE · enclave-workout</div>
+          <div className="hero-row">
+            <h1 className="hero-title">Workout<span className="hero-dot">.</span></h1>
+          </div>
+          <div className="hero-sub">
+            Track your training — sessions, exercises, and body composition over time.
+          </div>
+        </header>
         <Routes>
           <Route index element={<OverviewPage workouts={workouts} bodyLog={bodyLog} />} />
           <Route path="workouts" element={<WorkoutsPage workouts={workouts} onAddWorkout={addWorkout} />} />

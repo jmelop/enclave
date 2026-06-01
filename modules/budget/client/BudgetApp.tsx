@@ -11,7 +11,6 @@ import { HistoryPage } from '@/pages/HistoryPage';
 import { CategoriesPage } from '@/pages/CategoriesPage';
 import { AddExpenseModal } from '@/components/budget/AddExpenseModal';
 import { useBudgetStore, useCurrentMonth } from '@/store/budgetStore';
-import { formatTime } from '@/lib/utils';
 
 const SECTION_LABELS: Record<string, string> = {
   '': 'overview',
@@ -25,7 +24,6 @@ export default function BudgetApp() {
   const [theme, setTheme] = useState<string>(
     () => document.documentElement.getAttribute('data-theme') ?? 'dark',
   );
-  const [time, setTime] = useState(() => formatTime(new Date()));
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
 
   const addExpense = useBudgetStore(s => s.addExpense);
@@ -35,10 +33,6 @@ export default function BudgetApp() {
   const month = useCurrentMonth();
   const location = useLocation();
 
-  useEffect(() => {
-    const id = setInterval(() => setTime(formatTime(new Date())), 1000);
-    return () => clearInterval(id);
-  }, []);
 
   const toggleTheme = useCallback(() => {
     setTheme(t => {
@@ -101,7 +95,9 @@ export default function BudgetApp() {
             ›
           </button>
           <span style={{ color: 'var(--fg-5)' }}>·</span>
-          <span className="pill"><span className="dot" />SYNCED · {time}</span>
+          <span className="pill"><span className="dot" />synced</span>
+          <span style={{ color: 'var(--fg-5)' }}>·</span>
+          <span>{new Date().toISOString().slice(0, 10)}</span>
           <span style={{ color: 'var(--fg-5)' }}>·</span>
           <button
             onClick={toggleTheme}

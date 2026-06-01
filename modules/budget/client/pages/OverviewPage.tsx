@@ -40,8 +40,26 @@ export function OverviewPage({ onAddExpense }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* Hero: safe-to-spend + gauge */}
+      {/* Hero: gauge + safe-to-spend */}
       <div className="overview-hero">
+        <div className="gauge-card">
+          <div style={{ alignSelf: 'stretch', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>This month</h3>
+            <span className="mono" style={{ fontSize: 10, color: 'var(--fg-4)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ width: 12, height: 0, borderTop: '2px dashed var(--fg-4)', display: 'inline-block' }} /> projected
+            </span>
+          </div>
+          <SpendingGauge metrics={m} size={220} />
+          <div className="gauge-legend">
+            {catsSorted.slice(0, 4).map(c => (
+              <div key={c.id} className="gauge-legend-item">
+                <span className="gauge-legend-dot" style={{ background: c.color }} />
+                {c.name}
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="safe-card">
           <div className="safe-label">
             <Zap size={13} />
@@ -70,24 +88,6 @@ export function OverviewPage({ onAddExpense }: Props) {
               <span className="safe-mini-label">Income</span>
               <span className="safe-mini-val" style={{ color: 'var(--success)' }}>{fmt(m.income)}</span>
             </div>
-          </div>
-        </div>
-
-        <div className="gauge-card">
-          <div style={{ alignSelf: 'stretch', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>This month</h3>
-            <span className="mono" style={{ fontSize: 10, color: 'var(--fg-4)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              <span style={{ width: 12, height: 0, borderTop: '2px dashed var(--fg-4)', display: 'inline-block' }} /> projected
-            </span>
-          </div>
-          <SpendingGauge metrics={m} size={220} />
-          <div className="gauge-legend">
-            {catsSorted.slice(0, 4).map(c => (
-              <div key={c.id} className="gauge-legend-item">
-                <span className="gauge-legend-dot" style={{ background: c.color }} />
-                {c.name}
-              </div>
-            ))}
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PageHeader, StatCard } from '@venator-ui/patterns';
+import { StatCard } from '@venator-ui/patterns';
 import { Card, Separator } from '@venator-ui/ui';
 import { Dumbbell, Scale, Flame, TrendingUp, TrendingDown } from 'lucide-react';
 import LineChart from '../components/LineChart';
@@ -33,12 +33,6 @@ export default function OverviewPage({ workouts, bodyLog }: Props) {
 
   return (
     <>
-      <PageHeader
-        title="Overview"
-        description="Summary of the last few weeks — training + body composition"
-        className="mb-5"
-      />
-
       {/* Stat cards */}
       <div className="grid grid-cols-4 gap-3 mb-5">
         <StatCard
