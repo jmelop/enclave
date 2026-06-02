@@ -79,9 +79,7 @@ export function Portfolio() {
         <span className="crumb active">portfolio</span>
         <span className="v-cursor">▊</span>
         <span className="spacer" />
-        <span className="pill">
-          <span className="dot" /> sync ok · 12s ago
-        </span>
+        <span className="pill"><span className="dot" />synced</span>
         <span style={{ color: 'var(--fg-5)' }}>·</span>
         <span>{now}</span>
         <span style={{ color: 'var(--fg-5)' }}>·</span>
@@ -110,7 +108,8 @@ export function Portfolio() {
       {/* Header */}
       <div className="p-header">
         <div>
-          <h1 className="p-title">Portfolio</h1>
+          <div className="p-tag mono">// MODULE · enclave-portfolio</div>
+          <h1 className="p-title">Portfolio<span className="p-title-dot">.</span></h1>
           <p className="p-subtitle">
             Track your investments in real time — real estate, collectibles, markets, savings and alternatives.
           </p>

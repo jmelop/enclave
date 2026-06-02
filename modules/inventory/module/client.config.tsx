@@ -13,5 +13,5 @@ export const inventoryClient: ModuleClientConfig = {
   nav: [
     { label: 'Inventory', path: '', icon: 'grid' },
   ],
-  accent: 'linear-gradient(135deg, #10b981, #14b8a6)',
+  accent: 'linear-gradient(135deg, #6ee7b7, #059669)',
 };
