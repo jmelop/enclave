@@ -37,7 +37,7 @@ function useTheme() {
 }
 
 export function Portfolio() {
-  const { assets, loading, error, hydrated, hydrate, refetch, createAsset } = usePortfolioStore()
+  const { assets, loading, error, hydrated, hydrate, refetch, createAsset, deleteAsset } = usePortfolioStore()
   const [activeTab, setActiveTab] = useState<AssetCategory>('stock')
   const [hideValues, setHideValues] = useState(false)
   const [modes, setModes] = useState<Modes>(DEFAULT_MODES)
@@ -192,6 +192,7 @@ export function Portfolio() {
             hideValues={hideValues}
             mode={modes[activeTab]}
             onModeChange={(m) => setModes((prev) => ({ ...prev, [activeTab]: m }))}
+            onDelete={deleteAsset}
           />
         </>
       )}
