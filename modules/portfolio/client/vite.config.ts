@@ -19,15 +19,19 @@ export default defineConfig({
   resolve: {
     dedupe: ['react', 'react-dom', 'react-router-dom'],
     alias: [
-      { find: '@enclave/sdk',       replacement: path.resolve(__dirname, '../../../packages/sdk/src/index.ts') },
-      { find: '@enclave/ui-shell',  replacement: path.resolve(__dirname, '../../../packages/ui-shell/src/index.ts') },
-      { find: /^react$/,            replacement: path.resolve(__dirname, '../node_modules/react') },
-      { find: /^react-dom$/,        replacement: path.resolve(__dirname, '../node_modules/react-dom') },
-      { find: /^react-router-dom$/, replacement: path.resolve(__dirname, '../node_modules/react-router-dom') },
-      { find: /^@venator-ui\/ui$/,  replacement: path.resolve(__dirname, '../node_modules/@venator-ui/ui') },
-      { find: /^lucide-react$/,     replacement: path.resolve(__dirname, '../node_modules/lucide-react') },
-      // inventory client uses @/ aliases — needed because enclave.modules.client.ts pulls it in eagerly
-      { find: '@', replacement: path.resolve(__dirname, '../../inventory/client') },
+      // Standalone-dev isolation: replace real EnclaveNav (which imports the
+      // global module registry → all other modules → @/ alias collisions)
+      // with a self-contained stub that only renders portfolio's nav.
+      { find: '@enclave/ui-shell', replacement: path.resolve(__dirname, './stubs/EnclaveNav.stub.tsx') },
+
+      { find: '@enclave/sdk',             replacement: path.resolve(__dirname, '../../../packages/sdk/src/index.ts') },
+      { find: /^react$/,                  replacement: path.resolve(__dirname, '../node_modules/react') },
+      { find: /^react-dom$/,              replacement: path.resolve(__dirname, '../node_modules/react-dom') },
+      { find: /^react-router-dom$/,       replacement: path.resolve(__dirname, '../node_modules/react-router-dom') },
+      { find: /^@venator-ui\/ui$/,        replacement: path.resolve(__dirname, '../node_modules/@venator-ui/ui') },
+      { find: /^@venator-ui\/patterns$/,  replacement: path.resolve(__dirname, '../node_modules/@venator-ui/patterns') },
+      { find: /^lucide-react$/,           replacement: path.resolve(__dirname, '../node_modules/lucide-react') },
+      { find: '@',                        replacement: path.resolve(__dirname, '.') },
     ],
   },
 })
