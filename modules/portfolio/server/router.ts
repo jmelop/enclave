@@ -107,5 +107,24 @@ export function createPortfolioRouter(pool: DbPool): Router {
     }
   });
 
+  router.delete('/holdings/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+      const { rows } = await pool.query(
+        'DELETE FROM assets WHERE id = $1 RETURNING id',
+        [id],
+      );
+      // DELETE is idempotent: 204 whether the row existed or not.
+      // When the DB is empty, GET falls back to in-memory seed assets whose
+      // IDs (e.g. "s1") don't exist in the DB — returning 404 here would
+      // incorrectly surface an error to the user.
+      void rows; // RETURNING id used only to confirm query ran
+      return res.status(204).end();
+    } catch (err) {
+      console.warn('[portfolio] DELETE /holdings/:id db error:', err);
+      return res.status(503).json({ error: 'Database unavailable, cannot delete asset' });
+    }
+  });
+
   return router;
 }
