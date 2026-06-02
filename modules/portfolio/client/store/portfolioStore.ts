@@ -28,6 +28,7 @@ interface Store extends PortfolioState {
   hydrate: () => Promise<void>
   refetch: () => Promise<void>
   createAsset: (input: AssetInput) => Promise<void>
+  deleteAsset: (id: string) => Promise<void>
 }
 
 export const usePortfolioStore = create<Store>()((set, get) => ({
@@ -65,6 +66,14 @@ export const usePortfolioStore = create<Store>()((set, get) => ({
         loading: false,
       })
     }
+  },
+  deleteAsset: async (id: string) => {
+    const res = await fetch(`/api/portfolio/holdings/${id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const body = await res.json() as { error?: string }
+      throw new Error(body.error ?? `HTTP ${res.status}`)
+    }
+    await get().refetch()
   },
   createAsset: async (input: AssetInput) => {
     const res = await fetch('/api/portfolio/holdings', {
