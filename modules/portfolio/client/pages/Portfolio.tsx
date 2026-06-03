@@ -9,7 +9,12 @@ import { AssetTable } from '../components/portfolio/AssetTable'
 import AddAssetModal from '../components/portfolio/AddAssetModal'
 import { usePortfolioStore } from '../store/portfolioStore'
 import { CATEGORIES, CATEGORY_ORDER } from '../lib/utils'
-import type { AssetCategory } from '../types/portfolio'
+import type { Asset, AssetCategory } from '../types/portfolio'
+
+type ModalState =
+  | { mode: 'add'; category: AssetCategory }
+  | { mode: 'edit'; asset: Asset }
+  | null
 
 const TABS = CATEGORY_ORDER.map((id, i) => ({
   id: id as AssetCategory,
@@ -37,11 +42,11 @@ function useTheme() {
 }
 
 export function Portfolio() {
-  const { assets, loading, error, hydrated, hydrate, refetch, createAsset, deleteAsset } = usePortfolioStore()
+  const { assets, loading, error, hydrated, hydrate, refetch, createAsset, updateAsset, deleteAsset } = usePortfolioStore()
   const [activeTab, setActiveTab] = useState<AssetCategory>('stock')
   const [hideValues, setHideValues] = useState(false)
   const [modes, setModes] = useState<Modes>(DEFAULT_MODES)
-  const [showAddModal, setShowAddModal] = useState(false)
+  const [modal, setModal] = useState<ModalState>(null)
   const { theme, toggle: toggleTheme } = useTheme()
 
   useEffect(() => {
@@ -130,7 +135,7 @@ export function Portfolio() {
           <Button variant="secondary" size="sm" onClick={refetch}>
             <Icon name="refresh" /> Refresh
           </Button>
-          <Button variant="primary" size="sm" onClick={() => setShowAddModal(true)}>
+          <Button variant="primary" size="sm" onClick={() => setModal({ mode: 'add', category: activeTab })}>
             <Icon name="plus" /> Add Asset
           </Button>
         </div>
@@ -193,15 +198,18 @@ export function Portfolio() {
             mode={modes[activeTab]}
             onModeChange={(m) => setModes((prev) => ({ ...prev, [activeTab]: m }))}
             onDelete={deleteAsset}
+            onEdit={(asset) => setModal({ mode: 'edit', asset })}
           />
         </>
       )}
 
-      {showAddModal && (
+      {modal && (
         <AddAssetModal
-          onClose={() => setShowAddModal(false)}
+          onClose={() => setModal(null)}
           onAdd={createAsset}
-          defaultCategory={activeTab}
+          onSave={updateAsset}
+          defaultCategory={modal.mode === 'add' ? modal.category : undefined}
+          editAsset={modal.mode === 'edit' ? modal.asset : undefined}
         />
       )}
     </main>

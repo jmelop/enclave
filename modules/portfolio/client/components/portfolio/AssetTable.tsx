@@ -8,9 +8,10 @@ interface AssetRowProps {
   asset: Asset
   hideValues: boolean
   onDelete: (id: string) => Promise<void>
+  onEdit: (asset: Asset) => void
 }
 
-function AssetRow({ asset, hideValues, onDelete }: AssetRowProps) {
+function AssetRow({ asset, hideValues, onDelete, onEdit }: AssetRowProps) {
   const cat = CATEGORIES[asset.type]
   const isMarket = asset.price != null && asset.quantity != null
   const value = assetValue(asset)
@@ -152,7 +153,23 @@ function AssetRow({ asset, hideValues, onDelete }: AssetRowProps) {
                 padding: '4px 0',
               }}
             >
-              {/* Delete — only action today; structure ready for future Edit */}
+              {/* Edit */}
+              <button
+                onClick={() => { setDropOpen(false); onEdit(asset) }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  width: '100%', padding: '8px 14px', textAlign: 'left',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 13, color: 'var(--fg-1)',
+                  transition: 'background 0.12s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-3)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+              >
+                Edit
+              </button>
+
+              {/* Delete */}
               <button
                 onClick={() => { setDropOpen(false); setConfirmOpen(true) }}
                 style={{
@@ -241,9 +258,10 @@ interface AssetTableProps {
   mode: 'manual' | 'auto'
   onModeChange: (m: 'manual' | 'auto') => void
   onDelete: (id: string) => Promise<void>
+  onEdit: (asset: Asset) => void
 }
 
-export function AssetTable({ assets, category, hideValues, mode, onModeChange, onDelete }: AssetTableProps) {
+export function AssetTable({ assets, category, hideValues, mode, onModeChange, onDelete, onEdit }: AssetTableProps) {
   const cat = CATEGORIES[category]
   const filtered = assets.filter((a) => a.type === category)
   const total = filtered.reduce((s, a) => s + assetValueEUR(a), 0)
@@ -277,7 +295,7 @@ export function AssetTable({ assets, category, hideValues, mode, onModeChange, o
       ) : (
         <div>
           {filtered.map((a) => (
-            <AssetRow key={a.id} asset={a} hideValues={hideValues} onDelete={onDelete} />
+            <AssetRow key={a.id} asset={a} hideValues={hideValues} onDelete={onDelete} onEdit={onEdit} />
           ))}
         </div>
       )}
