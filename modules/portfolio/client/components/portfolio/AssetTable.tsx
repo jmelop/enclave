@@ -1,4 +1,5 @@
-import { Card, Button } from '@venator-ui/ui'
+import { useState, useEffect, useRef } from 'react'
+import { Card, Button, Modal, ModalHeader, ModalContent, ModalFooter, useToast } from '@venator-ui/ui'
 import { Icon } from '../Icon'
 import { CATEGORIES, assetValue, assetValueEUR, eur, eurCompact, num, pct } from '../../lib/utils'
 import type { Asset, AssetCategory } from '../../types/portfolio'
@@ -6,9 +7,10 @@ import type { Asset, AssetCategory } from '../../types/portfolio'
 interface AssetRowProps {
   asset: Asset
   hideValues: boolean
+  onDelete: (id: string) => Promise<void>
 }
 
-function AssetRow({ asset, hideValues }: AssetRowProps) {
+function AssetRow({ asset, hideValues, onDelete }: AssetRowProps) {
   const cat = CATEGORIES[asset.type]
   const isMarket = asset.price != null && asset.quantity != null
   const value = assetValue(asset)
@@ -40,6 +42,41 @@ function AssetRow({ asset, hideValues }: AssetRowProps) {
     if (asset.distribution) chips.push({ k: 'dist', v: asset.distribution })
   }
   if (asset.currency !== 'EUR') chips.push({ k: 'fx', v: asset.currency })
+
+  // ── dropdown state ────────────────────────────────────────────────────────
+  const [dropOpen, setDropOpen] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const dropRef = useRef<HTMLDivElement>(null)
+  const { toast } = useToast()
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!dropOpen) return
+    const handler = (e: MouseEvent) => {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) {
+        setDropOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [dropOpen])
+
+  const handleConfirmDelete = async () => {
+    setDeleting(true)
+    try {
+      await onDelete(asset.id)
+      setConfirmOpen(false)
+      setDropOpen(false)
+    } catch (err) {
+      toast({
+        title: err instanceof Error ? err.message : 'Error deleting asset',
+        variant: 'error',
+      })
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   return (
     <div className={`p-asset ${asset.type}`}>
@@ -91,9 +128,80 @@ function AssetRow({ asset, hideValues }: AssetRowProps) {
       </div>
 
       <div className="p-asset-actions">
-        <Button variant="ghost" size="sm" title="More options" style={{ width: 28, padding: 0 }}>
-          <Icon name="dots" />
-        </Button>
+        {/* ── more-options dropdown ── */}
+        <div ref={dropRef} style={{ position: 'relative' }}>
+          <Button
+            variant="ghost"
+            size="sm"
+            title="More options"
+            style={{ width: 28, padding: 0 }}
+            onClick={() => setDropOpen((o) => !o)}
+          >
+            <Icon name="dots" />
+          </Button>
+
+          {dropOpen && (
+            <div
+              style={{
+                position: 'absolute', right: 0, top: '100%', marginTop: 4,
+                minWidth: 120, zIndex: 10,
+                background: 'var(--bg-2)',
+                border: '1px solid var(--border-default)',
+                borderRadius: 8,
+                boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+                padding: '4px 0',
+              }}
+            >
+              {/* Delete — only action today; structure ready for future Edit */}
+              <button
+                onClick={() => { setDropOpen(false); setConfirmOpen(true) }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  width: '100%', padding: '8px 14px', textAlign: 'left',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 13, color: 'var(--danger)',
+                  transition: 'background 0.12s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-3)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+              >
+                Delete
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* ── confirmation modal ── */}
+        <Modal open={confirmOpen} onClose={() => !deleting && setConfirmOpen(false)} size="sm">
+          <ModalHeader
+            title="Delete asset"
+            onClose={() => !deleting && setConfirmOpen(false)}
+          />
+          <ModalContent>
+            <p style={{ margin: 0, fontSize: 14, color: 'var(--fg-2)', lineHeight: 1.55 }}>
+              Are you sure you want to delete <strong>{asset.name}</strong>?
+              {' '}This action cannot be undone.
+            </p>
+          </ModalContent>
+          <ModalFooter>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setConfirmOpen(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleConfirmDelete}
+              disabled={deleting}
+            >
+              {deleting ? 'Deleting…' : 'Confirm'}
+            </Button>
+          </ModalFooter>
+        </Modal>
       </div>
     </div>
   )
@@ -132,9 +240,10 @@ interface AssetTableProps {
   hideValues: boolean
   mode: 'manual' | 'auto'
   onModeChange: (m: 'manual' | 'auto') => void
+  onDelete: (id: string) => Promise<void>
 }
 
-export function AssetTable({ assets, category, hideValues, mode, onModeChange }: AssetTableProps) {
+export function AssetTable({ assets, category, hideValues, mode, onModeChange, onDelete }: AssetTableProps) {
   const cat = CATEGORIES[category]
   const filtered = assets.filter((a) => a.type === category)
   const total = filtered.reduce((s, a) => s + assetValueEUR(a), 0)
@@ -168,7 +277,7 @@ export function AssetTable({ assets, category, hideValues, mode, onModeChange }:
       ) : (
         <div>
           {filtered.map((a) => (
-            <AssetRow key={a.id} asset={a} hideValues={hideValues} />
+            <AssetRow key={a.id} asset={a} hideValues={hideValues} onDelete={onDelete} />
           ))}
         </div>
       )}

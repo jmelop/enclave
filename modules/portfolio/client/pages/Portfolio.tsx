@@ -37,7 +37,7 @@ function useTheme() {
 }
 
 export function Portfolio() {
-  const { assets, addAsset, loading, error, hydrated, hydrate } = usePortfolioStore()
+  const { assets, loading, error, hydrated, hydrate, refetch, createAsset, deleteAsset } = usePortfolioStore()
   const [activeTab, setActiveTab] = useState<AssetCategory>('stock')
   const [hideValues, setHideValues] = useState(false)
   const [modes, setModes] = useState<Modes>(DEFAULT_MODES)
@@ -127,7 +127,7 @@ export function Portfolio() {
           >
             <Icon name="eye" />
           </Button>
-          <Button variant="secondary" size="sm">
+          <Button variant="secondary" size="sm" onClick={refetch}>
             <Icon name="refresh" /> Refresh
           </Button>
           <Button variant="primary" size="sm" onClick={() => setShowAddModal(true)}>
@@ -192,6 +192,7 @@ export function Portfolio() {
             hideValues={hideValues}
             mode={modes[activeTab]}
             onModeChange={(m) => setModes((prev) => ({ ...prev, [activeTab]: m }))}
+            onDelete={deleteAsset}
           />
         </>
       )}
@@ -199,7 +200,7 @@ export function Portfolio() {
       {showAddModal && (
         <AddAssetModal
           onClose={() => setShowAddModal(false)}
-          onAdd={(asset) => { addAsset(asset); setShowAddModal(false) }}
+          onAdd={createAsset}
           defaultCategory={activeTab}
         />
       )}
