@@ -107,6 +107,60 @@ export function createPortfolioRouter(pool: DbPool): Router {
     }
   });
 
+  router.put('/holdings/:id', async (req, res) => {
+    const { id } = req.params;
+    const input = req.body as AssetInput;
+
+    if (!VALID_TYPES.has(input.type)) {
+      return res.status(400).json({ error: 'Invalid asset type' });
+    }
+    if (!input.name?.trim()) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+    if (!input.currency?.trim()) {
+      return res.status(400).json({ error: 'Currency is required' });
+    }
+
+    try {
+      const { rows } = await pool.query(
+        `UPDATE assets SET
+          type=$2, name=$3, description=$4, currency=$5,
+          symbol=$6, price=$7, quantity=$8, change_pct_24h=$9,
+          isin=$10, ter=$11, distribution=$12,
+          amount=$13, subtype=$14, valuation_date=$15,
+          bank=$16, apy=$17, updated_at=NOW()
+        WHERE id=$1
+        RETURNING *`,
+        [
+          id,
+          input.type,
+          input.name,
+          input.description ?? null,
+          input.currency,
+          input.symbol ?? null,
+          input.price ?? null,
+          input.quantity ?? null,
+          input.changePercent24h ?? null,
+          input.isin ?? null,
+          input.ter ?? null,
+          input.distribution ?? null,
+          input.amount ?? null,
+          input.subtype ?? null,
+          input.valuationDate ?? null,
+          input.bank ?? null,
+          input.apy ?? null,
+        ],
+      );
+      if (rows.length === 0) {
+        return res.status(404).json({ error: 'Asset not found' });
+      }
+      return res.status(200).json(mapAsset(rows[0]));
+    } catch (err) {
+      console.warn('[portfolio] PUT /holdings/:id db error:', err);
+      return res.status(503).json({ error: 'Database unavailable, cannot update asset' });
+    }
+  });
+
   router.delete('/holdings/:id', async (req, res) => {
     const { id } = req.params;
     try {
