@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useToast } from '@venator-ui/ui'
 import { CATEGORIES } from '../../lib/utils'
-import type { AssetCategory, AssetInput } from '../../types/portfolio'
+import type { Asset, AssetCategory, AssetInput } from '../../types/portfolio'
 
 const SUBTYPES = {
   collectible: [
@@ -48,7 +48,9 @@ const TYPE_TABS: { id: AssetCategory; label: string; hint: string }[] = [
 interface Props {
   onClose: () => void
   onAdd: (input: AssetInput) => Promise<void>
+  onSave?: (id: string, input: AssetInput) => Promise<void>
   defaultCategory?: AssetCategory
+  editAsset?: Asset
 }
 
 interface FormState {
@@ -66,6 +68,25 @@ interface FormState {
   subtype?: string
   valuationDate?: string
   description?: string
+}
+
+function formFromAsset(a: Asset): FormState {
+  return {
+    currency:      a.currency,
+    name:          a.name ?? undefined,
+    symbol:        a.symbol ?? undefined,
+    price:         a.price != null ? String(a.price) : undefined,
+    quantity:      a.quantity != null ? String(a.quantity) : undefined,
+    amount:        a.amount != null ? String(a.amount) : undefined,
+    isin:          a.isin ?? undefined,
+    ter:           a.ter != null ? String(a.ter) : undefined,
+    distribution:  a.distribution ?? undefined,
+    bank:          a.bank ?? undefined,
+    apy:           a.apy != null ? String(a.apy) : undefined,
+    subtype:       a.subtype ?? undefined,
+    valuationDate: (a.valuationDate as string | null | undefined) ?? undefined,
+    description:   a.description ?? undefined,
+  }
 }
 
 function PillRow({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
@@ -100,10 +121,14 @@ function MoneyInput({ value, onChange, placeholder = '0.00', currency = 'EUR' }:
   )
 }
 
-export default function AddAssetModal({ onClose, onAdd, defaultCategory }: Props) {
+export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory, editAsset }: Props) {
   const { toast } = useToast()
-  const [type, setType] = useState<AssetCategory>(defaultCategory ?? 'stock')
-  const [form, setForm] = useState<FormState>({ currency: 'EUR' })
+  const isEdit = !!editAsset
+
+  const [type, setType] = useState<AssetCategory>(() => editAsset?.type ?? defaultCategory ?? 'stock')
+  const [form, setForm] = useState<FormState>(() =>
+    editAsset ? formFromAsset(editAsset) : { currency: 'EUR' }
+  )
   const [validated, setValidated] = useState<'ok' | 'err' | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -116,6 +141,7 @@ export default function AddAssetModal({ onClose, onAdd, defaultCategory }: Props
   const set = (k: keyof FormState, v: string) => setForm(f => ({ ...f, [k]: v }))
 
   const switchType = (t: AssetCategory) => {
+    if (isEdit) return
     setType(t)
     setForm({ currency: 'EUR' })
     setValidated(null)
@@ -143,7 +169,6 @@ export default function AddAssetModal({ onClose, onAdd, defaultCategory }: Props
   }
 
   const submit = async () => {
-    // Client-side validation
     if (type === 'savings') {
       if (!form.bank?.trim()) {
         toast({ title: 'Bank / Institution is required', variant: 'error' })
@@ -210,8 +235,13 @@ export default function AddAssetModal({ onClose, onAdd, defaultCategory }: Props
 
     setSaving(true)
     try {
-      await onAdd(base)
-      toast({ title: `${base.name} added to ${CATEGORIES[type].label}`, variant: 'success' })
+      if (isEdit && onSave) {
+        await onSave(editAsset!.id, base)
+        toast({ title: `${base.name} updated`, variant: 'success' })
+      } else {
+        await onAdd(base)
+        toast({ title: `${base.name} added to ${CATEGORIES[type].label}`, variant: 'success' })
+      }
       onClose()
     } catch (err) {
       toast({ title: err instanceof Error ? err.message : 'Error saving asset', variant: 'error' })
@@ -225,8 +255,12 @@ export default function AddAssetModal({ onClose, onAdd, defaultCategory }: Props
       <div className="v-modal v-modal-lg" role="dialog" aria-modal="true" aria-labelledby="add-asset-title">
         <div className="v-modal-head">
           <div>
-            <div className="v-modal-title" id="add-asset-title">Add New Asset</div>
-            <div className="v-modal-sub">Add a position to your portfolio.</div>
+            <div className="v-modal-title" id="add-asset-title">
+              {isEdit ? 'Edit Asset' : 'Add New Asset'}
+            </div>
+            <div className="v-modal-sub">
+              {isEdit ? 'Update this position.' : 'Add a position to your portfolio.'}
+            </div>
           </div>
           <button className="v-btn v-btn-icon v-btn-ghost" onClick={onClose} aria-label="Close">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -236,12 +270,19 @@ export default function AddAssetModal({ onClose, onAdd, defaultCategory }: Props
         </div>
 
         <div className="v-modal-body">
-          {/* Type selector */}
+          {/* Type selector — disabled in edit mode (type cannot change) */}
           <div className="v-field">
             <label className="v-label">Type</label>
             <div className="v-typebar">
               {TYPE_TABS.map(opt => (
-                <button key={opt.id} type="button" className={type === opt.id ? 'on' : ''} onClick={() => switchType(opt.id)}>
+                <button
+                  key={opt.id}
+                  type="button"
+                  className={type === opt.id ? 'on' : ''}
+                  onClick={() => switchType(opt.id)}
+                  disabled={isEdit}
+                  style={isEdit ? { opacity: opt.id === type ? 1 : 0.35, cursor: 'default' } : undefined}
+                >
                   <span className="lbl">{opt.label}</span>
                   <span className="hint">{opt.hint}</span>
                 </button>
@@ -497,14 +538,17 @@ export default function AddAssetModal({ onClose, onAdd, defaultCategory }: Props
         <div className="v-modal-foot">
           <button className="v-btn" onClick={onClose}>Cancel</button>
           <button className="v-btn v-btn-primary" onClick={submit} disabled={saving}>
-            {saving ? 'Saving…' : (
-              <>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                  <path d="M8 3v10M3 8h10"/>
-                </svg>
-                Add
-              </>
-            )}
+            {isEdit
+              ? (saving ? 'Saving…' : 'Save changes')
+              : saving ? 'Saving…' : (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <path d="M8 3v10M3 8h10"/>
+                  </svg>
+                  Add
+                </>
+              )
+            }
           </button>
         </div>
       </div>
