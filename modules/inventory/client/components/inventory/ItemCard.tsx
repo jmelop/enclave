@@ -7,11 +7,12 @@ import type { InventoryItem } from '@/types/inventory'
 
 interface ItemCardProps {
   item: InventoryItem
+  index: number
   showCoord?: boolean
   onOpen: (item: InventoryItem) => void
 }
 
-export function ItemCard({ item, showCoord = true, onOpen }: ItemCardProps) {
+export function ItemCard({ item, index, showCoord = true, onOpen }: ItemCardProps) {
   const c = CATEGORIES.find((x) => x.id === item.category)
   const accent = c ? catAccent(c.hue) : 'var(--fg)'
 
@@ -26,7 +27,7 @@ export function ItemCard({ item, showCoord = true, onOpen }: ItemCardProps) {
       <Bracket corner="bl" />
       <Bracket corner="br" />
       <div className="ic-top">
-        {showCoord && <span className="ic-coord">#{item.id}</span>}
+        {showCoord && <span className="ic-coord">#{String(index).padStart(3, '0')}</span>}
         <CatBadge catId={item.category} />
         <StatusPill status={item.status} micro />
       </div>

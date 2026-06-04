@@ -1,4 +1,6 @@
-import type { Category, HistoryEntry, InventoryItem } from '@/types/inventory'
+import type { Category, InventoryItem } from '@/types/inventory'
+// TODO: historial fuera de alcance — ver rama futura feat/inventory-history
+// import type { HistoryEntry } from '@/types/inventory'
 
 export const CATEGORIES: Category[] = [
   { id: 'pc',    label: 'PC Components',    short: 'PC',    hue: 220 },
@@ -34,11 +36,12 @@ export const SEED_ITEMS: InventoryItem[] = [
   { id:'022', name:'Transistor 2N2222 NPN',       category:'elec',  model:'2N2222A-TO92',    qty:18, status:'in',  location:'Bolsita amarilla',       notes:'Switching general purpose.', updated:'2026-02-25' },
 ]
 
-export const SEED_HISTORY: Record<string, HistoryEntry[]> = {
-  '001': [{ d:'2025-03-04', q:1, why:'received' }, { d:'2025-08-12', q:2, why:'+1 build' }],
-  '002': [{ d:'2023-11-10', q:6, why:'received' }, { d:'2024-06-04', q:5, why:'-1 gift' },     { d:'2025-02-19', q:4, why:'-1 broken' }],
-  '005': [{ d:'2024-09-01', q:100,why:'received' },{ d:'2026-01-14', q:42, why:'-58 project' },{ d:'2026-05-14', q:0, why:'-42 LED strip' }],
-  '010': [{ d:'2025-05-22', q:8, why:'received' }, { d:'2026-02-10', q:5, why:'-3 used' },     { d:'2026-05-02', q:3, why:'-2 used' }],
-  '013': [{ d:'2025-01-08', q:5, why:'received' }, { d:'2025-10-30', q:3, why:'-2 robot arm' },{ d:'2026-05-10', q:2, why:'-1 test' }],
-  '015': [{ d:'2024-12-15', q:3, why:'received' }, { d:'2025-06-20', q:2, why:'-1 broken' },   { d:'2026-05-15', q:0, why:'-2 dashboard' }],
-}
+// TODO: historial fuera de alcance — ver rama futura feat/inventory-history
+// export const SEED_HISTORY: Record<string, HistoryEntry[]> = {
+//   '001': [{ d:'2025-03-04', q:1, why:'received' }, { d:'2025-08-12', q:2, why:'+1 build' }],
+//   '002': [{ d:'2023-11-10', q:6, why:'received' }, { d:'2024-06-04', q:5, why:'-1 gift' },     { d:'2025-02-19', q:4, why:'-1 broken' }],
+//   '005': [{ d:'2024-09-01', q:100,why:'received' },{ d:'2026-01-14', q:42, why:'-58 project' },{ d:'2026-05-14', q:0, why:'-42 LED strip' }],
+//   '010': [{ d:'2025-05-22', q:8, why:'received' }, { d:'2026-02-10', q:5, why:'-3 used' },     { d:'2026-05-02', q:3, why:'-2 used' }],
+//   '013': [{ d:'2025-01-08', q:5, why:'received' }, { d:'2025-10-30', q:3, why:'-2 robot arm' },{ d:'2026-05-10', q:2, why:'-1 test' }],
+//   '015': [{ d:'2024-12-15', q:3, why:'received' }, { d:'2025-06-20', q:2, why:'-1 broken' },   { d:'2026-05-15', q:0, why:'-2 dashboard' }],
+// }

@@ -20,8 +20,8 @@ export function CatalogList({ items, density, onOpen }: CatalogListProps) {
         <span>LOCATION</span>
         <span></span>
       </div>
-      {items.map((item) => (
-        <ItemRow key={item.id} item={item} onOpen={onOpen} />
+      {items.map((item, idx) => (
+        <ItemRow key={item.id} item={item} index={idx + 1} onOpen={onOpen} />
       ))}
     </div>
   )

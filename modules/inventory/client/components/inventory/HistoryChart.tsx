@@ -1,4 +1,7 @@
-import type { HistoryEntry } from '@/types/inventory'
+// TODO: historial fuera de alcance — ver rama futura feat/inventory-history
+// import type { HistoryEntry } from '@/types/inventory'
+
+interface HistoryEntry { d: string; q: number; why: string }
 
 interface HistoryChartProps {
   history: HistoryEntry[] | null
