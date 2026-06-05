@@ -20,7 +20,9 @@
     "paths": {
       "@/*":                    ["./*"],
       "@enclave/sdk":           ["../../../packages/sdk/src/index.ts"],
-      "@enclave/ui-shell":      ["../../../packages/ui-shell/src/index.ts"],
+      // Point tsc at the stub (same as vite.config) so it never follows
+      // the real EnclaveNav → enclave.modules.client → all other modules chain.
+      "@enclave/ui-shell":      ["./stubs/EnclaveNav.stub.tsx"],
       "react":                  ["../node_modules/@types/react"],
       "react/*":                ["../node_modules/@types/react/*"],
       "react-router-dom":       ["../node_modules/react-router-dom"],
@@ -30,6 +32,6 @@
       "zustand":                ["../node_modules/zustand"]
     }
   },
-  "include": [".", "../module/client.config.tsx"],
-  "exclude": ["../node_modules"]
+  "include": [".", "../module/meta.ts", "../module/client.config.tsx"],
+  "exclude": ["../server", "../module/server.config.ts", "../node_modules"]
 }

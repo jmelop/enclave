@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button, Input } from '@venator-ui/ui'
 import { useLabStore } from '@/store/labStore'
 import { LANG_META } from '@/lib/utils'
@@ -14,15 +14,49 @@ type LangFilter = Lang | 'all'
 const ALL_LANGS = Object.keys(LANG_META) as Lang[]
 
 export function SnippetsPage({ onOpen }: SnippetsPageProps) {
-  const ideas = useLabStore(s => s.ideas)
+  const allSnippets      = useLabStore(s => s.allSnippets)
+  const snippetsLoading  = useLabStore(s => s.snippetsLoading)
+  const snippetsError    = useLabStore(s => s.snippetsError)
+  const snippetsHydrated = useLabStore(s => s.snippetsHydrated)
+  const hydrateSnippets  = useLabStore(s => s.hydrateSnippets)
+  const refetchSnippets  = useLabStore(s => s.refetchSnippets)
+
   const [query, setQuery] = useState('')
   const [langFilter, setLangFilter] = useState<LangFilter>('all')
 
-  const allSnippets = ideas.flatMap(idea =>
-    idea.snippets.map(snip => ({ snip, idea }))
-  )
+  useEffect(() => { void hydrateSnippets() }, [hydrateSnippets])
 
-  const filtered = allSnippets.filter(({ snip }) => {
+  // ── 4 UI states ────────────────────────────────────────────────────────────
+
+  if (snippetsLoading && !snippetsHydrated) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '40vh', color: 'var(--fg-3)' }}>
+        Loading snippets…
+      </div>
+    )
+  }
+
+  if (snippetsError && !snippetsHydrated) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, height: '40vh' }}>
+        <span style={{ color: 'var(--danger)' }}>Failed to load snippets: {snippetsError}</span>
+        <Button variant="accent" size="sm" onClick={() => void refetchSnippets()}>Retry</Button>
+      </div>
+    )
+  }
+
+  if (snippetsHydrated && allSnippets.length === 0) {
+    return (
+      <div className="empty-state">
+        <div className="empty-state-icon">{'</>'}</div>
+        <div className="empty-state-text">Add snippets to your ideas to see them here.</div>
+      </div>
+    )
+  }
+
+  // ── Normal list state ──────────────────────────────────────────────────────
+
+  const filtered = allSnippets.filter(snip => {
     if (langFilter !== 'all' && snip.lang !== langFilter) return false
     if (query) {
       const q = query.toLowerCase()
@@ -63,8 +97,8 @@ export function SnippetsPage({ onOpen }: SnippetsPageProps) {
           All
         </Button>
         {ALL_LANGS.map(l => {
-          const meta = LANG_META[l]
-          const count = allSnippets.filter(({ snip }) => snip.lang === l).length
+          const meta  = LANG_META[l]
+          const count = allSnippets.filter(snip => snip.lang === l).length
           if (count === 0) return null
           return (
             <Button
@@ -85,14 +119,14 @@ export function SnippetsPage({ onOpen }: SnippetsPageProps) {
       {/* Grid */}
       {filtered.length > 0 ? (
         <div className="lab-grid" style={{ paddingTop: 0 }}>
-          {filtered.map(({ snip, idea }) => (
+          {filtered.map(snip => (
             <div key={snip.id} className="snip-page-card">
               <div className="snip-page-source">
                 <span style={{ color: 'var(--fg-5)', fontFamily: 'JetBrains Mono, monospace', fontSize: 11 }}>
                   idea:
                 </span>
-                <Button variant="ghost" size="sm" onClick={() => onOpen(idea.id)}>
-                  {idea.title}
+                <Button variant="ghost" size="sm" onClick={() => onOpen(snip.ideaId)}>
+                  {snip.ideaTitle}
                 </Button>
               </div>
               <div className="snip-page-inner">
@@ -105,9 +139,7 @@ export function SnippetsPage({ onOpen }: SnippetsPageProps) {
         <div className="empty-state">
           <div className="empty-state-icon">{'</>'}</div>
           <div className="empty-state-text">
-            {query || langFilter !== 'all'
-              ? 'No snippets match your search.'
-              : 'Add snippets to your ideas to see them here.'}
+            No snippets match your search.
           </div>
         </div>
       )}

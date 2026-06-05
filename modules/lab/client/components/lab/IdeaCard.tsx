@@ -1,4 +1,3 @@
-import { Card } from '@venator-ui/ui'
 import { Badge } from '@venator-ui/ui'
 import type { Idea } from '@/types/lab'
 import { PHASES, CATEGORIES } from '@/lib/seed'

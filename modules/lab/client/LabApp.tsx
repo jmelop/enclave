@@ -2,7 +2,7 @@
 // No AppShell/EnclaveNav — used by both:
 //   • standalone:  App.tsx wraps this with AppShell
 //   • dashboard:   client.config.tsx routes expose this directly
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { Button } from '@venator-ui/ui'
 import { IdeasPage }   from '@/pages/IdeasPage'
@@ -26,11 +26,14 @@ export default function LabApp() {
     () => document.documentElement.getAttribute('data-theme') ?? 'dark',
   )
 
-  const openId    = useLabStore(s => s.openId)
-  const ideas     = useLabStore(s => s.ideas)
-  const setOpenId = useLabStore(s => s.setOpenId)
+  const openId     = useLabStore(s => s.openId)
+  const ideas      = useLabStore(s => s.ideas)
+  const setOpenId  = useLabStore(s => s.setOpenId)
   const updateIdea = useLabStore(s => s.updateIdea)
-  const newIdea   = useLabStore(s => s.newIdea)
+  const newIdea    = useLabStore(s => s.newIdea)
+  const hydrate    = useLabStore(s => s.hydrate)
+
+  useEffect(() => { void hydrate() }, [hydrate])
 
   const location = useLocation()
 
