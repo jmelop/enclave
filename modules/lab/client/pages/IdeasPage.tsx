@@ -10,12 +10,46 @@ interface IdeasPageProps {
 
 export function IdeasPage({ onOpen }: IdeasPageProps) {
   const ideas      = useLabStore(s => s.ideas)
+  const loading    = useLabStore(s => s.loading)
+  const error      = useLabStore(s => s.error)
+  const hydrated   = useLabStore(s => s.hydrated)
+  const refetch    = useLabStore(s => s.refetch)
   const query      = useLabStore(s => s.query)
   const phase      = useLabStore(s => s.phase)
   const category   = useLabStore(s => s.category)
   const setQuery   = useLabStore(s => s.setQuery)
   const setPhase   = useLabStore(s => s.setPhase)
   const setCategory = useLabStore(s => s.setCategory)
+
+  // ── 4 UI states ────────────────────────────────────────────────────────────
+
+  if (loading && !hydrated) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '40vh', color: 'var(--fg-3)' }}>
+        Loading ideas…
+      </div>
+    )
+  }
+
+  if (error && !hydrated) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, height: '40vh' }}>
+        <span style={{ color: 'var(--danger)' }}>Failed to load ideas: {error}</span>
+        <Button variant="accent" size="sm" onClick={() => void refetch()}>Retry</Button>
+      </div>
+    )
+  }
+
+  if (hydrated && ideas.length === 0) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, height: '40vh', color: 'var(--fg-3)' }}>
+        <div className="empty-state-icon">◉</div>
+        <span>No ideas yet. Create your first one!</span>
+      </div>
+    )
+  }
+
+  // ── Normal list state ──────────────────────────────────────────────────────
 
   const active = ideas.filter(i => i.phase !== 'archived')
 
@@ -100,9 +134,7 @@ export function IdeasPage({ onOpen }: IdeasPageProps) {
         <div className="empty-state">
           <div className="empty-state-icon">◉</div>
           <div className="empty-state-text">
-            {query || phase !== 'all' || category !== 'all'
-              ? 'No ideas match the current filters.'
-              : 'No ideas yet. Create your first one!'}
+            No ideas match the current filters.
           </div>
         </div>
       )}

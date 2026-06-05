@@ -12,7 +12,14 @@ interface PanelProps {
 }
 
 export function Panel({ idea, onClose, onUpdate }: PanelProps) {
+  // Local draft buffers live edits so onUpdate (→ PUT) is NOT called on every
+  // keystroke. Fires only on blur (title, notes) and discrete events (selects,
+  // snippet add). `idea` controls the open/closed CSS state; `draft` controls
+  // the rendered content — initialised from `idea` and synced on every change.
+  const [draft, setDraft] = useState<Idea | null>(idea)
   const [addingSnip, setAddingSnip] = useState(false)
+
+  useEffect(() => { setDraft(idea) }, [idea])
 
   useEffect(() => {
     function handler(e: KeyboardEvent) {
@@ -26,41 +33,41 @@ export function Panel({ idea, onClose, onUpdate }: PanelProps) {
     if (!idea) setAddingSnip(false)
   }, [idea])
 
-  function handleTitleChange(val: string) {
-    if (!idea) return
-    onUpdate({ ...idea, title: val })
-  }
-
-  function handleNotesChange(val: string) {
-    if (!idea) return
-    onUpdate({ ...idea, notes: val })
-  }
+  // `idea` drives open/closed so CSS transitions work.
+  // `content` uses `draft ?? idea` to avoid a blank frame on first open.
+  const content = draft ?? idea
 
   function handlePhaseChange(val: PhaseId) {
-    if (!idea) return
-    onUpdate({ ...idea, phase: val })
+    if (!content) return
+    const updated = { ...content, phase: val }
+    setDraft(updated)
+    onUpdate(updated)
   }
 
   function handleCategoryChange(val: CategoryId) {
-    if (!idea) return
-    onUpdate({ ...idea, category: val })
+    if (!content) return
+    const updated = { ...content, category: val }
+    setDraft(updated)
+    onUpdate(updated)
   }
 
   function handleAddSnippet(snip: Snippet) {
-    if (!idea) return
-    onUpdate({ ...idea, snippets: [...idea.snippets, snip] })
+    if (!content) return
+    const updated = { ...content, snippets: [...content.snippets, snip] }
+    setDraft(updated)
+    onUpdate(updated)
     setAddingSnip(false)
   }
 
-  const phase = PHASES.find(p => p.id === idea?.phase)
-  const cat = CATEGORIES.find(c => c.id === idea?.category)
+  const phase = content ? PHASES.find(p => p.id === content.phase) : undefined
+  const cat   = content ? CATEGORIES.find(c => c.id === content.category) : undefined
 
   return (
     <>
       <div className={`lab-scrim${idea ? ' open' : ''}`} onClick={onClose} />
 
       <div className={`lab-panel${idea ? ' open' : ''}`}>
-        {idea && (
+        {content && (
           <>
             {/* Header */}
             <div className="panel-header">
@@ -79,7 +86,7 @@ export function Panel({ idea, onClose, onUpdate }: PanelProps) {
                   color: 'var(--fg-4)',
                 }}
               >
-                {cat?.label ?? idea.category}
+                {cat?.label ?? content.category}
               </span>
               <span style={{ flex: 1 }} />
               <Button
@@ -95,11 +102,12 @@ export function Panel({ idea, onClose, onUpdate }: PanelProps) {
 
             {/* Body */}
             <div className="panel-body">
-              {/* Editable title */}
+              {/* Title — saves on blur */}
               <textarea
                 className="title-edit"
-                value={idea.title}
-                onChange={e => handleTitleChange(e.target.value)}
+                value={content.title}
+                onChange={e => setDraft({ ...content, title: e.target.value })}
+                onBlur={() => draft && onUpdate(draft)}
                 rows={2}
                 onInput={e => {
                   const ta = e.currentTarget
@@ -114,7 +122,7 @@ export function Panel({ idea, onClose, onUpdate }: PanelProps) {
                   <Label htmlFor="panel-phase">Phase</Label>
                   <Select
                     id="panel-phase"
-                    value={idea.phase}
+                    value={content.phase}
                     onChange={e => handlePhaseChange(e.target.value as PhaseId)}
                   >
                     {PHASES.map(ph => (
@@ -127,7 +135,7 @@ export function Panel({ idea, onClose, onUpdate }: PanelProps) {
                   <Label htmlFor="panel-cat">Category</Label>
                   <Select
                     id="panel-cat"
-                    value={idea.category}
+                    value={content.category}
                     onChange={e => handleCategoryChange(e.target.value as CategoryId)}
                   >
                     {CATEGORIES.map(c => (
@@ -139,30 +147,31 @@ export function Panel({ idea, onClose, onUpdate }: PanelProps) {
                 <div className="field">
                   <Label>Updated</Label>
                   <span style={{ fontSize: 12.5, color: 'var(--fg-3)', padding: '5px 0' }}>
-                    {idea.updated}
+                    {content.updated}
                   </span>
                 </div>
               </div>
 
-              {/* Notes */}
+              {/* Notes — saves on blur */}
               <div className="field">
                 <Label htmlFor="panel-notes">Notes</Label>
                 <textarea
                   id="panel-notes"
                   className="notes-edit"
-                  value={idea.notes}
-                  onChange={e => handleNotesChange(e.target.value)}
+                  value={content.notes}
+                  onChange={e => setDraft({ ...content, notes: e.target.value })}
+                  onBlur={() => draft && onUpdate(draft)}
                   placeholder="Write your notes here..."
                   rows={4}
                 />
               </div>
 
               {/* Links */}
-              {idea.links.length > 0 && (
+              {content.links.length > 0 && (
                 <div>
                   <div className="panel-section-h">Links</div>
                   <div className="panel-links">
-                    {idea.links.map((lk, i) => (
+                    {content.links.map((lk, i) => (
                       <a
                         key={i}
                         href={lk.url}
@@ -182,10 +191,10 @@ export function Panel({ idea, onClose, onUpdate }: PanelProps) {
               {/* Snippets */}
               <div>
                 <div className="panel-section-h">
-                  Snippets ({idea.snippets.length})
+                  Snippets ({content.snippets.length})
                 </div>
                 <div className="panel-snippets">
-                  {idea.snippets.map(snip => (
+                  {content.snippets.map(snip => (
                     <SnippetView key={snip.id} snip={snip} />
                   ))}
 

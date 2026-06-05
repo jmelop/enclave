@@ -29,8 +29,14 @@ export interface Asset {
   valuationDate?: string
 }
 
+export interface DbClient {
+  query(sql: string, params?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
+  release(): void;
+}
+
 export interface DbPool {
   query(sql: string, params?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
+  connect(): Promise<DbClient>;
 }
 
 export type AssetInput = Omit<Asset, 'id'>
