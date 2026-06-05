@@ -2,19 +2,22 @@ import { useEffect } from 'react'
 import { Button } from '@venator-ui/ui'
 import { CatBadge } from '@/components/ui/CatBadge'
 import { StatusPill } from '@/components/ui/StatusPill'
-import { HistoryChart } from './HistoryChart'
+// TODO: historial fuera de alcance — ver rama futura feat/inventory-history
+// import { HistoryChart } from './HistoryChart'
 import { CATEGORIES, useInventoryStore } from '@/store/inventoryStore'
 import { catAccent } from '@/lib/utils'
-import type { HistoryEntry, InventoryItem } from '@/types/inventory'
+import type { InventoryItem } from '@/types/inventory'
 
 interface DetailPanelProps {
   item: InventoryItem | null
-  history: HistoryEntry[] | null
+  displayIndex: number   // 1-based visual index for SKU display; 0 = not found → shows '—'
+  // TODO: historial fuera de alcance — ver rama futura feat/inventory-history
+  // history: HistoryEntry[] | null
   onClose: () => void
   onEdit: (item: InventoryItem) => void
 }
 
-export function DetailPanel({ item, history, onClose, onEdit }: DetailPanelProps) {
+export function DetailPanel({ item, displayIndex, onClose, onEdit }: DetailPanelProps) {
   const adjustQty = useInventoryStore((s) => s.adjustQty)
   const deleteItem = useInventoryStore((s) => s.deleteItem)
 
@@ -43,7 +46,7 @@ export function DetailPanel({ item, history, onClose, onEdit }: DetailPanelProps
           <>
             <header className="dt-head">
               <div className="dt-head-line">
-                <span className="dt-idx">SKU #{item.id}</span>
+                <span className="dt-idx">SKU #{displayIndex > 0 ? String(displayIndex).padStart(3, '0') : '—'}</span>
                 <button className="icon-btn" onClick={onClose} aria-label="Close">✕</button>
               </div>
               <div className="dt-title-row">
@@ -84,10 +87,11 @@ export function DetailPanel({ item, history, onClose, onEdit }: DetailPanelProps
               </div>
             </section>
 
-            <section className="dt-section">
+            {/* TODO: historial fuera de alcance — ver rama futura feat/inventory-history */}
+            {/* <section className="dt-section">
               <div className="dt-section-h"><span>·</span> QUANTITY HISTORY</div>
               <HistoryChart history={history} accent={accent} />
-            </section>
+            </section> */}
 
             <footer className="dt-foot">
               <Button variant="ghost" onClick={() => handleDelete(item)}>⊗ Delete</Button>

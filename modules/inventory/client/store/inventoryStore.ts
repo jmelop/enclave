@@ -1,105 +1,133 @@
 import { useMemo } from 'react'
 import { create } from 'zustand'
-import type { CategoryId, Density, HistoryEntry, InventoryItem, ItemStatus, ViewMode } from '@/types/inventory'
-import { CATEGORIES, SEED_HISTORY, SEED_ITEMS } from '@/lib/seed'
-import { deriveStatus, padId, today } from '@/lib/utils'
+import type { CategoryId, Density, InventoryItem, ItemInput, ItemStatus, ViewMode } from '@/types/inventory'
+import { CATEGORIES } from '@/lib/seed'
+import { deriveStatus } from '@/lib/utils'
 
 export { CATEGORIES }
 
+// Raw shape returned by the API (no status — derived client-side).
+type ApiItem = Omit<InventoryItem, 'status'>
+
+async function fetchItems(): Promise<InventoryItem[]> {
+  const res = await fetch('/api/inventory/items')
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const raw = (await res.json()) as ApiItem[]
+  return raw.map((item) => ({ ...item, status: deriveStatus(item.qty) }))
+}
+
 interface InventoryState {
   items: InventoryItem[]
-  history: Record<string, HistoryEntry[]>
+  loading: boolean
+  error: string | null
+  hydrated: boolean
+
   viewMode: ViewMode
   density: Density
   selectedCategory: CategoryId | null
   statusFilter: ItemStatus | null
   sortBy: 'id' | 'name' | 'qty'
   search: string
-  selectedItem: InventoryItem | null
+  selectedId: string | null   // stores only the id; item is derived live from items[]
 
-  addItem: (draft: Omit<InventoryItem, 'id' | 'status' | 'updated'> & { qty: number }) => void
-  updateItem: (item: InventoryItem) => void
-  deleteItem: (id: string) => void
-  adjustQty: (id: string, delta: number) => void
+  hydrate: () => Promise<void>
+  refetch: () => Promise<void>
+  createItem: (input: ItemInput) => Promise<void>
+  updateItem: (id: string, input: ItemInput) => Promise<void>
+  adjustQty: (id: string, delta: number) => Promise<void>
+  deleteItem: (id: string) => Promise<void>
+
   setView: (mode: ViewMode) => void
   setDensity: (density: Density) => void
   setSearch: (q: string) => void
   setCategory: (cat: CategoryId | null) => void
   setStatusFilter: (s: ItemStatus | null) => void
   setSortBy: (s: 'id' | 'name' | 'qty') => void
-  setSelectedItem: (item: InventoryItem | null) => void
+  setSelectedId: (id: string | null) => void
 }
 
-export const useInventoryStore = create<InventoryState>((set, get) => ({
-  items: SEED_ITEMS,
-  history: SEED_HISTORY,
+export const useInventoryStore = create<InventoryState>()((set, get) => ({
+  items: [],
+  loading: false,
+  error: null,
+  hydrated: false,
+
   viewMode: 'list',
   density: 'comfy',
   selectedCategory: null,
   statusFilter: null,
   sortBy: 'id',
   search: '',
-  selectedItem: null,
+  selectedId: null,
 
-  addItem: (draft) => {
-    const { items } = get()
-    const id = padId(items.length + 1)
-    const qty = Number(draft.qty) || 0
-    const newItem: InventoryItem = {
-      ...draft,
-      id,
-      qty,
-      status: deriveStatus(qty),
-      updated: today(),
+  hydrate: async () => {
+    if (get().hydrated || get().loading) return
+    set({ loading: true, error: null })
+    try {
+      const items = await fetchItems()
+      set({ items, hydrated: true, error: null, loading: false })
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : 'Network error', hydrated: false, loading: false })
     }
-    set((s) => ({ items: [...s.items, newItem] }))
   },
 
-  updateItem: (item) => {
-    const qty = Number(item.qty) || 0
-    const updated: InventoryItem = {
-      ...item,
-      qty,
-      status: deriveStatus(qty),
-      updated: today(),
+  refetch: async () => {
+    set({ loading: true, error: null })
+    try {
+      const items = await fetchItems()
+      set({ items, hydrated: true, error: null, loading: false })
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : 'Network error', loading: false })
     }
-    set((s) => ({
-      items: s.items.map((p) => (p.id === item.id ? updated : p)),
-      selectedItem: s.selectedItem?.id === item.id ? updated : s.selectedItem,
-    }))
   },
 
-  deleteItem: (id) => {
-    set((s) => ({
-      items: s.items.filter((p) => p.id !== id),
-      selectedItem: s.selectedItem?.id === id ? null : s.selectedItem,
-    }))
+  createItem: async (input: ItemInput) => {
+    const res = await fetch('/api/inventory/items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+    if (!res.ok) {
+      const body = (await res.json()) as { error?: string }
+      throw new Error(body.error ?? `HTTP ${res.status}`)
+    }
+    await get().refetch()
   },
 
-  adjustQty: (id, delta) => {
-    const { items } = get()
-    const item = items.find((p) => p.id === id)
-    if (!item) return
-    const next = Math.max(0, item.qty + delta)
-    const newStatus = deriveStatus(next)
-    const entry: HistoryEntry = {
-      d: today(),
-      q: next,
-      why: delta > 0 ? `+${delta} manual` : `${delta} manual`,
+  updateItem: async (id: string, input: ItemInput) => {
+    const res = await fetch(`/api/inventory/items/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+    if (!res.ok) {
+      const body = (await res.json()) as { error?: string }
+      throw new Error(body.error ?? `HTTP ${res.status}`)
     }
-    set((s) => ({
-      items: s.items.map((p) =>
-        p.id === id ? { ...p, qty: next, status: newStatus, updated: today() } : p,
-      ),
-      history: {
-        ...s.history,
-        [id]: [...(s.history[id] ?? []), entry],
-      },
-      selectedItem:
-        s.selectedItem?.id === id
-          ? { ...s.selectedItem, qty: next, status: newStatus, updated: today() }
-          : s.selectedItem,
-    }))
+    await get().refetch()
+  },
+
+  adjustQty: async (id: string, delta: number) => {
+    // TODO: history out of scope — see future branch feat/inventory-history
+    const res = await fetch(`/api/inventory/items/${id}/qty`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ delta }),
+    })
+    if (!res.ok) {
+      const body = (await res.json()) as { error?: string }
+      throw new Error(body.error ?? `HTTP ${res.status}`)
+    }
+    await get().refetch()
+  },
+
+  deleteItem: async (id: string) => {
+    const res = await fetch(`/api/inventory/items/${id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const body = (await res.json()) as { error?: string }
+      throw new Error(body.error ?? `HTTP ${res.status}`)
+    }
+    await get().refetch()
   },
 
   setView: (mode) => set({ viewMode: mode }),
@@ -108,15 +136,23 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   setCategory: (selectedCategory) => set({ selectedCategory }),
   setStatusFilter: (statusFilter) => set({ statusFilter }),
   setSortBy: (sortBy) => set({ sortBy }),
-  setSelectedItem: (selectedItem) => set({ selectedItem }),
+  setSelectedId: (selectedId) => set({ selectedId }),
 }))
 
+// Derives the live selected item from items[] so qty stays fresh after adjustQty/refetch.
+// Using a single selector: Zustand re-renders only when the returned item reference changes.
+export function useSelectedItem(): InventoryItem | null {
+  return useInventoryStore((s) =>
+    s.selectedId == null ? null : (s.items.find((i) => i.id === s.selectedId) ?? null)
+  )
+}
+
 export function useFilteredItems() {
-  const items           = useInventoryStore((s) => s.items)
-  const search          = useInventoryStore((s) => s.search)
-  const selectedCategory = useInventoryStore((s) => s.selectedCategory)
-  const statusFilter    = useInventoryStore((s) => s.statusFilter)
-  const sortBy          = useInventoryStore((s) => s.sortBy)
+  const items            = useInventoryStore((s: InventoryState) => s.items)
+  const search           = useInventoryStore((s: InventoryState) => s.search)
+  const selectedCategory = useInventoryStore((s: InventoryState) => s.selectedCategory)
+  const statusFilter     = useInventoryStore((s: InventoryState) => s.statusFilter)
+  const sortBy           = useInventoryStore((s: InventoryState) => s.sortBy)
 
   return useMemo(() => {
     const q = search.trim().toLowerCase()

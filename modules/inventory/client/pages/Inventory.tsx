@@ -1,13 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Button } from '@venator-ui/ui'
 import { StatCards } from '@/components/inventory/StatCards'
 import { Toolbar } from '@/components/inventory/Toolbar'
 import { Catalog } from '@/components/inventory/Catalog'
 import { DetailPanel } from '@/components/inventory/DetailPanel'
 import { AddEditModal, blankDraft, type ItemDraft } from '@/components/inventory/AddEditModal'
-import { useInventoryStore, useFilteredItems } from '@/store/inventoryStore'
-import { deriveStatus, today } from '@/lib/utils'
-import type { InventoryItem } from '@/types/inventory'
+import { useInventoryStore, useFilteredItems, useSelectedItem } from '@/store/inventoryStore'
+import type { InventoryItem, ItemInput } from '@/types/inventory'
 
 interface ModalState {
   mode: 'add' | 'edit'
@@ -33,19 +32,28 @@ function toItemDraft(item: InventoryItem): ItemDraft {
 }
 
 export function InventoryPage() {
-  const items      = useInventoryStore((s) => s.items)
-  const history    = useInventoryStore((s) => s.history)
-  const viewMode   = useInventoryStore((s) => s.viewMode)
-  const density    = useInventoryStore((s) => s.density)
-  const addItem    = useInventoryStore((s) => s.addItem)
-  const updateItem = useInventoryStore((s) => s.updateItem)
-  const setSelected = useInventoryStore((s) => s.setSelectedItem)
-  const selectedItem = useInventoryStore((s) => s.selectedItem)
+  const items        = useInventoryStore((s) => s.items)
+  const viewMode     = useInventoryStore((s) => s.viewMode)
+  const density      = useInventoryStore((s) => s.density)
+  const hydrated     = useInventoryStore((s) => s.hydrated)
+  const loading      = useInventoryStore((s) => s.loading)
+  const error        = useInventoryStore((s) => s.error)
+  const hydrate      = useInventoryStore((s) => s.hydrate)
+  const refetch      = useInventoryStore((s) => s.refetch)
+  const createItem   = useInventoryStore((s) => s.createItem)
+  const updateItem   = useInventoryStore((s) => s.updateItem)
+  const setSelectedId = useInventoryStore((s) => s.setSelectedId)
+  const selectedId   = useInventoryStore((s) => s.selectedId)
+  const selectedItem = useSelectedItem()  // live item derived from items[] — stays fresh after refetch
 
   const filtered = useFilteredItems()
 
   const [modal, setModal] = useState<ModalState | null>(null)
   const [time, setTime] = useState(() => formatTime(new Date()))
+
+  useEffect(() => {
+    void hydrate()
+  }, [hydrate])
 
   useEffect(() => {
     const id = setInterval(() => setTime(formatTime(new Date())), 1000)
@@ -68,36 +76,106 @@ export function InventoryPage() {
     })
   }
 
-  const openItem = (it: InventoryItem) => setSelected(it)
-  const closeDetail = () => setSelected(null)
+  // 1-based display index for the selected item within the visible (filtered) list.
+  // Matches the row number shown in Catalog — used only for SKU display, never for API ops.
+  const displayIndex = useMemo(() => {
+    if (!selectedId) return 0
+    const idx = filtered.findIndex((i) => i.id === selectedId)
+    return idx >= 0 ? idx + 1 : 0
+  }, [filtered, selectedId])
 
-  const openAdd = () => setModal({ mode: 'add', draft: blankDraft() })
-  const openEdit = (it: InventoryItem) => setModal({ mode: 'edit', draft: toItemDraft(it) })
+  const openItem    = (it: InventoryItem) => setSelectedId(it.id)
+  const closeDetail = () => setSelectedId(null)
+  const openAdd    = () => setModal({ mode: 'add', draft: blankDraft() })
+  const openEdit   = (it: InventoryItem) => setModal({ mode: 'edit', draft: toItemDraft(it) })
   const cancelModal = () => setModal(null)
 
-  const saveModal = () => {
+  const saveModal = async () => {
     if (!modal) return
     const d = modal.draft
     const qty = Number(d.qty) || 0
-    const status = qty === 0 ? 'out' as const : (d.status || deriveStatus(qty))
-
-    if (modal.mode === 'add') {
-      addItem({ name: d.name, category: d.category, model: d.model, qty, location: d.location, notes: d.notes })
-    } else {
-      updateItem({
-        id: d.id,
-        name: d.name,
-        category: d.category,
-        model: d.model,
-        qty,
-        status,
-        location: d.location,
-        notes: d.notes,
-        updated: today(),
-      })
+    const input: ItemInput = {
+      name: d.name.trim(),
+      category: d.category,
+      model: d.model,
+      qty,
+      location: d.location,
+      notes: d.notes,
     }
-    setModal(null)
+    try {
+      if (modal.mode === 'add') {
+        await createItem(input)
+      } else {
+        await updateItem(d.id, input)
+      }
+      setModal(null)
+    } catch (err) {
+      console.error('[inventory] save error:', err)
+    }
   }
+
+  // ── 4 UI states ──────────────────────────────────────────────────────────
+
+  if (loading && !hydrated) {
+    return (
+      <div className="canvas with-grid">
+        <div className="v-topbar">
+          <span className="crumb">enclave</span>
+          <span className="sep">/</span>
+          <span className="crumb active">inventory</span>
+          <span className="spacer" />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: 'var(--fg-3)' }}>
+          Loading inventory…
+        </div>
+      </div>
+    )
+  }
+
+  if (error && !hydrated) {
+    return (
+      <div className="canvas with-grid">
+        <div className="v-topbar">
+          <span className="crumb">enclave</span>
+          <span className="sep">/</span>
+          <span className="crumb active">inventory</span>
+          <span className="spacer" />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, height: '60vh' }}>
+          <span style={{ color: 'var(--danger)' }}>Failed to load inventory: {error}</span>
+          <Button variant="accent" size="sm" onClick={() => void refetch()}>Retry</Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (hydrated && items.length === 0) {
+    return (
+      <div className="canvas with-grid">
+        <div className="v-topbar">
+          <span className="crumb">enclave</span>
+          <span className="sep">/</span>
+          <span className="crumb active">inventory</span>
+          <span className="spacer" />
+          <Button variant="accent" size="sm" onClick={openAdd}>+ Add Item</Button>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, height: '60vh', color: 'var(--fg-3)' }}>
+          <span>No items yet.</span>
+          <Button variant="accent" size="sm" onClick={openAdd}>+ Add your first item</Button>
+        </div>
+        <AddEditModal
+          open={!!modal}
+          draft={modal?.draft ?? blankDraft()}
+          isEdit={modal?.mode === 'edit'}
+          onChange={(d) => setModal((m) => m ? { ...m, draft: d } : m)}
+          onCancel={cancelModal}
+          onSave={() => void saveModal()}
+        />
+      </div>
+    )
+  }
+
+  // ── Normal list state ─────────────────────────────────────────────────────
 
   return (
     <>
@@ -119,6 +197,8 @@ export function InventoryPage() {
           <span className="pill"><span className="dot" />synced</span>
           <span style={{ color: 'var(--fg-5)' }}>·</span>
           <span>{new Date().toISOString().slice(0, 10)}</span>
+          <span style={{ color: 'var(--fg-5)' }}>·</span>
+          <span style={{ color: 'var(--fg-5)', fontFamily: 'monospace', fontSize: 12 }}>{time}</span>
           <span style={{ color: 'var(--fg-5)' }}>·</span>
           <button
             onClick={toggleTheme}
@@ -172,7 +252,7 @@ export function InventoryPage() {
 
       <DetailPanel
         item={selectedItem}
-        history={selectedItem ? (history[selectedItem.id] ?? null) : null}
+        displayIndex={displayIndex}
         onClose={closeDetail}
         onEdit={(it) => { closeDetail(); openEdit(it) }}
       />
@@ -183,7 +263,7 @@ export function InventoryPage() {
         isEdit={modal?.mode === 'edit'}
         onChange={(d) => setModal((m) => m ? { ...m, draft: d } : m)}
         onCancel={cancelModal}
-        onSave={saveModal}
+        onSave={() => void saveModal()}
       />
     </>
   )
