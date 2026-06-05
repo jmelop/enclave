@@ -108,7 +108,7 @@ export const useInventoryStore = create<InventoryState>()((set, get) => ({
   },
 
   adjustQty: async (id: string, delta: number) => {
-    // TODO: historial fuera de alcance — ver rama futura feat/inventory-history
+    // TODO: history out of scope — see future branch feat/inventory-history
     const res = await fetch(`/api/inventory/items/${id}/qty`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
