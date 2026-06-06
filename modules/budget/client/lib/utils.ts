@@ -2,13 +2,13 @@ import { CATEGORIES } from '@/lib/seed';
 import type { CategoryId, MonthData, MonthMetrics } from '@/types/budget';
 
 export const fmt = (n: number): string =>
-  '$' + Math.round(n).toLocaleString('en-US');
+  '€' + Math.round(n).toLocaleString('en-US');
 
 export const fmt2 = (n: number): string =>
-  '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  '€' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export const fmtSigned = (n: number): string =>
-  (n < 0 ? '−' : '+') + '$' + Math.abs(Math.round(n)).toLocaleString('en-US');
+  (n < 0 ? '−' : '+') + '€' + Math.abs(Math.round(n)).toLocaleString('en-US');
 
 export const pct = (n: number): string => Math.round(n * 100) + '%';
 
