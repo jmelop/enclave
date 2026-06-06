@@ -20,7 +20,7 @@
     "paths": {
       "@/*":                    ["./*"],
       "@enclave/sdk":           ["../../../packages/sdk/src/index.ts"],
-      "@enclave/ui-shell":      ["../../../packages/ui-shell/src/index.ts"],
+      "@enclave/ui-shell":      ["./stubs/EnclaveNav.stub.tsx"],
       "react":                  ["../node_modules/@types/react"],
       "react/*":                ["../node_modules/@types/react/*"],
       "react-router-dom":       ["../node_modules/react-router-dom"],
