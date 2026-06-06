@@ -11,18 +11,18 @@ import { DueChip } from '@/components/strategy/DueChip'
 interface Props { onNavigate: (view: string, goalId?: string) => void }
 
 export function OverviewPage({ onNavigate }: Props) {
-  const { goals, plans, retros, intel, togglePlan } = useStrategyStore()
+  const { goals, plans, results, intel, togglePlan } = useStrategyStore()
 
   const activeGoals = goals.filter(g => g.status !== 'done').length
   const atRisk = goals.filter(g => g.status === 'at-risk').length
   const weekPlans = plans.filter(p => p.horizon === 'week')
   const weekDone = weekPlans.filter(p => p.done).length
   const avgProgress = Math.round(goals.reduce((s, g) => s + g.progress, 0) / (goals.length || 1))
-  const results = intel.filter(it => it.type === 'result')
-  const wins = results.filter(it => it.verdict === 'win').length
-  const winRate = results.length ? Math.round((wins / results.length) * 100) : 0
+  const experiments = intel.filter(it => it.type === 'result')
+  const wins = experiments.filter(it => it.verdict === 'win').length
+  const winRate = experiments.length ? Math.round((wins / experiments.length) * 100) : 0
 
-  const recentRetros = [...retros].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4)
+  const recentResults = [...results].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4)
   const recentIntel = [...intel].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3)
 
   return (
@@ -32,7 +32,7 @@ export function OverviewPage({ onNavigate }: Props) {
         <StatCard title="Active Goals" value={activeGoals} description={atRisk ? `${atRisk} at risk` : 'all on track'} variant={atRisk ? 'warning' : 'success'} />
         <StatCard title="Week focus" value={`${weekDone}/${weekPlans.length}`} description="plans closed" />
         <StatCard title="Avg progress" value={`${avgProgress}%`} description="across all goals" />
-        <StatCard title="Win rate" value={`${winRate}%`} description={`${wins}/${results.length} experiments`} variant={winRate >= 50 ? 'success' : 'warning'} />
+        <StatCard title="Win rate" value={`${winRate}%`} description={`${wins}/${experiments.length} experiments`} variant={winRate >= 50 ? 'success' : 'warning'} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, alignItems: 'start' }}>
@@ -100,7 +100,7 @@ export function OverviewPage({ onNavigate }: Props) {
               Recent changes
             </div>
             <div style={{ padding: '6px 8px 10px', display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {recentRetros.map(r => {
+              {recentResults.map(r => {
                 const g = goals.find(g => g.id === r.goal)
                 const c = g ? goalColor(g) : 'var(--fg-4)'
                 return (
