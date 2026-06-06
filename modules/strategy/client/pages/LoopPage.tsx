@@ -3,7 +3,6 @@ import { Target, CheckSquare, BarChart3, FlaskConical } from 'lucide-react'
 import { useStrategyStore } from '@/store/strategyStore'
 import { goalColor } from '@/lib/seed'
 import { GoalDot } from '@/components/strategy/GoalDot'
-import { Ring } from '@/components/strategy/Ring'
 import { ProgressBar } from '@/components/strategy/ProgressBar'
 
 // ── SVG loop ribbon with animated pulses ──────────────────────────────────────
@@ -166,10 +165,10 @@ function LoopRibbon({
 interface Props { onNavigate: (view: string, goalId?: string) => void }
 
 export function LoopPage({ onNavigate }: Props) {
-  const { goals, plans, retros, intel, togglePlan } = useStrategyStore()
+  const { goals, plans, results, intel, togglePlan } = useStrategyStore()
   const counts = {
     goals: goals.length, plans: plans.length,
-    results: retros.length, intel: intel.length,
+    results: results.length, intel: intel.length,
   }
 
   return (
@@ -200,7 +199,7 @@ export function LoopPage({ onNavigate }: Props) {
         {goals.map(g => {
           const c = goalColor(g)
           const gPlans  = plans.filter(p => p.goal === g.id).slice(0, 3)
-          const gRetros = retros.filter(r => r.goal === g.id).slice(0, 2)
+          const gResults = results.filter(r => r.goal === g.id).slice(0, 2)
           const gIntel  = intel.filter(it => it.goal === g.id).slice(0, 2)
           return (
             <div
@@ -238,7 +237,7 @@ export function LoopPage({ onNavigate }: Props) {
                   >
                     <Checkbox
                       checked={p.done}
-                      onCheckedChange={e => { e.stopPropagation?.(); togglePlan(p.id) }}
+                      onCheckedChange={() => { void togglePlan(p.id) }}
                       size="sm"
                     />
                     {/* accent icon: checkmark if done, chevron if pending */}
@@ -256,7 +255,7 @@ export function LoopPage({ onNavigate }: Props) {
 
               {/* results cell */}
               <div style={{ padding: '14px 12px', borderLeft: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: 5 }}>
-                {gRetros.map(r => (
+                {gResults.map(r => (
                   <div
                     key={r.id}
                     onClick={() => onNavigate('results')}
@@ -267,7 +266,7 @@ export function LoopPage({ onNavigate }: Props) {
                     <span className="mono" style={{ marginLeft: 'auto', fontSize: 9, color: 'var(--fg-5)' }}>{r.cadence === 'weekly' ? 'W' : 'M'}</span>
                   </div>
                 ))}
-                {!gRetros.length && <span className="mono" style={{ fontSize: 10, color: 'var(--fg-5)' }}>—</span>}
+                {!gResults.length && <span className="mono" style={{ fontSize: 10, color: 'var(--fg-5)' }}>—</span>}
               </div>
 
               {/* intel cell */}

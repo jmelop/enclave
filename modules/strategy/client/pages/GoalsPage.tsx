@@ -1,5 +1,5 @@
-import { Card } from '@venator-ui/ui'
-import { Button } from '@venator-ui/ui'
+import { useState, useEffect, useRef } from 'react'
+import { Card, Badge, Button, Checkbox, useToast } from '@venator-ui/ui'
 import { ChevronLeft } from 'lucide-react'
 import { useStrategyStore } from '@/store/strategyStore'
 import { goalColor, fmtDate, daysLeft } from '@/lib/seed'
@@ -7,22 +7,28 @@ import { GoalDot } from '@/components/strategy/GoalDot'
 import { StatusPill } from '@/components/strategy/StatusPill'
 import { Ring } from '@/components/strategy/Ring'
 import { ProgressBar } from '@/components/strategy/ProgressBar'
-import { Checkbox } from '@venator-ui/ui'
-import { Badge } from '@venator-ui/ui'
+import { ConfirmDeleteModal } from '@/components/strategy/ConfirmDeleteModal'
+import type { Goal, Plan } from '@/types/strategy'
+import type { ModalType } from '@/components/strategy/CreateModal'
+
+type OnEditFn = (type: ModalType, id: string, prefill: Goal) => void
 
 interface Props {
   goalId?: string
   onNavigate: (view: string, goalId?: string) => void
+  onEdit: OnEditFn
 }
 
+// ── GoalDetail ────────────────────────────────────────────────────────────────
+
 function GoalDetail({ goalId, onNavigate }: { goalId: string; onNavigate: Props['onNavigate'] }) {
-  const { goals, plans, retros, intel, togglePlan } = useStrategyStore()
+  const { goals, plans, results, intel, togglePlan } = useStrategyStore()
   const g = goals.find(x => x.id === goalId)
   if (!g) return null
 
   const c = goalColor(g)
   const gPlans = plans.filter(p => p.goal === g.id)
-  const gRetros = retros.filter(r => r.goal === g.id)
+  const gResults = results.filter(r => r.goal === g.id)
   const gIntel = intel.filter(it => it.goal === g.id)
   const done = gPlans.filter(p => p.done).length
   const dl = daysLeft(g.due)
@@ -58,7 +64,7 @@ function GoalDetail({ goalId, onNavigate }: { goalId: string; onNavigate: Props[
         </div>
       </Card>
 
-      {/* Trail: plans / retros / intel */}
+      {/* Trail: plans / results / intel */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, alignItems: 'start' }}>
         {/* Plans */}
         <Card padding="none">
@@ -82,10 +88,10 @@ function GoalDetail({ goalId, onNavigate }: { goalId: string; onNavigate: Props[
         <Card padding="none">
           <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: 13, fontWeight: 600 }}>Results</span>
-            <span className="mono" style={{ fontSize: 11, color: 'var(--fg-4)' }}>{gRetros.length}</span>
+            <span className="mono" style={{ fontSize: 11, color: 'var(--fg-4)' }}>{gResults.length}</span>
           </div>
           <div style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {gRetros.map(r => (
+            {gResults.map(r => (
               <div key={r.id} style={{ padding: '10px 10px', borderRadius: 9, background: 'var(--bg-2)', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <div className="mono" style={{ fontSize: 11, fontWeight: 600, color: 'var(--fg-3)' }}>{r.period}</div>
                 <div style={{ fontSize: 12, color: 'var(--success)' }}>+ {r.good}</div>
@@ -93,7 +99,7 @@ function GoalDetail({ goalId, onNavigate }: { goalId: string; onNavigate: Props[
                 <div style={{ fontSize: 12, color: c, fontWeight: 500 }}>→ {r.change}</div>
               </div>
             ))}
-            {!gRetros.length && <div className="mono" style={{ padding: 12, color: 'var(--fg-5)', fontSize: 11 }}>No results yet</div>}
+            {!gResults.length && <div className="mono" style={{ padding: 12, color: 'var(--fg-5)', fontSize: 11 }}>No results yet</div>}
           </div>
         </Card>
 
@@ -124,40 +130,130 @@ function GoalDetail({ goalId, onNavigate }: { goalId: string; onNavigate: Props[
   )
 }
 
-export function GoalsPage({ goalId, onNavigate }: Props) {
+// ── GoalCard ──────────────────────────────────────────────────────────────────
+
+interface GoalCardProps {
+  goal: Goal
+  plans: Plan[]
+  onNavigate: Props['onNavigate']
+  onEdit: OnEditFn
+}
+
+function GoalCard({ goal: g, plans, onNavigate, onEdit }: GoalCardProps) {
+  const deleteGoal = useStrategyStore(s => s.deleteGoal)
+  const [dropOpen, setDropOpen]       = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [deleting, setDeleting]       = useState(false)
+  const dropRef = useRef<HTMLDivElement>(null)
+  const { toast } = useToast()
+
+  useEffect(() => {
+    if (!dropOpen) return
+    const handler = (e: MouseEvent) => {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setDropOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [dropOpen])
+
+  const handleDelete = async () => {
+    setDeleting(true)
+    try {
+      await deleteGoal(g.id)
+      setConfirmOpen(false)
+    } catch (err) {
+      toast({ title: err instanceof Error ? err.message : 'Delete failed', variant: 'error' })
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const c = goalColor(g)
+  const gPlans = plans.filter(p => p.goal === g.id)
+  const done = gPlans.filter(p => p.done).length
+
+  return (
+    <div className="goal-card surface" style={{ '--rail': c, cursor: 'pointer' } as React.CSSProperties}
+      onClick={() => onNavigate('goals', g.id)}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 8 }}>
+        <GoalDot goal={g} size={10} />
+        <span style={{ fontSize: 15, fontWeight: 600, flex: 1 }}>{g.name}</span>
+        {g.northStar && <span className="mono" style={{ fontSize: 9, color: 'var(--accent)' }}>★</span>}
+        <StatusPill status={g.status} />
+        <div ref={dropRef} style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+          <button
+            className="icon-btn"
+            title="More options"
+            onClick={() => setDropOpen(o => !o)}
+            style={{ width: 26, padding: 0, fontWeight: 700, fontSize: 14, letterSpacing: 1 }}
+          >
+            ···
+          </button>
+          {dropOpen && (
+            <div style={{
+              position: 'absolute', right: 0, top: '100%', marginTop: 4,
+              minWidth: 110, zIndex: 10,
+              background: 'var(--bg-2)',
+              border: '1px solid var(--border-default)',
+              borderRadius: 8,
+              boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+              padding: '4px 0',
+            }}>
+              <button
+                onClick={() => { setDropOpen(false); onEdit('goal', g.id, g) }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 14px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--fg-1)', transition: 'background 0.12s' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-3)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => { setDropOpen(false); setConfirmOpen(true) }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 14px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--danger)', transition: 'background 0.12s' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-3)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+              >
+                Delete
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+      <p style={{ fontSize: 12.5, color: 'var(--fg-3)', lineHeight: 1.5, marginBottom: 14, minHeight: 36 }}>{g.desc}</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 12 }}>
+        <Ring value={g.progress} color={c} size={50} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div className="mono" style={{ fontSize: 10, color: 'var(--fg-4)' }}>metric</div>
+          <div className="mono" style={{ fontSize: 12, fontWeight: 500 }}>{g.metricNow} / {g.metric} {g.metricUnit}</div>
+          <div className="mono" style={{ fontSize: 10, color: 'var(--fg-4)' }}>plans: {done}/{gPlans.length}</div>
+        </div>
+      </div>
+      <ProgressBar value={g.progress} color={c} />
+      <div style={{ height: 2 }} />
+      <ConfirmDeleteModal
+        open={confirmOpen}
+        itemName={g.name}
+        title="Delete goal"
+        loading={deleting}
+        onConfirm={() => void handleDelete()}
+        onCancel={() => setConfirmOpen(false)}
+      />
+    </div>
+  )
+}
+
+// ── GoalsPage ─────────────────────────────────────────────────────────────────
+
+export function GoalsPage({ goalId, onNavigate, onEdit }: Props) {
   const { goals, plans } = useStrategyStore()
 
   if (goalId) return <GoalDetail goalId={goalId} onNavigate={onNavigate} />
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
-      {goals.map(g => {
-        const c = goalColor(g)
-        const gPlans = plans.filter(p => p.goal === g.id)
-        const done = gPlans.filter(p => p.done).length
-        return (
-          <div key={g.id} className="goal-card surface" style={{ '--rail': c, cursor: 'pointer' } as React.CSSProperties}
-            onClick={() => onNavigate('goals', g.id)}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 8 }}>
-              <GoalDot goal={g} size={10} />
-              <span style={{ fontSize: 15, fontWeight: 600, flex: 1 }}>{g.name}</span>
-              {g.northStar && <span className="mono" style={{ fontSize: 9, color: 'var(--accent)' }}>★</span>}
-              <StatusPill status={g.status} />
-            </div>
-            <p style={{ fontSize: 12.5, color: 'var(--fg-3)', lineHeight: 1.5, marginBottom: 14, minHeight: 36 }}>{g.desc}</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 12 }}>
-              <Ring value={g.progress} color={c} size={50} />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <div className="mono" style={{ fontSize: 10, color: 'var(--fg-4)' }}>metric</div>
-                <div className="mono" style={{ fontSize: 12, fontWeight: 500 }}>{g.metricNow} / {g.metric} {g.metricUnit}</div>
-                <div className="mono" style={{ fontSize: 10, color: 'var(--fg-4)' }}>plans: {done}/{gPlans.length}</div>
-              </div>
-            </div>
-            <ProgressBar value={g.progress} color={c} />
-            <div style={{ height: 2 }} />
-          </div>
-        )
-      })}
+      {goals.map(g => (
+        <GoalCard key={g.id} goal={g} plans={plans} onNavigate={onNavigate} onEdit={onEdit} />
+      ))}
     </div>
   )
 }
