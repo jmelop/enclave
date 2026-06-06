@@ -30,7 +30,7 @@ export interface Plan {
   due: string
 }
 
-export interface Retro {
+export interface Result {
   id: string
   goal: string
   cadence: 'weekly' | 'monthly'

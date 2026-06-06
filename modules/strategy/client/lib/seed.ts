@@ -1,4 +1,4 @@
-import type { Goal, Plan, Retro, Intel, GoalHue } from '@/types/strategy'
+import type { Goal, Plan, Result, Intel, GoalHue } from '@/types/strategy'
 
 // ─── Goal hue palette ────────────────────────────────────────────────────────
 
@@ -176,9 +176,9 @@ export const PLANS: Plan[] = [
   },
 ]
 
-// ─── Retros ───────────────────────────────────────────────────────────────────
+// ─── Results ──────────────────────────────────────────────────────────────────
 
-export const RETROS: Retro[] = [
+export const RESULTS: Result[] = [
   {
     id: 'r1',
     goal: 'g1',
