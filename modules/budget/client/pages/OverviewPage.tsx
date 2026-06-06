@@ -3,7 +3,7 @@ import { Card } from '@venator-ui/ui';
 import { Zap, TrendingUp, Wallet, Target } from 'lucide-react';
 import { useBudgetStore, useCurrentMonth } from '@/store/budgetStore';
 import { computeMetrics, fmt, fmt2, fmtSigned, pct } from '@/lib/utils';
-import { getTransactions, CATEGORIES } from '@/lib/seed';
+import { CATEGORIES } from '@/lib/seed';
 import { SpendingGauge } from '@/components/budget/SpendingGauge';
 import { TrendChart } from '@/components/budget/TrendChart';
 import { CategoryGlyph } from '@/components/budget/CategoryGlyph';
@@ -14,33 +14,64 @@ interface Props {
 }
 
 export function OverviewPage({ onAddExpense }: Props) {
-  const months = useBudgetStore(s => s.months);
-  const monthIndex = useBudgetStore(s => s.monthIndex);
-  const budgets = useBudgetStore(s => s.budgets);
-  const recurring = useBudgetStore(s => s.recurring);
+  const months       = useBudgetStore(s => s.months);
+  const monthIndex   = useBudgetStore(s => s.monthIndex);
+  const budgets      = useBudgetStore(s => s.budgets);
+  const recurring    = useBudgetStore(s => s.recurring);
+  const transactions = useBudgetStore(s => s.transactions);
+  const loading      = useBudgetStore(s => s.loading);
+  const error        = useBudgetStore(s => s.error);
+  const hydrated     = useBudgetStore(s => s.hydrated);
+  const refetch      = useBudgetStore(s => s.refetch);
   const setMonthIndex = useBudgetStore(s => s.setMonthIndex);
-  const month = useCurrentMonth();
-  const metrics = computeMetrics(month, budgets);
-  const prev = monthIndex > 0 ? computeMetrics(months[monthIndex - 1], budgets) : null;
+  const month        = useCurrentMonth();
 
   const [catFilter, setCatFilter] = useState<CategoryId | null>(null);
-  const allTx = getTransactions(month, recurring);
-  const shownTx = catFilter ? allTx.filter(t => t.cat === catFilter) : allTx;
 
-  const upcoming = recurring
-    .filter(r => r.day > month.asOfDay)
-    .sort((a, b) => a.day - b.day);
+  // ── 4 UI states ────────────────────────────────────────────────────────────
 
-  const m = metrics;
-  const over = (m.inProgress ? m.projected : m.spent) > m.totalBudget;
+  if (loading && !hydrated) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '40vh', color: 'var(--fg-3)' }}>
+        Loading budget…
+      </div>
+    );
+  }
+
+  if (error && !hydrated) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, height: '40vh' }}>
+        <span style={{ color: 'var(--danger)' }}>Failed to load: {error}</span>
+        <button className="btn btn-primary" onClick={() => void refetch()}>Retry</button>
+      </div>
+    );
+  }
+
+  if (hydrated && months.length === 0) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, height: '40vh', color: 'var(--fg-3)' }}>
+        <span>No budget data yet.</span>
+        <button className="btn btn-primary" onClick={onAddExpense}>+ Add your first expense</button>
+      </div>
+    );
+  }
+
+  // ── Normal state ───────────────────────────────────────────────────────────
+
+  const allTx    = catFilter ? transactions.filter(t => t.cat === catFilter) : transactions;
+  const shownTx  = allTx;
+  const metrics  = computeMetrics(month, budgets);
+  const prev     = monthIndex > 0 ? computeMetrics(months[monthIndex - 1], budgets) : null;
+  const upcoming = recurring.filter(r => r.day > month.asOfDay).sort((a, b) => a.day - b.day);
+  const m        = metrics;
+  const over     = (m.inProgress ? m.projected : m.spent) > m.totalBudget;
   const projDelta = prev ? (m.projected - prev.spent) / prev.spent : 0;
-
   const catsSorted = [...m.cats].sort((a, b) => b.spent - a.spent);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* Hero: gauge + safe-to-spend */}
+      {/* Hero */}
       <div className="overview-hero">
         <div className="gauge-card">
           <div style={{ alignSelf: 'stretch', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -61,33 +92,19 @@ export function OverviewPage({ onAddExpense }: Props) {
         </div>
 
         <div className="safe-card">
-          <div className="safe-label">
-            <Zap size={13} />
-            Safe to spend today
-          </div>
+          <div className="safe-label"><Zap size={13} />Safe to spend today</div>
           <div className="safe-amount" style={{ color: m.inProgress ? 'var(--accent)' : 'var(--fg-3)' }}>
             {m.inProgress ? fmt(m.safeToSpend) : fmt(0)}
           </div>
           <div className="safe-sub">
             {m.inProgress
-              ? <>Keeps you on budget for the next <strong>{m.daysRemaining} days</strong> · {fmt(m.remaining)} remaining</>
+              ? <><strong>{m.daysRemaining} days</strong> remaining · {fmt(m.remaining)} left</>
               : 'Month is closed out.'}
           </div>
           <div className="safe-mini-row">
-            <div className="safe-mini">
-              <span className="safe-mini-label">Spent</span>
-              <span className="safe-mini-val">{fmt(m.spent)}</span>
-            </div>
-            <div className="safe-mini">
-              <span className="safe-mini-label">Projected</span>
-              <span className="safe-mini-val" style={{ color: over ? 'var(--danger)' : 'var(--fg)' }}>
-                {fmt(m.inProgress ? m.projected : m.spent)}
-              </span>
-            </div>
-            <div className="safe-mini">
-              <span className="safe-mini-label">Income</span>
-              <span className="safe-mini-val" style={{ color: 'var(--success)' }}>{fmt(m.income)}</span>
-            </div>
+            <div className="safe-mini"><span className="safe-mini-label">Spent</span><span className="safe-mini-val">{fmt(m.spent)}</span></div>
+            <div className="safe-mini"><span className="safe-mini-label">Projected</span><span className="safe-mini-val" style={{ color: over ? 'var(--danger)' : 'var(--fg)' }}>{fmt(m.inProgress ? m.projected : m.spent)}</span></div>
+            <div className="safe-mini"><span className="safe-mini-label">Income</span><span className="safe-mini-val" style={{ color: 'var(--success)' }}>{fmt(m.income)}</span></div>
           </div>
         </div>
       </div>
@@ -112,15 +129,10 @@ export function OverviewPage({ onAddExpense }: Props) {
           <div style={{ padding: '4px 12px 12px' }}>
             <div className="cat-list">
               {catsSorted.map(c => {
-                const dim = catFilter !== null && catFilter !== c.id;
+                const dim    = catFilter !== null && catFilter !== c.id;
                 const active = catFilter === c.id;
                 return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    className={`cat-row ${dim ? 'dim' : ''} ${active ? 'active' : ''}`}
-                    onClick={() => setCatFilter(active ? null : c.id)}
-                  >
+                  <button key={c.id} type="button" className={`cat-row ${dim ? 'dim' : ''} ${active ? 'active' : ''}`} onClick={() => setCatFilter(active ? null : c.id)}>
                     <CategoryGlyph cat={c} size={32} />
                     <div className="cat-info">
                       <div className="cat-name-row">
@@ -134,9 +146,7 @@ export function OverviewPage({ onAddExpense }: Props) {
                         <div className="prog-fill" style={{ width: `${Math.min(100, c.ratio * 100)}%`, background: c.ratio > 1 ? 'var(--danger)' : c.color }} />
                       </div>
                     </div>
-                    <span className="cat-pct" style={{ color: c.ratio > 1 ? 'var(--danger)' : 'var(--fg-3)' }}>
-                      {pct(c.ratio)}
-                    </span>
+                    <span className="cat-pct" style={{ color: c.ratio > 1 ? 'var(--danger)' : 'var(--fg-3)' }}>{pct(c.ratio)}</span>
                   </button>
                 );
               })}
@@ -149,11 +159,11 @@ export function OverviewPage({ onAddExpense }: Props) {
             <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>Recent activity</h3>
             {catFilter
               ? <button className="mono" style={{ fontSize: 10, color: 'var(--accent)', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }} onClick={() => setCatFilter(null)}>✕ {CATEGORIES.find(c => c.id === catFilter)?.name}</button>
-              : <span className="mono" style={{ fontSize: 10, color: 'var(--fg-4)' }}>{allTx.length} txns</span>}
+              : <span className="mono" style={{ fontSize: 10, color: 'var(--fg-4)' }}>{transactions.length} txns</span>}
           </div>
           <div style={{ padding: '0 14px 12px', maxHeight: 380, overflow: 'auto' }}>
             <div className="tx-list">
-              {shownTx.slice(0, 20).map((t, i) => {
+              {shownTx.slice(0, 20).map(t => {
                 const cat = CATEGORIES.find(c => c.id === t.cat)!;
                 return (
                   <div key={t.id} className="tx-row">
@@ -173,9 +183,7 @@ export function OverviewPage({ onAddExpense }: Props) {
                   </div>
                 );
               })}
-              {shownTx.length === 0 && (
-                <div style={{ padding: 28, textAlign: 'center', color: 'var(--fg-4)', fontSize: 12 }}>No transactions</div>
-              )}
+              {shownTx.length === 0 && <div style={{ padding: 28, textAlign: 'center', color: 'var(--fg-4)', fontSize: 12 }}>No transactions</div>}
             </div>
           </div>
         </Card>
@@ -187,25 +195,19 @@ export function OverviewPage({ onAddExpense }: Props) {
           <div style={{ padding: '16px 18px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
             <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>Spending trend</h3>
             <div style={{ display: 'flex', gap: 12 }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-3)' }}>
-                <span style={{ width: 9, height: 9, borderRadius: 3, background: 'var(--accent)', display: 'inline-block' }} />Spent
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-3)' }}>
-                <span style={{ width: 12, height: 2, background: 'var(--success)', display: 'inline-block' }} />Income
-              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-3)' }}><span style={{ width: 9, height: 9, borderRadius: 3, background: 'var(--accent)', display: 'inline-block' }} />Spent</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-3)' }}><span style={{ width: 12, height: 2, background: 'var(--success)', display: 'inline-block' }} />Income</span>
             </div>
           </div>
           <div style={{ padding: '12px 16px 16px' }}>
-            <TrendChart months={months} budgets={budgets} activeIdx={monthIndex} onSelect={setMonthIndex} compact />
+            <TrendChart months={months} budgets={budgets} activeIdx={monthIndex} onSelect={i => void setMonthIndex(i)} compact />
           </div>
         </Card>
 
         <Card padding="none">
           <div style={{ padding: '16px 18px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
             <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>Upcoming bills</h3>
-            <span className="mono" style={{ fontSize: 12, color: 'var(--fg-3)', fontWeight: 600 }}>
-              {fmt(upcoming.reduce((s, r) => s + r.amount, 0))}
-            </span>
+            <span className="mono" style={{ fontSize: 12, color: 'var(--fg-3)', fontWeight: 600 }}>{fmt(upcoming.reduce((s, r) => s + r.amount, 0))}</span>
           </div>
           <div style={{ padding: '0 14px 12px' }}>
             {upcoming.length > 0 ? upcoming.map((r, i) => {
@@ -220,41 +222,29 @@ export function OverviewPage({ onAddExpense }: Props) {
                   <div className="mono" style={{ fontSize: 13, fontWeight: 600 }}>{fmt2(r.amount)}</div>
                 </div>
               );
-            }) : (
-              <div style={{ padding: 24, textAlign: 'center', color: 'var(--fg-4)', fontSize: 12 }}>All bills paid this month ✓</div>
-            )}
+            }) : <div style={{ padding: 24, textAlign: 'center', color: 'var(--fg-4)', fontSize: 12 }}>All bills paid this month ✓</div>}
           </div>
         </Card>
       </div>
 
       <footer className="page-foot mono">
-        <span>END · {month.label} {month.year} · {allTx.length} transactions</span>
+        <span>END · {month.label} {month.year} · {transactions.length} transactions</span>
         <span className="dim">enclave/budget · build 2026.05</span>
       </footer>
     </div>
   );
 }
 
-function StatTile({
-  icon, label, value, sub, valueColor, trend,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  sub: string;
-  valueColor?: string;
-  trend?: { dir: number; label: string };
+function StatTile({ icon, label, value, sub, valueColor, trend }: {
+  icon: React.ReactNode; label: string; value: string; sub: string;
+  valueColor?: string; trend?: { dir: number; label: string };
 }) {
   return (
     <div className="stat-card">
       <div className="stat-head">
         <div className="stat-icon">{icon}</div>
         <span className="stat-label">{label.toUpperCase()}</span>
-        {trend && (
-          <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 600, color: trend.dir > 0 ? 'var(--danger)' : 'var(--success)', display: 'flex', alignItems: 'center', gap: 2 }}>
-            {trend.dir > 0 ? '↗' : '↘'} {trend.label}
-          </span>
-        )}
+        {trend && <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 600, color: trend.dir > 0 ? 'var(--danger)' : 'var(--success)', display: 'flex', alignItems: 'center', gap: 2 }}>{trend.dir > 0 ? '↗' : '↘'} {trend.label}</span>}
       </div>
       <div className="stat-value mono" style={{ color: valueColor || 'var(--fg)', fontSize: 32 }}>{value}</div>
       <div className="stat-sub">{sub}</div>
