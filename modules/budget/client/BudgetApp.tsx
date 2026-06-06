@@ -10,7 +10,9 @@ import { RecurringPage } from '@/pages/RecurringPage';
 import { HistoryPage } from '@/pages/HistoryPage';
 import { CategoriesPage } from '@/pages/CategoriesPage';
 import { AddExpenseModal } from '@/components/budget/AddExpenseModal';
+import { RecurringModal } from '@/components/budget/RecurringModal';
 import { useBudgetStore, useCurrentMonth } from '@/store/budgetStore';
+import type { CategoryId, Transaction, RecurringBill } from '@/types/budget';
 
 const SECTION_LABELS: Record<string, string> = {
   '': 'overview',
@@ -20,19 +22,40 @@ const SECTION_LABELS: Record<string, string> = {
   'categories': 'categories',
 };
 
+type HeroAction = 'expense' | 'recurring'
+
+const HERO_BTN: Record<string, { label: string; action: HeroAction }> = {
+  'overview':   { label: 'Add expense',   action: 'expense'   },
+  'expenses':   { label: 'Add expense',   action: 'expense'   },
+  'recurring':  { label: 'Add recurring', action: 'recurring' },
+  'history':    { label: 'Add expense',   action: 'expense'   },
+  'categories': { label: 'Add expense',   action: 'expense'   },
+}
+
+// Discriminated state for add vs edit modal — edit carries the source transaction.
+type ExpenseModalState =
+  | { mode: 'add' }
+  | { mode: 'edit'; tx: Transaction }
+  | null
+
 export default function BudgetApp() {
   const [theme, setTheme] = useState<string>(
     () => document.documentElement.getAttribute('data-theme') ?? 'dark',
   );
-  const [expenseModalOpen, setExpenseModalOpen] = useState(false);
+  const [expenseModal, setExpenseModal]         = useState<ExpenseModalState>(null);
+  const [addRecurringOpen, setAddRecurringOpen] = useState(false);
 
-  const addExpense = useBudgetStore(s => s.addExpense);
-  const months = useBudgetStore(s => s.months);
-  const monthIndex = useBudgetStore(s => s.monthIndex);
+  const hydrate       = useBudgetStore(s => s.hydrate);
+  const addExpense    = useBudgetStore(s => s.addExpense);
+  const updateExpense = useBudgetStore(s => s.updateExpense);
+  const addRecurring  = useBudgetStore(s => s.addRecurring);
+  const months        = useBudgetStore(s => s.months);
+  const monthIndex    = useBudgetStore(s => s.monthIndex);
   const setMonthIndex = useBudgetStore(s => s.setMonthIndex);
-  const month = useCurrentMonth();
-  const location = useLocation();
+  const month         = useCurrentMonth();
+  const location      = useLocation();
 
+  useEffect(() => { void hydrate() }, [hydrate]);
 
   const toggleTheme = useCallback(() => {
     setTheme(t => {
@@ -50,14 +73,28 @@ export default function BudgetApp() {
     return SECTION_LABELS[last] ?? last;
   })();
 
-  const handleAddExpense = (
+  const heroBtnDef = HERO_BTN[sectionLabel] ?? { label: 'Add expense', action: 'expense' as HeroAction };
+
+  const handleHeroBtn = () => {
+    if (heroBtnDef.action === 'recurring') setAddRecurringOpen(true);
+    else setExpenseModal({ mode: 'add' });
+  };
+
+  const handleExpenseModalSave = (
     name: string,
     amount: number,
-    cat: Parameters<typeof addExpense>[0]['cat'],
+    cat: CategoryId,
     day: number,
   ) => {
-    addExpense({ name, vendor: name, amount, cat, day, recurring: false });
-    setExpenseModalOpen(false);
+    if (expenseModal?.mode === 'edit') {
+      void updateExpense(expenseModal.tx.id, {
+        name, vendor: name, amount, cat, day,
+        recurring: false, manual: true,
+      });
+    } else {
+      void addExpense({ name, vendor: name, amount, cat, day, recurring: false });
+    }
+    setExpenseModal(null);
   };
 
   return (
@@ -76,7 +113,7 @@ export default function BudgetApp() {
             className="icon-btn"
             style={{ border: 'none' }}
             disabled={monthIndex === 0}
-            onClick={() => setMonthIndex(Math.max(0, monthIndex - 1))}
+            onClick={() => void setMonthIndex(Math.max(0, monthIndex - 1))}
             title="Previous month"
           >
             ‹
@@ -89,7 +126,7 @@ export default function BudgetApp() {
             className="icon-btn"
             style={{ border: 'none' }}
             disabled={monthIndex === months.length - 1}
-            onClick={() => setMonthIndex(Math.min(months.length - 1, monthIndex + 1))}
+            onClick={() => void setMonthIndex(Math.min(months.length - 1, monthIndex + 1))}
             title="Next month"
           >
             ›
@@ -122,8 +159,8 @@ export default function BudgetApp() {
           <div className="hero-row">
             <h1 className="hero-title">Budget<span className="hero-dot">.</span></h1>
             <div className="hero-actions">
-              <button className="btn btn-primary" onClick={() => setExpenseModalOpen(true)}>
-                + Add expense
+              <button className="btn btn-primary" onClick={handleHeroBtn}>
+                + {heroBtnDef.label}
               </button>
             </div>
           </div>
@@ -133,19 +170,39 @@ export default function BudgetApp() {
         </header>
 
         <Routes>
-          <Route index element={<OverviewPage onAddExpense={() => setExpenseModalOpen(true)} />} />
-          <Route path="expenses" element={<ExpensesPage onAddExpense={() => setExpenseModalOpen(true)} />} />
+          <Route index element={<OverviewPage onAddExpense={() => setExpenseModal({ mode: 'add' })} />} />
+          <Route
+            path="expenses"
+            element={
+              <ExpensesPage
+                onAddExpense={() => setExpenseModal({ mode: 'add' })}
+                onEditExpense={tx => setExpenseModal({ mode: 'edit', tx })}
+              />
+            }
+          />
           <Route path="recurring" element={<RecurringPage />} />
           <Route path="history" element={<HistoryPage />} />
           <Route path="categories" element={<CategoriesPage />} />
         </Routes>
       </div>
 
-      {expenseModalOpen && (
+      {expenseModal && (
         <AddExpenseModal
           month={month}
-          onClose={() => setExpenseModalOpen(false)}
-          onSave={handleAddExpense}
+          initial={expenseModal.mode === 'edit' ? expenseModal.tx : undefined}
+          onClose={() => setExpenseModal(null)}
+          onSave={handleExpenseModalSave}
+        />
+      )}
+
+      {addRecurringOpen && (
+        <RecurringModal
+          onClose={() => setAddRecurringOpen(false)}
+          onSave={(r: Omit<RecurringBill, 'id'> & { id?: string }) => {
+            const { id: _id, ...rest } = r;
+            void addRecurring(rest);
+            setAddRecurringOpen(false);
+          }}
         />
       )}
     </>

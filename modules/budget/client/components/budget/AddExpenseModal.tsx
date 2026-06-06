@@ -1,29 +1,51 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { CATEGORIES } from '@/lib/seed';
-import type { CategoryId, MonthData } from '@/types/budget';
+import { currentMonthKey } from '@/store/budgetStore';
+import type { CategoryId, MonthData, Transaction } from '@/types/budget';
 
 interface Props {
   month: MonthData;
+  initial?: Transaction;
   onClose: () => void;
   onSave: (name: string, amount: number, cat: CategoryId, day: number) => void;
 }
 
-export function AddExpenseModal({ month, onClose, onSave }: Props) {
-  const [name, setName] = useState('');
-  const [amount, setAmount] = useState('');
-  const [cat, setCat] = useState<CategoryId>('food');
-  const [day, setDay] = useState(String(month.asOfDay));
+function daysInMonth(monthKey: string): number {
+  const [y, m] = monthKey.split('-').map(Number);
+  return new Date(y, m, 0).getDate();
+}
+
+export function AddExpenseModal({ month, initial, onClose, onSave }: Props) {
+  const isEdit = !!initial;
+
+  const [name, setName]     = useState(initial?.name ?? '');
+  const [amount, setAmount] = useState(initial ? String(initial.amount) : '');
+  const [cat, setCat]       = useState<CategoryId>(initial?.cat ?? 'food');
+  const [day, setDay]       = useState(initial ? String(initial.day) : String(month.asOfDay));
 
   const valid = name.trim().length > 0 && Number(amount) > 0;
 
+  // Compute max day and label depending on mode and whether the month is current.
+  const lastDayOfMonth = daysInMonth(month.key);
+  const isCurrent = month.key === currentMonthKey();
+
+  const maxDay = isEdit ? lastDayOfMonth : month.asOfDay;
+
+  const dayLabel = isEdit
+    ? 'Day of month'
+    : isCurrent
+      ? `Day of month · max today (${month.asOfDay})`
+      : `Day of month (1 – ${month.asOfDay})`;
+
   const handleSave = () => {
     if (!valid) return;
+    const parsedDay = Math.max(1, parseInt(day) || 1);
     onSave(
       name.trim(),
       Math.abs(parseFloat(amount)),
       cat,
-      Math.min(month.asOfDay, Math.max(1, parseInt(day) || 1)),
+      Math.min(maxDay, parsedDay),
     );
   };
 
@@ -32,8 +54,8 @@ export function AddExpenseModal({ month, onClose, onSave }: Props) {
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div className="modal-head">
           <div>
-            <div className="modal-tag">BUDGET · NEW EXPENSE</div>
-            <h3>Add expense</h3>
+            <div className="modal-tag">BUDGET · {isEdit ? 'EDIT' : 'NEW'} EXPENSE</div>
+            <h3>{isEdit ? 'Edit expense' : 'Add expense'}</h3>
           </div>
           <button className="icon-btn" onClick={onClose}><X size={16} /></button>
         </div>
@@ -64,11 +86,11 @@ export function AddExpenseModal({ month, onClose, onSave }: Props) {
               />
             </div>
             <div className="field">
-              <label>Day (1 – {month.asOfDay})</label>
+              <label>{dayLabel}</label>
               <input
                 type="number"
                 min="1"
-                max={month.asOfDay}
+                max={maxDay}
                 value={day}
                 onChange={e => setDay(e.target.value)}
                 className="mono"
@@ -102,7 +124,7 @@ export function AddExpenseModal({ month, onClose, onSave }: Props) {
             disabled={!valid}
             onClick={handleSave}
           >
-            Add expense
+            {isEdit ? 'Save changes' : 'Add expense'}
           </button>
         </div>
       </div>

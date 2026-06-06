@@ -8,34 +8,48 @@ import { CategoryGlyph } from '@/components/budget/CategoryGlyph';
 import type { CategoryId } from '@/types/budget';
 
 export function CategoriesPage() {
-  const month = useCurrentMonth();
-  const budgets = useBudgetStore(s => s.budgets);
+  const month    = useCurrentMonth();
+  const budgets  = useBudgetStore(s => s.budgets);
   const setBudget = useBudgetStore(s => s.setBudget);
-  const metrics = computeMetrics(month, budgets);
+  const loading  = useBudgetStore(s => s.loading);
+  const error    = useBudgetStore(s => s.error);
+  const hydrated = useBudgetStore(s => s.hydrated);
+  const refetch  = useBudgetStore(s => s.refetch);
+  const metrics  = computeMetrics(month, budgets);
 
   const [editing, setEditing] = useState<CategoryId | null>(null);
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft]     = useState('');
 
-  const cats = [...metrics.cats].sort((a, b) => b.spent - a.spent);
+  // ── 4 UI states ────────────────────────────────────────────────────────────
+
+  if (loading && !hydrated) {
+    return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '40vh', color: 'var(--fg-3)' }}>Loading categories…</div>;
+  }
+
+  if (error && !hydrated) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, height: '40vh' }}>
+        <span style={{ color: 'var(--danger)' }}>Failed to load: {error}</span>
+        <button className="btn btn-primary" onClick={() => void refetch()}>Retry</button>
+      </div>
+    );
+  }
+
+  // ── Normal state ───────────────────────────────────────────────────────────
+
+  const cats      = [...metrics.cats].sort((a, b) => b.spent - a.spent);
   const allocated = cats.reduce((s, c) => s + c.budget, 0);
 
-  const startEdit = (id: CategoryId, current: number) => {
-    setEditing(id);
-    setDraft(String(current));
-  };
-
+  const startEdit  = (id: CategoryId, current: number) => { setEditing(id); setDraft(String(current)); };
   const commitEdit = () => {
     if (!editing) return;
-    const val = Math.max(0, parseInt(draft) || 0);
-    setBudget(editing, val);
+    void setBudget(editing, Math.max(0, parseInt(draft) || 0));
     setEditing(null);
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 16, alignItems: 'start' }}>
-
-        {/* donut + summary */}
         <Card padding="none">
           <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--border-subtle)' }}>
             <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>Where it goes</h3>
@@ -49,12 +63,9 @@ export function CategoriesPage() {
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div className="mono" style={{ fontSize: 9.5, color: 'var(--fg-4)', letterSpacing: '.1em' }}>REMAINING</div>
-                <div className="mono" style={{ fontSize: 18, fontWeight: 600, color: metrics.remaining >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-                  {fmt(metrics.remaining)}
-                </div>
+                <div className="mono" style={{ fontSize: 18, fontWeight: 600, color: metrics.remaining >= 0 ? 'var(--success)' : 'var(--danger)' }}>{fmt(metrics.remaining)}</div>
               </div>
             </div>
-            {/* legend */}
             <div style={{ width: '100%', marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
               {cats.filter(c => c.spent > 0).map(c => (
                 <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -67,7 +78,6 @@ export function CategoriesPage() {
           </div>
         </Card>
 
-        {/* budget editor */}
         <Card padding="none">
           <div style={{ padding: '16px 18px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)' }}>
             <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>Budgets by category</h3>
@@ -85,42 +95,24 @@ export function CategoriesPage() {
                       {fmt(c.spent)} spent · {fmt(Math.abs(c.budget - c.spent))} {c.budget - c.spent >= 0 ? 'left' : 'over'}
                     </div>
                   </div>
-                  {/* progress bar */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div className="prog-track" style={{ flex: 1 }}>
                       <div className="prog-fill" style={{ width: `${Math.min(100, c.ratio * 100)}%`, background: c.ratio > 1 ? 'var(--danger)' : c.color }} />
                     </div>
-                    <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)', width: 34, textAlign: 'right' }}>
-                      {pct(c.ratio)}
-                    </span>
+                    <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)', width: 34, textAlign: 'right' }}>{pct(c.ratio)}</span>
                   </div>
-                  {/* budget input or display */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
                     {isEd ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <div className="budget-input-wrap">
-                          <span style={{ color: 'var(--fg-4)', fontSize: 13 }}>$</span>
-                          <input
-                            autoFocus
-                            type="number"
-                            className="budget-input"
-                            value={draft}
-                            onChange={e => setDraft(e.target.value)}
-                            onKeyDown={e => {
-                              if (e.key === 'Enter') commitEdit();
-                              if (e.key === 'Escape') setEditing(null);
-                            }}
-                          />
+                          <span style={{ color: 'var(--fg-4)', fontSize: 13 }}>€</span>
+                          <input autoFocus type="number" className="budget-input" value={draft} onChange={e => setDraft(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditing(null); }} />
                         </div>
-                        <button className="icon-btn" style={{ color: 'var(--accent)', borderColor: 'var(--accent)' }} onClick={commitEdit}>
-                          <Check size={13} />
-                        </button>
+                        <button className="icon-btn" style={{ color: 'var(--accent)', borderColor: 'var(--accent)' }} onClick={commitEdit}><Check size={13} /></button>
                       </div>
                     ) : (
-                      <button
-                        className="budget-display"
-                        onClick={() => startEdit(c.id, c.budget)}
-                      >
+                      <button className="budget-display" onClick={() => startEdit(c.id, c.budget)}>
                         <span className="mono" style={{ fontSize: 13.5, fontWeight: 600 }}>{fmt(c.budget)}</span>
                         <Pencil size={12} style={{ color: 'var(--fg-4)' }} />
                       </button>

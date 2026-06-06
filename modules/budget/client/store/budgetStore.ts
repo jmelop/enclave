@@ -1,84 +1,371 @@
-import { create } from 'zustand';
-import { SEED_MONTHS, SEED_RECURRING, DEFAULT_BUDGETS } from '@/lib/seed';
-import type { CategoryId, MonthData, RecurringBill, Transaction } from '@/types/budget';
+import { create } from 'zustand'
+import type { CategoryId, MonthData, RecurringBill, Transaction } from '@/types/budget'
+import { SEED_MONTHS, SEED_RECURRING, DEFAULT_BUDGETS } from '@/lib/seed'
 
-interface BudgetState {
-  months: MonthData[];
-  monthIndex: number;
-  budgets: Record<CategoryId, number>;
-  recurring: RecurringBill[];
+// ── Client-side date helpers ──────────────────────────────────────────────────
 
-  setMonthIndex: (i: number) => void;
-  addExpense: (tx: Omit<Transaction, 'id' | 'monthKey'>) => void;
-  deleteExpense: (id: string) => void;
-  setBudget: (cat: CategoryId, amount: number) => void;
-  addRecurring: (r: Omit<RecurringBill, 'id'>) => void;
-  updateRecurring: (r: RecurringBill) => void;
-  deleteRecurring: (id: string) => void;
+function daysInMonthClient(year: number, monthZero: number): number {
+  return new Date(year, monthZero + 1, 0).getDate()
 }
 
-const seedMonths = () =>
-  SEED_MONTHS.map(m => ({ ...m, spent: { ...m.spent }, extra: [...m.extra] }));
+function labelFromKey(key: string): string {
+  const [y, m] = key.split('-').map(Number)
+  return new Date(y, m - 1, 1).toLocaleString('en-US', { month: 'long' })
+}
 
-export const useBudgetStore = create<BudgetState>((set, get) => ({
-  months: seedMonths(),
-  monthIndex: SEED_MONTHS.length - 1,
-  budgets: { ...DEFAULT_BUDGETS },
-  recurring: SEED_RECURRING.map(r => ({ ...r })),
+function asOfDayClient(key: string): number {
+  const [y, m] = key.split('-').map(Number)
+  const maxDay = daysInMonthClient(y, m - 1)
+  const today = new Date()
+  const currentKey = today.toISOString().slice(0, 7)
+  if (key === currentKey) return today.getDate()
+  if (key < currentKey) return maxDay
+  return 0
+}
 
-  setMonthIndex: (i) => set({ monthIndex: i }),
+export function currentMonthKey(): string {
+  return new Date().toISOString().slice(0, 7)
+}
 
-  addExpense: (tx) => {
-    const { months, monthIndex } = get();
-    const month = months[monthIndex];
-    const newTx: Transaction = {
-      ...tx,
-      id: `x-${Date.now()}`,
-      monthKey: month.key,
-      manual: true,
-    };
-    set({
-      months: months.map((m, i) =>
-        i !== monthIndex ? m : {
-          ...m,
-          spent: { ...m.spent, [tx.cat]: (m.spent[tx.cat] || 0) + tx.amount },
-          extra: [...m.extra, newTx],
-        },
-      ),
-    });
+// ── Seed helpers ──────────────────────────────────────────────────────────────
+
+function seedMonths(): MonthData[] {
+  return SEED_MONTHS.map(m => ({ ...m, spent: { ...m.spent }, extra: [...m.extra] }))
+}
+
+// ── API fetch helpers ─────────────────────────────────────────────────────────
+
+interface ApiMonthDetail {
+  key: string
+  income: number
+  note: string
+  asOfDay: number
+  transactions: Transaction[]
+  recurring: RecurringBill[]
+  targets: Record<string, number>
+}
+
+interface ApiMonthSummary {
+  key: string
+  income: number
+  note: string
+  asOfDay: number
+  spent: Record<string, number>
+}
+
+async function fetchMonthDetail(key: string): Promise<ApiMonthDetail> {
+  const res = await fetch(`/api/budget/months/${key}`)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return (await res.json()) as ApiMonthDetail
+}
+
+async function fetchMonthList(): Promise<ApiMonthSummary[]> {
+  const res = await fetch('/api/budget/months')
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return (await res.json()) as ApiMonthSummary[]
+}
+
+// Build a MonthData from a GET /months/:key detail response.
+function detailToMonthData(d: ApiMonthDetail): MonthData {
+  const spent: Record<string, number> = {}
+  for (const tx of d.transactions) {
+    spent[tx.cat] = (spent[tx.cat] || 0) + tx.amount
+  }
+  return {
+    key:     d.key,
+    label:   labelFromKey(d.key),
+    year:    parseInt(d.key.slice(0, 4)),
+    income:  d.income,
+    spent:   spent as Record<CategoryId, number>,
+    asOfDay: d.asOfDay,
+    extra:   d.transactions.filter(t => t.manual),
+    note:    d.note || undefined,
+  }
+}
+
+// Build a lightweight MonthData from a GET /months summary entry.
+function summaryToMonthData(s: ApiMonthSummary): MonthData {
+  return {
+    key:     s.key,
+    label:   labelFromKey(s.key),
+    year:    parseInt(s.key.slice(0, 4)),
+    income:  s.income,
+    spent:   s.spent as Record<CategoryId, number>,
+    asOfDay: s.asOfDay,
+    extra:   [],
+    note:    s.note || undefined,
+  }
+}
+
+// ── State shape ───────────────────────────────────────────────────────────────
+
+interface BudgetState {
+  months: MonthData[]
+  monthIndex: number
+  transactions: Transaction[]
+  recurring: RecurringBill[]
+  budgets: Record<CategoryId, number>
+
+  loading: boolean
+  error: string | null
+  hydrated: boolean
+
+  hydrate: () => Promise<void>
+  refetch: () => Promise<void>
+  setMonthIndex: (i: number) => Promise<void>
+  addExpense: (tx: Omit<Transaction, 'id' | 'monthKey'>) => Promise<void>
+  updateExpense: (id: string, tx: Omit<Transaction, 'id' | 'monthKey'>) => Promise<void>
+  deleteExpense: (id: string) => Promise<void>
+  setBudget: (cat: CategoryId, amount: number) => Promise<void>
+  addRecurring: (r: Omit<RecurringBill, 'id'>) => Promise<void>
+  updateRecurring: (r: RecurringBill) => Promise<void>
+  deleteRecurring: (id: string) => Promise<void>
+  setIncome: (monthKey: string, income: number) => Promise<void>
+}
+
+// ── Store ─────────────────────────────────────────────────────────────────────
+
+export const useBudgetStore = create<BudgetState>()((set, get) => ({
+  months:       seedMonths(),
+  monthIndex:   SEED_MONTHS.length - 1,
+  transactions: [],
+  recurring:    SEED_RECURRING.map(r => ({ ...r })),
+  budgets:      { ...DEFAULT_BUDGETS },
+
+  loading:  false,
+  error:    null,
+  hydrated: false,
+
+  // ── hydration ──────────────────────────────────────────────────────────────
+
+  hydrate: async () => {
+    if (get().hydrated || get().loading) return
+    set({ loading: true, error: null })
+    try {
+      const [summaries, detail] = await Promise.all([
+        fetchMonthList(),
+        fetchMonthDetail(currentMonthKey()),
+      ])
+
+      // Build months array (oldest first to match nav convention)
+      const monthsDesc = summaries.map(summaryToMonthData)
+      const months = [...monthsDesc].reverse()
+
+      // Find or append current month in the list
+      const curKey = detail.key
+      const curIdx = months.findIndex(m => m.key === curKey)
+      const curMonthData = detailToMonthData(detail)
+      if (curIdx >= 0) {
+        months[curIdx] = curMonthData
+      } else {
+        months.push(curMonthData)
+      }
+
+      const monthIndex = months.length - 1  // most recent = last
+
+      set({
+        months,
+        monthIndex,
+        transactions: detail.transactions,
+        recurring:    detail.recurring,
+        budgets:      detail.targets as Record<CategoryId, number>,
+        hydrated:     true,
+        loading:      false,
+        error:        null,
+      })
+    } catch (err) {
+      set({
+        error:   err instanceof Error ? err.message : 'Network error',
+        hydrated: false,
+        loading:  false,
+      })
+    }
   },
 
-  deleteExpense: (id) => {
-    const { months, monthIndex } = get();
-    const month = months[monthIndex];
-    const ex = month.extra.find(e => e.id === id);
-    if (!ex) return;
-    set({
-      months: months.map((m, i) =>
-        i !== monthIndex ? m : {
-          ...m,
-          spent: { ...m.spent, [ex.cat]: Math.max(0, (m.spent[ex.cat] || 0) - ex.amount) },
-          extra: m.extra.filter(e => e.id !== id),
-        },
-      ),
-    });
+  refetch: async () => {
+    const { months, monthIndex } = get()
+    const key = months[monthIndex]?.key ?? currentMonthKey()
+    set({ loading: true, error: null })
+    try {
+      const [summaries, detail] = await Promise.all([
+        fetchMonthList(),
+        fetchMonthDetail(key),
+      ])
+
+      const monthsDesc = summaries.map(summaryToMonthData)
+      const newMonths = [...monthsDesc].reverse()
+      const curIdx = newMonths.findIndex(m => m.key === detail.key)
+      const curMonthData = detailToMonthData(detail)
+      if (curIdx >= 0) newMonths[curIdx] = curMonthData
+      else newMonths.push(curMonthData)
+
+      set({
+        months:       newMonths,
+        monthIndex:   Math.min(monthIndex, newMonths.length - 1),
+        transactions: detail.transactions,
+        recurring:    detail.recurring,
+        budgets:      detail.targets as Record<CategoryId, number>,
+        hydrated:     true,
+        loading:      false,
+        error:        null,
+      })
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : 'Network error', loading: false })
+    }
   },
 
-  setBudget: (cat, amount) =>
-    set(s => ({ budgets: { ...s.budgets, [cat]: amount } })),
+  setMonthIndex: async (i: number) => {
+    const { months } = get()
+    if (i < 0 || i >= months.length) return
+    set({ monthIndex: i, loading: true, error: null })
+    const key = months[i].key
+    try {
+      const detail = await fetchMonthDetail(key)
+      const curMonthData = detailToMonthData(detail)
+      const newMonths = [...get().months]
+      newMonths[i] = curMonthData
+      set({
+        months:       newMonths,
+        transactions: detail.transactions,
+        recurring:    detail.recurring,
+        budgets:      detail.targets as Record<CategoryId, number>,
+        loading:      false,
+      })
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : 'Network error', loading: false })
+    }
+  },
 
-  addRecurring: (r) =>
-    set(s => ({ recurring: [...s.recurring, { ...r, id: `r-${Date.now()}` }] })),
+  // ── mutations ──────────────────────────────────────────────────────────────
 
-  updateRecurring: (r) =>
-    set(s => ({ recurring: s.recurring.map(x => x.id === r.id ? r : x) })),
+  addExpense: async (tx) => {
+    const { months, monthIndex } = get()
+    const monthKey = months[monthIndex]?.key ?? currentMonthKey()
+    const res = await fetch('/api/budget/transactions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...tx, cat: tx.cat, monthKey }),
+    })
+    if (!res.ok) {
+      const body = (await res.json()) as { error?: string }
+      throw new Error(body.error ?? `HTTP ${res.status}`)
+    }
+    await get().refetch()
+  },
 
-  deleteRecurring: (id) =>
-    set(s => ({ recurring: s.recurring.filter(x => x.id !== id) })),
-}));
+  updateExpense: async (id, tx) => {
+    const { months, monthIndex } = get()
+    const monthKey = months[monthIndex]?.key ?? currentMonthKey()
+    const res = await fetch(`/api/budget/transactions/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...tx, cat: tx.cat, monthKey }),
+    })
+    if (!res.ok) {
+      const body = (await res.json()) as { error?: string }
+      throw new Error(body.error ?? `HTTP ${res.status}`)
+    }
+    await get().refetch()
+  },
 
-export const useCurrentMonth = () => {
-  const months = useBudgetStore(s => s.months);
-  const monthIndex = useBudgetStore(s => s.monthIndex);
-  return months[monthIndex];
-};
+  deleteExpense: async (id: string) => {
+    const res = await fetch(`/api/budget/transactions/${id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const body = (await res.json()) as { error?: string }
+      throw new Error(body.error ?? `HTTP ${res.status}`)
+    }
+    await get().refetch()
+  },
+
+  setBudget: async (cat, amount) => {
+    const res = await fetch(`/api/budget/targets/${cat}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount }),
+    })
+    if (!res.ok) {
+      const body = (await res.json()) as { error?: string }
+      throw new Error(body.error ?? `HTTP ${res.status}`)
+    }
+    await get().refetch()
+  },
+
+  addRecurring: async (r) => {
+    const res = await fetch('/api/budget/recurring', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(r),
+    })
+    if (!res.ok) {
+      const body = (await res.json()) as { error?: string }
+      throw new Error(body.error ?? `HTTP ${res.status}`)
+    }
+    await get().refetch()
+  },
+
+  updateRecurring: async (r) => {
+    const res = await fetch(`/api/budget/recurring/${r.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(r),
+    })
+    if (!res.ok) {
+      const body = (await res.json()) as { error?: string }
+      throw new Error(body.error ?? `HTTP ${res.status}`)
+    }
+    await get().refetch()
+  },
+
+  deleteRecurring: async (id) => {
+    const res = await fetch(`/api/budget/recurring/${id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const body = (await res.json()) as { error?: string }
+      throw new Error(body.error ?? `HTTP ${res.status}`)
+    }
+    await get().refetch()
+  },
+
+  setIncome: async (monthKey, income) => {
+    const res = await fetch(`/api/budget/months/${monthKey}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ income, note: get().months.find(m => m.key === monthKey)?.note ?? '' }),
+    })
+    if (!res.ok) {
+      const body = (await res.json()) as { error?: string }
+      throw new Error(body.error ?? `HTTP ${res.status}`)
+    }
+    await get().refetch()
+  },
+}))
+
+// ── Derived selectors ─────────────────────────────────────────────────────────
+
+export function useCurrentMonth(): MonthData {
+  const months      = useBudgetStore(s => s.months)
+  const monthIndex  = useBudgetStore(s => s.monthIndex)
+  const transactions = useBudgetStore(s => s.transactions)
+
+  const base = months[monthIndex]
+  if (!base) {
+    const key = currentMonthKey()
+    return {
+      key,
+      label:   new Date().toLocaleString('en-US', { month: 'long' }),
+      year:    new Date().getFullYear(),
+      income:  0,
+      spent:   {} as Record<CategoryId, number>,
+      asOfDay: asOfDayClient(key),
+      extra:   [],
+    }
+  }
+
+  // Re-derive spent + extra from the live transaction list so they stay in sync.
+  const spent: Record<string, number> = {}
+  for (const tx of transactions) {
+    spent[tx.cat] = (spent[tx.cat] || 0) + tx.amount
+  }
+  const extra = transactions.filter(t => t.manual)
+
+  return { ...base, spent: spent as Record<CategoryId, number>, extra }
+}
