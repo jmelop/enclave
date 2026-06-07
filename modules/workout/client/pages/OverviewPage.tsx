@@ -4,32 +4,28 @@ import { StatCard } from '@venator-ui/patterns';
 import { Card, Separator } from '@venator-ui/ui';
 import { Dumbbell, Scale, Flame, TrendingUp, TrendingDown } from 'lucide-react';
 import LineChart from '../components/LineChart';
+import { useWorkoutStore } from '../store/workoutStore';
 import {
   workoutVolume, formatDate, dayOfWeek,
   currentStreak, sessionsThisMonth, volumeThisWeek,
-} from '../data/data';
-import type { WorkoutEntry, BodyEntry } from '../data/data';
+} from '../lib/workoutUtils';
 
-interface Props {
-  workouts: WorkoutEntry[];
-  bodyLog: BodyEntry[];
-}
-
-export default function OverviewPage({ workouts, bodyLog }: Props) {
+export default function OverviewPage() {
   const navigate = useNavigate();
+  const { sessions, bodyLog } = useWorkoutStore();
 
-  const sessionsMonth = sessionsThisMonth(workouts);
-  const latestWeight  = bodyLog[bodyLog.length - 1].weight;
-  const firstWeight   = bodyLog[0].weight;
+  const sessionsMonth = sessionsThisMonth(sessions);
+  const latestWeight  = bodyLog[bodyLog.length - 1]?.weight ?? 0;
+  const firstWeight   = bodyLog[0]?.weight ?? 0;
   const weightDelta   = (latestWeight - firstWeight).toFixed(1);
-  const streak        = currentStreak(workouts);
-  const volWeek       = volumeThisWeek(workouts);
+  const streak        = currentStreak(sessions);
+  const volWeek       = volumeThisWeek(sessions);
 
   const chartData = useMemo(() => (
     bodyLog.slice(-8).map(b => ({ label: formatDate(b.date, { short: true }), y: b.weight }))
   ), [bodyLog]);
 
-  const recentSessions = workouts.slice(0, 4);
+  const recentSessions = sessions.slice(0, 4);
 
   return (
     <>
