@@ -17,12 +17,13 @@
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@enclave/sdk":      ["../../../packages/sdk/src/index.ts"],
-      "@enclave/ui-shell": ["../../../packages/ui-shell/src/index.ts"],
+      "@enclave/ui-shell": ["./stubs/EnclaveNav.stub.tsx"],
       "react":             ["../node_modules/@types/react"],
       "react/*":           ["../node_modules/@types/react/*"],
       "react-router-dom":  ["../node_modules/react-router-dom"],
       "@venator-ui/ui":    ["../node_modules/@venator-ui/ui"],
-      "lucide-react":      ["../node_modules/lucide-react"]
+      "lucide-react":      ["../node_modules/lucide-react"],
+      "zustand":           ["../node_modules/zustand"]
     }
   },
   "include": [".", "../module/client.config.tsx"],

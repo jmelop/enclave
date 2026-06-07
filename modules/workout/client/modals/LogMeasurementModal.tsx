@@ -5,13 +5,15 @@ import {
   useToast,
 } from '@venator-ui/ui';
 import { Check, ChevronRight, X } from 'lucide-react';
-import type { BodyEntry } from '../data/data';
+import type { BodyEntry } from '../types/workout';
+import { useWorkoutStore } from '../store/workoutStore';
 
 interface Props {
   onClose: () => void;
-  onSubmit: (e: BodyEntry) => void;
   defaultDate?: string;
-  lastMeasurements?: BodyEntry['measurements'];
+  lastEntry?: BodyEntry;
+  editId?: string;
+  initial?: BodyEntry;
 }
 
 type OptMeasurements = {
@@ -20,55 +22,63 @@ type OptMeasurements = {
   thighL: string; thighR: string;
 };
 
-export default function LogMeasurementModal({ onClose, onSubmit, defaultDate, lastMeasurements }: Props) {
+export default function LogMeasurementModal({ onClose, defaultDate, lastEntry, editId, initial }: Props) {
   const { toast } = useToast();
-  const [date, setDate]     = useState(defaultDate ?? '2026-05-24');
-  const [weight, setWeight] = useState('80.0');
-  const [waist, setWaist]   = useState(lastMeasurements?.waist != null ? String(lastMeasurements.waist) : '');
-  const [notes, setNotes]   = useState('');
+  const addBodyEntry = useWorkoutStore(s => s.addBodyEntry);
+  const updateBodyEntry = useWorkoutStore(s => s.updateBodyEntry);
+  const isEdit = !!editId;
+  const base = initial ?? lastEntry;
+
+  const [date, setDate]     = useState(initial?.date ?? defaultDate ?? '2026-05-24');
+  const [weight, setWeight] = useState(initial ? String(initial.weight) : '80.0');
+  const [waist, setWaist]   = useState(base?.waist != null ? String(base.waist) : '');
+  const [notes, setNotes]   = useState(initial?.notes ?? '');
   const [expanded, setExpanded] = useState(false);
   const [optM, setOptM] = useState<OptMeasurements>({
-    chest:  lastMeasurements?.chest  != null ? String(lastMeasurements.chest)  : '',
-    hip:    lastMeasurements?.hip    != null ? String(lastMeasurements.hip)    : '',
-    bicepL: lastMeasurements?.bicepL != null ? String(lastMeasurements.bicepL) : '',
-    bicepR: lastMeasurements?.bicepR != null ? String(lastMeasurements.bicepR) : '',
-    thighL: lastMeasurements?.thighL != null ? String(lastMeasurements.thighL) : '',
-    thighR: lastMeasurements?.thighR != null ? String(lastMeasurements.thighR) : '',
+    chest:  base?.chest  != null ? String(base.chest)  : '',
+    hip:    base?.hip    != null ? String(base.hip)    : '',
+    bicepL: base?.bicepL != null ? String(base.bicepL) : '',
+    bicepR: base?.bicepR != null ? String(base.bicepR) : '',
+    thighL: base?.thighL != null ? String(base.thighL) : '',
+    thighR: base?.thighR != null ? String(base.thighR) : '',
   });
   const [errors, setErrors] = useState<Record<string, boolean>>({});
+  const [saving, setSaving] = useState(false);
 
   const setOpt = (key: keyof OptMeasurements, val: string) =>
     setOptM(prev => ({ ...prev, [key]: val }));
 
-  const submit = () => {
+  const submit = async () => {
     const errs: Record<string, boolean> = {};
     if (!date) errs.date = true;
     if (!weight || isNaN(Number(weight))) errs.weight = true;
     setErrors(errs);
     if (Object.keys(errs).length) return;
 
-    const entry: BodyEntry = {
+    const payload: Omit<BodyEntry, 'id'> = {
       date,
       weight: Number(weight),
       waist:  waist === '' ? undefined : Number(waist),
+      chest:  optM.chest  === '' ? undefined : Number(optM.chest),
+      hip:    optM.hip    === '' ? undefined : Number(optM.hip),
+      bicepL: optM.bicepL === '' ? undefined : Number(optM.bicepL),
+      bicepR: optM.bicepR === '' ? undefined : Number(optM.bicepR),
+      thighL: optM.thighL === '' ? undefined : Number(optM.thighL),
+      thighR: optM.thighR === '' ? undefined : Number(optM.thighR),
       notes:  notes.trim() || undefined,
     };
 
-    const hasOpt = Object.values(optM).some(v => v !== '' && !isNaN(Number(v)));
-    if (hasOpt || waist !== '') {
-      entry.measurements = {
-        chest:  optM.chest  === '' ? undefined : Number(optM.chest),
-        waist:  waist       === '' ? undefined : Number(waist),
-        hip:    optM.hip    === '' ? undefined : Number(optM.hip),
-        bicepL: optM.bicepL === '' ? undefined : Number(optM.bicepL),
-        bicepR: optM.bicepR === '' ? undefined : Number(optM.bicepR),
-        thighL: optM.thighL === '' ? undefined : Number(optM.thighL),
-        thighR: optM.thighR === '' ? undefined : Number(optM.thighR),
-      };
+    setSaving(true);
+    try {
+      if (editId) await updateBodyEntry(editId, payload);
+      else await addBodyEntry(payload);
+      onClose();
+      toast({ title: `Medición ${editId ? 'actualizada' : 'registrada'} · ${payload.weight} kg`, variant: 'success' });
+    } catch (err) {
+      toast({ title: err instanceof Error ? err.message : 'Save failed', variant: 'error' });
+    } finally {
+      setSaving(false);
     }
-
-    onSubmit(entry);
-    toast({ title: `Medición registrada · ${entry.weight} kg`, variant: 'success' });
   };
 
   const optField = (key: keyof OptMeasurements, label: string) => (
@@ -89,7 +99,7 @@ export default function LogMeasurementModal({ onClose, onSubmit, defaultDate, la
   return (
     <Modal open onClose={onClose} size="md" className="workout-modal">
       <div className="wm-header">
-        <h3 className="wm-title">New body measurement</h3>
+        <h3 className="wm-title">{isEdit ? 'Edit body measurement' : 'New body measurement'}</h3>
         <button type="button" className="wm-close" onClick={onClose} aria-label="Close">
           <X size={15} />
         </button>
@@ -179,9 +189,9 @@ export default function LogMeasurementModal({ onClose, onSubmit, defaultDate, la
       </ModalContent>
 
       <ModalFooter className="!px-[22px]">
-        <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
-        <Button variant="primary" size="sm" onClick={submit}>
-          <Check size={14} /> Save measurement
+        <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>Cancel</Button>
+        <Button variant="primary" size="sm" onClick={() => void submit()} disabled={saving}>
+          <Check size={14} /> {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Save measurement'}
         </Button>
       </ModalFooter>
     </Modal>
