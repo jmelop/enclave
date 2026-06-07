@@ -5,26 +5,38 @@ import {
   useToast,
 } from '@venator-ui/ui';
 import { Check, Trash2, Plus, Minus, X } from 'lucide-react';
-import { EXERCISE_LIBRARY } from '../data/data';
-import type { WorkoutEntry } from '../data/data';
+import { EXERCISE_LIBRARY } from '../lib/exercises';
+import type { WorkoutSession } from '../types/workout';
+import { useWorkoutStore } from '../store/workoutStore';
 
 interface ExSet { reps: string; kg: string }
 interface ExDraft { name: string; sets: ExSet[] }
 
 interface Props {
   onClose: () => void;
-  onSubmit: (w: WorkoutEntry) => void;
   defaultDate?: string;
+  editId?: string;
+  initial?: WorkoutSession;
 }
 
-export default function LogWorkoutModal({ onClose, onSubmit, defaultDate }: Props) {
+export default function LogWorkoutModal({ onClose, defaultDate, editId, initial }: Props) {
   const { toast } = useToast();
-  const [name, setName] = useState('Push A');
-  const [date, setDate] = useState(defaultDate ?? '2026-05-24');
-  const [exercises, setExercises] = useState<ExDraft[]>([
-    { name: 'Bench Press', sets: [{ reps: '5', kg: '92.5' }, { reps: '5', kg: '92.5' }, { reps: '5', kg: '92.5' }] },
-  ]);
+  const addSession = useWorkoutStore(s => s.addSession);
+  const updateSession = useWorkoutStore(s => s.updateSession);
+  const isEdit = !!editId;
+
+  const [name, setName] = useState(initial?.name ?? 'Push A');
+  const [date, setDate] = useState(initial?.date ?? defaultDate ?? '2026-05-24');
+  const [exercises, setExercises] = useState<ExDraft[]>(() =>
+    initial
+      ? initial.exercises.map(e => ({
+          name: e.name,
+          sets: e.sets.map(s => ({ reps: String(s.reps), kg: String(s.kg) })),
+        }))
+      : [{ name: 'Bench Press', sets: [{ reps: '5', kg: '92.5' }, { reps: '5', kg: '92.5' }, { reps: '5', kg: '92.5' }] }],
+  );
   const [errors, setErrors] = useState<Record<string, boolean>>({});
+  const [saving, setSaving] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -68,7 +80,7 @@ export default function LogWorkoutModal({ onClose, onSubmit, defaultDate }: Prop
       return { ...e, sets: e.sets.map((s, j) => j === si ? { ...s, [field]: value } : s) };
     }));
 
-  const submit = () => {
+  const submit = async () => {
     const errs: Record<string, boolean> = {};
     if (!name.trim()) errs.name = true;
     if (!date) errs.date = true;
@@ -77,8 +89,7 @@ export default function LogWorkoutModal({ onClose, onSubmit, defaultDate }: Prop
     setErrors(errs);
     if (Object.keys(errs).length) return;
 
-    const entry: WorkoutEntry = {
-      id: 'w' + Date.now(),
+    const payload: Omit<WorkoutSession, 'id'> = {
       date,
       name: name.trim(),
       exercises: valid.map(e => ({
@@ -86,12 +97,22 @@ export default function LogWorkoutModal({ onClose, onSubmit, defaultDate }: Prop
         sets: e.sets.map(s => ({ reps: Number(s.reps) || 0, kg: Number(s.kg) || 0 })),
       })),
     };
-    onSubmit(entry);
-    toast({
-      title: `Session "${entry.name}" logged`,
-      description: `${entry.exercises.length} exercises · ${totalVolume.toLocaleString()} kg volume`,
-      variant: 'success',
-    });
+
+    setSaving(true);
+    try {
+      if (editId) await updateSession(editId, payload);
+      else await addSession(payload);
+      onClose();
+      toast({
+        title: `Session "${payload.name}" ${editId ? 'updated' : 'logged'}`,
+        description: `${payload.exercises.length} exercises · ${totalVolume.toLocaleString()} kg volume`,
+        variant: 'success',
+      });
+    } catch (err) {
+      toast({ title: err instanceof Error ? err.message : 'Save failed', variant: 'error' });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -104,7 +125,7 @@ export default function LogWorkoutModal({ onClose, onSubmit, defaultDate }: Prop
     >
       {/* Custom header — no venator-ui tag, matches the mockup */}
       <div className="wm-header">
-        <h3 className="wm-title">New workout session</h3>
+        <h3 className="wm-title">{isEdit ? 'Edit workout session' : 'New workout session'}</h3>
         <button type="button" className="wm-close" onClick={onClose} aria-label="Close">
           <X size={15} />
         </button>
@@ -223,9 +244,9 @@ export default function LogWorkoutModal({ onClose, onSubmit, defaultDate }: Prop
           <span>{exercises.length} ex · {totalSets} sets</span>
           <span className="vol">{totalVolume.toLocaleString()} kg vol</span>
         </div>
-        <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
-        <Button variant="primary" size="sm" onClick={submit}>
-          <Check size={14} /> Save session
+        <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>Cancel</Button>
+        <Button variant="primary" size="sm" onClick={() => void submit()} disabled={saving}>
+          <Check size={14} /> {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Save session'}
         </Button>
       </ModalFooter>
     </Modal>
