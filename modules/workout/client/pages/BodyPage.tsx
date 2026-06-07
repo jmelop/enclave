@@ -1,50 +1,162 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { StatCard } from '@venator-ui/patterns';
-import { Button, Separator, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge } from '@venator-ui/ui';
+import { Button, Separator, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, useToast } from '@venator-ui/ui';
 import { Plus } from 'lucide-react';
 import LineChart from '../components/LineChart';
 import LogMeasurementModal from '../modals/LogMeasurementModal';
-import { formatDate } from '../data/data';
-import type { BodyEntry } from '../data/data';
+import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
+import { useWorkoutStore } from '../store/workoutStore';
+import { formatDate } from '../lib/workoutUtils';
+import type { BodyEntry } from '../types/workout';
 
-interface Props {
-  bodyLog: BodyEntry[];
-  onAddEntry: (e: BodyEntry) => void;
-}
+type MeasKey = 'chest' | 'waist' | 'hip' | 'bicepL' | 'bicepR' | 'thighL' | 'thighR'
 
-const BODY_CARDS: { key: keyof NonNullable<BodyEntry['measurements']>; label: string; unit: string }[] = [
-  { key: 'chest',  label: 'Chest',     unit: 'cm' },
-  { key: 'waist',  label: 'Waist',     unit: 'cm' },
-  { key: 'hip',    label: 'Hip',       unit: 'cm' },
+const BODY_CARDS: { key: MeasKey; label: string; unit: string }[] = [
+  { key: 'chest',  label: 'Chest',       unit: 'cm' },
+  { key: 'waist',  label: 'Waist',       unit: 'cm' },
+  { key: 'hip',    label: 'Hip',         unit: 'cm' },
   { key: 'bicepL', label: 'Left Bicep',  unit: 'cm' },
   { key: 'bicepR', label: 'Right Bicep', unit: 'cm' },
   { key: 'thighL', label: 'Left Thigh',  unit: 'cm' },
   { key: 'thighR', label: 'Right Thigh', unit: 'cm' },
 ];
 
-export default function BodyPage({ bodyLog, onAddEntry }: Props) {
-  const [modalOpen, setModalOpen] = useState(false);
+// ── Per-row ··· menu (Edit / Delete) ─────────────────────────────────────────
+
+interface EntryRowMenuProps {
+  entry: BodyEntry;
+  onEdit: (entry: BodyEntry) => void;
+}
+
+function EntryRowMenu({ entry, onEdit }: EntryRowMenuProps) {
+  const deleteBodyEntry = useWorkoutStore(s => s.deleteBodyEntry);
+  const [dropOpen, setDropOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const dropRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!dropOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setDropOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [dropOpen]);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteBodyEntry(entry.id);
+      setConfirmOpen(false);
+    } catch (err) {
+      toast({ title: err instanceof Error ? err.message : 'Delete failed', variant: 'error' });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div ref={dropRef} style={{ position: 'relative', display: 'inline-block' }}>
+      <button
+        title="More options"
+        onClick={() => setDropOpen(o => !o)}
+        style={{
+          display: 'grid', placeItems: 'center', width: 26, height: 26, padding: 0,
+          borderRadius: 7, background: 'transparent', border: '1px solid var(--border-subtle)',
+          color: 'var(--fg-3)', cursor: 'pointer', fontWeight: 700, fontSize: 14, letterSpacing: 1,
+        }}
+      >
+        ···
+      </button>
+      {dropOpen && (
+        <div style={{
+          position: 'absolute', right: 0, top: '100%', marginTop: 4,
+          minWidth: 110, zIndex: 10,
+          background: 'var(--bg-2)',
+          border: '1px solid var(--border-default)',
+          borderRadius: 8,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+          padding: '4px 0',
+        }}>
+          <button
+            onClick={() => { setDropOpen(false); onEdit(entry); }}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 14px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--fg-1)', transition: 'background 0.12s' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-3)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => { setDropOpen(false); setConfirmOpen(true); }}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 14px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--danger)', transition: 'background 0.12s' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-3)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+          >
+            Delete
+          </button>
+        </div>
+      )}
+      <ConfirmDeleteModal
+        open={confirmOpen}
+        itemName={formatDate(entry.date, { short: true })}
+        title="Delete measurement"
+        loading={deleting}
+        onConfirm={() => void handleDelete()}
+        onCancel={() => setConfirmOpen(false)}
+      />
+    </div>
+  );
+}
+
+// ── BodyPage ──────────────────────────────────────────────────────────────────
+
+interface ModalState { editId?: string; initial?: BodyEntry }
+
+export default function BodyPage() {
+  const { bodyLog } = useWorkoutStore();
+  const [modal, setModal] = useState<ModalState | null>(null);
   const latest = bodyLog[bodyLog.length - 1];
-  const meas = latest.measurements ?? {};
 
   const chartData = useMemo(() => (
     bodyLog.map(b => ({ label: formatDate(b.date, { short: true }), y: b.weight }))
   ), [bodyLog]);
 
+  if (!latest) {
+    return (
+      <>
+        <div className="flex items-center justify-between gap-4 mb-5">
+          <p className="text-sm text-fg-3">No measurements logged yet</p>
+          <Button variant="primary" size="sm" onClick={() => setModal({})}>
+            <Plus size={14} />
+            Log Measurement
+          </Button>
+        </div>
+        <div className="bg-bg-1 border border-[var(--border-subtle)] rounded-lg p-10 text-center text-fg-4 text-sm">
+          Log your first body measurement to start tracking progress over time.
+        </div>
+        {modal && (
+          <LogMeasurementModal
+            onClose={() => setModal(null)}
+            editId={modal.editId}
+            initial={modal.initial}
+            defaultDate="2026-05-24"
+          />
+        )}
+      </>
+    );
+  }
+
   const minW = Math.min(...bodyLog.map(b => b.weight));
   const maxW = Math.max(...bodyLog.map(b => b.weight));
   const delta = (latest.weight - bodyLog[0].weight).toFixed(1);
-
-  const handleSubmit = (entry: BodyEntry) => {
-    onAddEntry(entry);
-    setModalOpen(false);
-  };
 
   return (
     <>
       <div className="flex items-center justify-between gap-4 mb-5">
         <p className="text-sm text-fg-3">{bodyLog.length} entries · {formatDate(bodyLog[0].date, { short: true })} → {formatDate(latest.date, { short: true })}</p>
-        <Button variant="primary" size="sm" onClick={() => setModalOpen(true)}>
+        <Button variant="primary" size="sm" onClick={() => setModal({})}>
           <Plus size={14} />
           Log Measurement
         </Button>
@@ -83,7 +195,7 @@ export default function BodyPage({ bodyLog, onAddEntry }: Props) {
       {/* Measurement cards */}
       <div className="grid gap-2.5 mb-6" style={{ gridTemplateColumns: 'repeat(7, 1fr)' }}>
         {BODY_CARDS.map(c => {
-          const val = meas[c.key];
+          const val = latest[c.key];
           return (
             <StatCard
               key={c.key}
@@ -115,6 +227,7 @@ export default function BodyPage({ bodyLog, onAddEntry }: Props) {
               <TableHead>Waist</TableHead>
               <TableHead>Δ weight</TableHead>
               <TableHead>Notes</TableHead>
+              <TableHead style={{ width: 44 }} />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -127,7 +240,7 @@ export default function BodyPage({ bodyLog, onAddEntry }: Props) {
                 : Number(dw) > 0 ? 'var(--warn)'
                 : 'var(--fg-4)';
               return (
-                <TableRow key={b.date}>
+                <TableRow key={b.id}>
                   <TableCell className="font-mono text-fg-4">{formatDate(b.date)}</TableCell>
                   <TableCell className="font-mono">{b.weight.toFixed(1)} <span className="text-fg-4">kg</span></TableCell>
                   <TableCell className="font-mono">
@@ -138,6 +251,9 @@ export default function BodyPage({ bodyLog, onAddEntry }: Props) {
                     {dw == null ? '—' : Number(dw) > 0 ? `+${dw}` : dw}
                   </TableCell>
                   <TableCell className="text-fg-4">{b.notes || '—'}</TableCell>
+                  <TableCell>
+                    <EntryRowMenu entry={b} onEdit={e => setModal({ editId: e.id, initial: e })} />
+                  </TableCell>
                 </TableRow>
               );
             })}
@@ -145,12 +261,13 @@ export default function BodyPage({ bodyLog, onAddEntry }: Props) {
         </Table>
       </div>
 
-      {modalOpen && (
+      {modal && (
         <LogMeasurementModal
-          onClose={() => setModalOpen(false)}
-          onSubmit={handleSubmit}
+          onClose={() => setModal(null)}
+          editId={modal.editId}
+          initial={modal.initial}
           defaultDate="2026-05-24"
-          lastMeasurements={latest.measurements}
+          lastEntry={latest}
         />
       )}
     </>
