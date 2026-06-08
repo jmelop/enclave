@@ -17,7 +17,13 @@ async function connectWithRetry(pool: Pool): Promise<boolean> {
 }
 
 async function boot(): Promise<void> {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = new Pool({
+    host: process.env.DB_HOST ?? '127.0.0.1',
+    port: Number(process.env.DB_PORT ?? 5432),
+    user: process.env.DB_USER ?? 'enclave',
+    password: process.env.DB_PASSWORD ?? 'enclave',
+    database: process.env.DB_NAME ?? 'enclave',
+  });
 
   const connected = await connectWithRetry(pool);
 
