@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@venator-ui/ui'
 import { CatBadge } from '@/components/ui/CatBadge'
 import { StatusPill } from '@/components/ui/StatusPill'
@@ -7,6 +7,7 @@ import { StatusPill } from '@/components/ui/StatusPill'
 import { CATEGORIES, useInventoryStore } from '@/store/inventoryStore'
 import { catAccent } from '@/lib/utils'
 import type { InventoryItem } from '@/types/inventory'
+import { ConfirmDeleteModal } from './ConfirmDeleteModal'
 
 interface DetailPanelProps {
   item: InventoryItem | null
@@ -20,6 +21,8 @@ interface DetailPanelProps {
 export function DetailPanel({ item, displayIndex, onClose, onEdit }: DetailPanelProps) {
   const adjustQty = useInventoryStore((s) => s.adjustQty)
   const deleteItem = useInventoryStore((s) => s.deleteItem)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const c = item ? CATEGORIES.find((x) => x.id === item.category) : null
   const accent = c ? catAccent(c.hue) : 'var(--fg)'
@@ -33,8 +36,11 @@ export function DetailPanel({ item, displayIndex, onClose, onEdit }: DetailPanel
     return () => window.removeEventListener('keydown', handler)
   }, [item, onClose])
 
-  const handleDelete = (it: InventoryItem) => {
-    deleteItem(it.id)
+  const handleDelete = async () => {
+    setDeleting(true)
+    await deleteItem(item!.id)
+    setDeleting(false)
+    setConfirmOpen(false)
     onClose()
   }
 
@@ -94,9 +100,18 @@ export function DetailPanel({ item, displayIndex, onClose, onEdit }: DetailPanel
             </section> */}
 
             <footer className="dt-foot">
-              <Button variant="ghost" onClick={() => handleDelete(item)}>⊗ Delete</Button>
+              <Button variant="ghost" onClick={() => setConfirmOpen(true)}>⊗ Delete</Button>
               <Button variant="accent" onClick={() => onEdit(item)}>◈ Edit Item</Button>
             </footer>
+
+            <ConfirmDeleteModal
+              open={confirmOpen}
+              itemName={item.name}
+              title="Delete item"
+              loading={deleting}
+              onConfirm={() => void handleDelete()}
+              onCancel={() => setConfirmOpen(false)}
+            />
           </>
         )}
       </aside>
