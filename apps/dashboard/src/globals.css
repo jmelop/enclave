@@ -99,21 +99,31 @@ body::after {
   50% { opacity: 0; }
 }
 
+/* Portaled modals — override body font inherited from shell */
+[role="dialog"] {
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
 /* Scrollbar — portal/terminal area (always dark) */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #0c0e0c; }
 ::-webkit-scrollbar-thumb { background: #2a2d2a; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #e8a83e66; }
 
-/* Scrollbar — module content area (adapts to light/dark) */
+/* Scrollbar — module nav + content area (adapts to light/dark) */
+.module-nav ::-webkit-scrollbar,
 .module-content ::-webkit-scrollbar { width: 8px; height: 8px; }
+.module-nav ::-webkit-scrollbar-track,
 .module-content ::-webkit-scrollbar-track { background: transparent; }
+.module-nav ::-webkit-scrollbar-thumb,
 .module-content ::-webkit-scrollbar-thumb {
   background: var(--border-default);
   border-radius: 8px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
+.module-nav ::-webkit-scrollbar-thumb:hover,
 .module-content ::-webkit-scrollbar-thumb:hover {
   background: var(--fg-5);
   background-clip: content-box;
