@@ -140,6 +140,7 @@ export const useLabStore = create<LabState>()((set, get) => ({
       throw new Error(body.error ?? `HTTP ${res.status}`)
     }
     await get().refetch()
+    if (get().snippetsHydrated) await get().refetchSnippets()
   },
 
   setIdeaPhase: async (id: string, phase: PhaseId) => {

@@ -29,7 +29,6 @@ export default function App() {
     const enclaveValue = theme === 'slate-light' ? 'light' : 'dark';
     localStorage.setItem('enclave-theme', enclaveValue);
     document.documentElement.setAttribute('data-theme', enclaveValue);
-    return () => { document.documentElement.removeAttribute('data-theme'); };
   }, [theme]);
 
   const toggleTheme = useCallback(() => {

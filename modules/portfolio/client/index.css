@@ -266,6 +266,7 @@ body {
   letter-spacing: -0.02em;
   margin: 0;
   line-height: 1.1;
+  color: var(--fg);
 }
 .p-title-dot { color: var(--warn); }
 .p-tag {

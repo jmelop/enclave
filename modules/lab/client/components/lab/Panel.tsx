@@ -18,6 +18,7 @@ export function Panel({ idea, onClose, onUpdate }: PanelProps) {
   // the rendered content — initialised from `idea` and synced on every change.
   const [draft, setDraft] = useState<Idea | null>(idea)
   const [addingSnip, setAddingSnip] = useState(false)
+  const [editingSnipId, setEditingSnipId] = useState<string | null>(null)
 
   useEffect(() => { setDraft(idea) }, [idea])
 
@@ -30,7 +31,7 @@ export function Panel({ idea, onClose, onUpdate }: PanelProps) {
   }, [idea, onClose])
 
   useEffect(() => {
-    if (!idea) setAddingSnip(false)
+    if (!idea) { setAddingSnip(false); setEditingSnipId(null) }
   }, [idea])
 
   // `idea` drives open/closed so CSS transitions work.
@@ -57,6 +58,21 @@ export function Panel({ idea, onClose, onUpdate }: PanelProps) {
     setDraft(updated)
     onUpdate(updated)
     setAddingSnip(false)
+  }
+
+  function handleUpdateSnippet(snip: Snippet) {
+    if (!content) return
+    const updated = { ...content, snippets: content.snippets.map(s => s.id === snip.id ? snip : s) }
+    setDraft(updated)
+    onUpdate(updated)
+    setEditingSnipId(null)
+  }
+
+  function handleDeleteSnippet(id: string) {
+    if (!content) return
+    const updated = { ...content, snippets: content.snippets.filter(s => s.id !== id) }
+    setDraft(updated)
+    onUpdate(updated)
   }
 
   const phase = content ? PHASES.find(p => p.id === content.phase) : undefined
@@ -195,7 +211,21 @@ export function Panel({ idea, onClose, onUpdate }: PanelProps) {
                 </div>
                 <div className="panel-snippets">
                   {content.snippets.map(snip => (
-                    <SnippetView key={snip.id} snip={snip} />
+                    editingSnipId === snip.id ? (
+                      <SnippetForm
+                        key={snip.id}
+                        initialSnip={snip}
+                        onSave={handleUpdateSnippet}
+                        onCancel={() => setEditingSnipId(null)}
+                      />
+                    ) : (
+                      <SnippetView
+                        key={snip.id}
+                        snip={snip}
+                        onEdit={() => { setAddingSnip(false); setEditingSnipId(snip.id) }}
+                        onDelete={() => handleDeleteSnippet(snip.id)}
+                      />
+                    )
                   ))}
 
                   {addingSnip ? (
@@ -204,10 +234,12 @@ export function Panel({ idea, onClose, onUpdate }: PanelProps) {
                       onCancel={() => setAddingSnip(false)}
                     />
                   ) : (
-                    <button className="add-snip" onClick={() => setAddingSnip(true)}>
-                      <span style={{ fontSize: 16 }}>+</span>
-                      Add snippet
-                    </button>
+                    !editingSnipId && (
+                      <button className="add-snip" onClick={() => setAddingSnip(true)}>
+                        <span style={{ fontSize: 16 }}>+</span>
+                        Add snippet
+                      </button>
+                    )
                   )}
                 </div>
               </div>

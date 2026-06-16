@@ -4,18 +4,19 @@ import type { Snippet, Lang } from '@/types/lab'
 import { LANG_META } from '@/lib/utils'
 
 interface SnippetFormProps {
+  initialSnip?: Snippet
   onSave: (snip: Snippet) => void
   onCancel: () => void
 }
 
 const LANGS = Object.keys(LANG_META) as Lang[]
 
-export function SnippetForm({ onSave, onCancel }: SnippetFormProps) {
-  const [title, setTitle] = useState('')
-  const [lang, setLang] = useState<Lang>('ts')
-  const [code, setCode] = useState('')
-  const [desc, setDesc] = useState('')
-  const [tagsRaw, setTagsRaw] = useState('')
+export function SnippetForm({ initialSnip, onSave, onCancel }: SnippetFormProps) {
+  const [title, setTitle] = useState(initialSnip?.title ?? '')
+  const [lang, setLang] = useState<Lang>(initialSnip?.lang ?? 'ts')
+  const [code, setCode] = useState(initialSnip?.code ?? '')
+  const [desc, setDesc] = useState(initialSnip?.desc ?? '')
+  const [tagsRaw, setTagsRaw] = useState(initialSnip?.tags?.join(', ') ?? '')
 
   const canSave = title.trim().length > 0 && code.trim().length > 0
 
@@ -23,14 +24,16 @@ export function SnippetForm({ onSave, onCancel }: SnippetFormProps) {
     if (!canSave) return
     const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean)
     onSave({
-      id: `snip-${Date.now()}`,
+      id: initialSnip?.id ?? `snip-${Date.now()}`,
       title: title.trim(),
       lang,
       code: code.trim(),
       desc: desc.trim() || undefined,
       tags: tags.length > 0 ? tags : undefined,
     })
-    setTitle(''); setCode(''); setDesc(''); setTagsRaw('')
+    if (!initialSnip) {
+      setTitle(''); setCode(''); setDesc(''); setTagsRaw('')
+    }
   }
 
   return (
@@ -111,7 +114,7 @@ export function SnippetForm({ onSave, onCancel }: SnippetFormProps) {
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <Button variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
         <Button variant="primary" size="sm" disabled={!canSave} onClick={handleSave}>
-          Save
+          {initialSnip ? 'Update' : 'Save'}
         </Button>
       </div>
     </div>
