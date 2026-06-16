@@ -30,7 +30,8 @@ export function ConfirmDeleteModal({
         <Button variant="ghost" size="sm" onClick={onCancel} disabled={loading}>
           Cancel
         </Button>
-        <Button variant="primary" size="sm" onClick={onConfirm} disabled={loading}>
+        <Button variant="outline" size="sm" onClick={onConfirm} disabled={loading}
+          style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}>
           {loading ? 'Deleting…' : 'Confirm'}
         </Button>
       </ModalFooter>

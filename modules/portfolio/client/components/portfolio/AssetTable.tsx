@@ -210,10 +210,11 @@ function AssetRow({ asset, hideValues, onDelete, onEdit }: AssetRowProps) {
               Cancel
             </Button>
             <Button
-              variant="primary"
+              variant="outline"
               size="sm"
               onClick={handleConfirmDelete}
               disabled={deleting}
+              style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
             >
               {deleting ? 'Deleting…' : 'Confirm'}
             </Button>
