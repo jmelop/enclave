@@ -177,7 +177,8 @@ export function AddEditModal({ open, draft, isEdit, onChange, onCancel, onSave }
       <ModalFooter className="inventory-modal-footer">
         <div className="modal-hint mono">↵ to save · ESC to cancel</div>
         <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-        <Button variant="accent" disabled={!valid} onClick={onSave}>
+        <Button variant="ghost" disabled={!valid} onClick={onSave}
+          style={{ background: 'var(--enclave-amber)', color: '#000', borderColor: 'var(--enclave-amber)' }}>
           {isEdit ? 'Save changes' : 'Add item'}
         </Button>
       </ModalFooter>
