@@ -32,7 +32,7 @@ export const CATEGORIES: Record<AppCategory, { label: string; icon: string }> = 
   health: { label: "Health", icon: "HeartPulse" },
   development: { label: "Development", icon: "Code2" },
   home: { label: "Home", icon: "House" },
-  tools: { label: "Tools", icon: "Wrench" }
+  tools: { label: "External Tools", icon: "Wrench" }
 }
 
 // ─── Module apps (auto-generated) ────────────────────────────────────────────

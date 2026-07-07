@@ -75,13 +75,12 @@ export function CategoryNav({ selected, onSelect, counts }: CategoryNavProps) {
       {(Object.entries(CATEGORIES) as [AppCategory, { label: string; icon: string }][]).map(
         ([key, { label, icon }]) => {
           const Icon = ICON_MAP[icon] ?? Wrench
-          const displayLabel = toTitle(label)
           return (
             <CategoryRow
               key={key}
               active={selected === key}
               Icon={Icon}
-              label={displayLabel}
+              label={label}
               count={counts[key] ?? 0}
               onClick={() => onSelect(key)}
             />
@@ -90,9 +89,4 @@ export function CategoryNav({ selected, onSelect, counts }: CategoryNavProps) {
       )}
     </nav>
   )
-}
-
-function toTitle(label: string) {
-  if (!label) return label
-  return label.charAt(0) + label.slice(1).toLowerCase()
 }
