@@ -29,10 +29,10 @@ export function OverviewPage({ onNavigate }: Props) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* KPI cards */}
       <div className="grid grid-cols-4 gap-3.5">
-        <StatCard title="Active Goals" value={activeGoals} description={atRisk ? `${atRisk} at risk` : 'all on track'} variant={atRisk ? 'warning' : 'success'} />
+        <StatCard title="Active Goals" value={activeGoals} description={atRisk ? `${atRisk} at risk` : 'all on track'} valueClassName={atRisk ? '!text-warn' : '!text-success'} />
         <StatCard title="Week focus" value={`${weekDone}/${weekPlans.length}`} description="plans closed" />
         <StatCard title="Avg progress" value={`${avgProgress}%`} description="across all goals" />
-        <StatCard title="Win rate" value={`${winRate}%`} description={`${wins}/${experiments.length} experiments`} variant={winRate >= 50 ? 'success' : 'warning'} />
+        <StatCard title="Win rate" value={`${winRate}%`} description={`${wins}/${experiments.length} experiments`} valueClassName={winRate >= 50 ? '!text-success' : '!text-warn'} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, alignItems: 'start' }}>

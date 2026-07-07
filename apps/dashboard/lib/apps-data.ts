@@ -86,7 +86,7 @@ const EXTERNAL_APPS: AppEntry[] = [
     category: "development",
     status: "online",
     port: 3004,
-    version: "0.1.6",
+    version: "0.3.0",
     lastAccess: "2026-05-14 08:00:00",
     clearanceLevel: 1,
     icon: "FlaskConical",
