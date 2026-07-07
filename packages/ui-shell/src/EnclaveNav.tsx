@@ -156,10 +156,10 @@ export function EnclaveNav({ externalLinks = [] }: Props) {
           className="w-7 h-7 rounded-full grid place-items-center text-white text-[11px] font-bold shrink-0"
           style={{ background: accent }}
         >
-          JM
+          AD
         </div>
         <div className="flex flex-col gap-[1px]">
-          <span className="text-[12px] font-semibold text-fg-2">Juan Melo</span>
+          <span className="text-[12px] font-semibold text-fg-2">Alex Doe</span>
           <span className="text-[11px] text-fg-4">enclave · v0.1.0</span>
         </div>
       </div>
