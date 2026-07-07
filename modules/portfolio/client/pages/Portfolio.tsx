@@ -36,6 +36,7 @@ function useTheme() {
   const toggle = () => {
     const next = theme === 'dark' ? 'light' : 'dark'
     document.documentElement.setAttribute('data-theme', next)
+    localStorage.setItem('enclave-theme', next)
     setTheme(next)
   }
   return { theme, toggle }

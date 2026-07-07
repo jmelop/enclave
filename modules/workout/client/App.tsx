@@ -13,7 +13,7 @@ function enclaveToSlate(t: string | null): Theme {
 
 export default function App() {
   const [theme, setTheme] = useState<Theme>(() =>
-    enclaveToSlate(localStorage.getItem('enclave-theme')),
+    enclaveToSlate(document.documentElement.getAttribute('data-theme')),
   );
   const location = useLocation();
 
@@ -25,15 +25,19 @@ export default function App() {
 
   useEffect(() => { void hydrate(); }, [hydrate]);
 
-  useEffect(() => {
-    const enclaveValue = theme === 'slate-light' ? 'light' : 'dark';
-    localStorage.setItem('enclave-theme', enclaveValue);
-    document.documentElement.setAttribute('data-theme', enclaveValue);
-  }, [theme]);
-
   const toggleTheme = useCallback(() => {
     setTheme(t => (t === 'slate-dark' ? 'slate-light' : 'slate-dark'));
   }, []);
+
+  useEffect(() => {
+    const enclaveValue = theme === 'slate-light' ? 'light' : 'dark';
+    // Only propagate changes made from this module's toggle; on mount the
+    // attribute is already the source of truth we initialized from.
+    if (document.documentElement.getAttribute('data-theme') !== enclaveValue) {
+      document.documentElement.setAttribute('data-theme', enclaveValue);
+      localStorage.setItem('enclave-theme', enclaveValue);
+    }
+  }, [theme]);
 
   const sectionLabel = (() => {
     const segments = location.pathname.split('/').filter(Boolean);
