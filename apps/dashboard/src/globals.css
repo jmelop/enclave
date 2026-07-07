@@ -3,102 +3,30 @@
 @tailwind utilities;
 
 :root {
-  /* Font stacks */
-  --font-share-tech-mono: 'Share Tech Mono', 'Courier New', monospace;
-  --font-rajdhani: 'Rajdhani', sans-serif;
-  --font-mono: var(--font-share-tech-mono);
-  --font-display: var(--font-rajdhani);
   --sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --mono-code: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-
-  /* Portal design tokens at :root so portaled elements (modals) can access them */
-  --background: #0c0e0c;
-  --foreground: #d4d8cc;
-  --card: #111411;
-  --card-foreground: #d4d8cc;
-  --popover: #111411;
-  --popover-foreground: #d4d8cc;
-  --primary: #e8a83e;
-  --primary-foreground: #0c0e0c;
-  --secondary: #1a1d1a;
-  --secondary-foreground: #d4d8cc;
-  --muted: #161916;
-  --muted-foreground: #6b6e64;
-  --accent: #4aba4a;
-  --accent-foreground: #0c0e0c;
-  --destructive: #c44040;
-  --destructive-foreground: #ffaaaa;
-  --border: #2a2d2a;
-  --input: #1a1d1a;
-  --ring: #e8a83e88;
-  --enclave-amber: #e8a83e;
-  --enclave-amber-dim: #a67a1a;
-  --enclave-amber-glow: #e8a83e33;
-  --enclave-green: #4aba4a;
-  --enclave-green-glow: #4aba4a33;
-  --enclave-warn: #f0c040;
-  --enclave-danger: #c44040;
 }
 
 @layer base {
   body {
-    background-color: #0c0e0c;
-    color: #d4d8cc;
-    font-family: var(--font-share-tech-mono);
+    background-color: #08090b;
+    color: #f5f6f7;
+    font-family: var(--sans);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+  html[data-theme="light"] body {
+    background-color: #f7f7f9;
+    color: #0a0a0c;
+  }
 }
 
-/* ── Module nav + content: Inter font ── */
-.module-nav,
-.module-content {
-  font-family: var(--sans);
-  -webkit-font-smoothing: antialiased;
-}
-
-/* Scanline overlay */
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(74, 186, 74, 0.008) 2px,
-    rgba(74, 186, 74, 0.008) 4px
-  );
-  pointer-events: none;
-  z-index: 9998;
-}
-
-/* Amber glow utility */
-.amber-glow {
-  text-shadow: 0 0 8px var(--enclave-amber-glow), 0 0 16px var(--enclave-amber-glow);
-}
-
-/* Cursor blink */
-.cursor-blink {
-  animation: blink 1s step-end infinite;
-}
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
-}
-
-/* Portaled modals — override body font inherited from shell */
-[role="dialog"] {
-  font-family: var(--sans);
-  -webkit-font-smoothing: antialiased;
-}
-
-/* Scrollbar — portal/terminal area (always dark) */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #0c0e0c; }
-::-webkit-scrollbar-thumb { background: #2a2d2a; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #e8a83e66; }
+/* Scrollbar — default for body-level elements (portaled modals etc.);
+   .portal-root and module areas override with their own scoped rules */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(140, 145, 155, 0.35); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(140, 145, 155, 0.55); }
 
 /* Scrollbar — module nav + content area (adapts to light/dark) */
 .module-nav ::-webkit-scrollbar,
