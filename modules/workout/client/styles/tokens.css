@@ -1,6 +1,10 @@
 /* enclave-workout — Slate theme tokens */
 
-[data-theme="slate-dark"] {
+/* The html[data-theme] selectors cover venator modals, which portal to <body>
+   and therefore escape the app's [data-theme="slate-*"] wrapper. */
+[data-theme="slate-dark"],
+html[data-theme="dark"] .workout-modal,
+html[data-theme="dark"] .workout-modal-backdrop {
   --bg:   #0d1117;
   --bg-1: #151b23;
   --bg-2: #1c232c;
@@ -33,7 +37,9 @@
   color-scheme: dark;
 }
 
-[data-theme="slate-light"] {
+[data-theme="slate-light"],
+html[data-theme="light"] .workout-modal,
+html[data-theme="light"] .workout-modal-backdrop {
   --bg:   #f6f8fa;
   --bg-1: #ffffff;
   --bg-2: #f0f3f6;
@@ -200,6 +206,11 @@
   background: color-mix(in oklab, var(--bg) 28%, transparent);
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
+}
+/* Portaled to <body>, outside .module-content — restore the module font */
+.workout-modal {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  color: var(--fg);
 }
 [data-theme="slate-light"] .wm-backdrop {
   background: rgba(15, 23, 42, 0.32);

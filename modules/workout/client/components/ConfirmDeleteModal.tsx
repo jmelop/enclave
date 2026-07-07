@@ -11,7 +11,7 @@ interface ConfirmDeleteModalProps {
 
 export function ConfirmDeleteModal({ open, itemName, title = 'Delete item', loading = false, onConfirm, onCancel }: ConfirmDeleteModalProps) {
   return (
-    <Modal open={open} onClose={() => !loading && onCancel()} size="sm">
+    <Modal open={open} onClose={() => !loading && onCancel()} size="sm" className="workout-modal" backdropClassName="workout-modal-backdrop">
       <ModalHeader title={title} onClose={() => !loading && onCancel()} />
       <ModalContent>
         <p style={{ margin: 0, fontSize: 14, color: 'var(--fg-2)', lineHeight: 1.55 }}>
