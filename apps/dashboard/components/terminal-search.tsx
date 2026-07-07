@@ -1,24 +1,53 @@
-import { Search } from "lucide-react"
+import type { RefObject } from "react"
 
 interface TerminalSearchProps {
   query: string
   onQueryChange: (q: string) => void
+  matchCount: number
+  inputRef?: RefObject<HTMLInputElement>
 }
 
-export function TerminalSearch({ query, onQueryChange }: TerminalSearchProps) {
+export function TerminalSearch({ query, onQueryChange, matchCount, inputRef }: TerminalSearchProps) {
+  const matchLabel = matchCount === 1 ? "1 MATCH" : `${matchCount} MATCHES`
+
   return (
-    <div className="relative">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        border: "1px solid var(--border-subtle)",
+        background: "var(--bg-1)",
+        borderRadius: 10,
+        padding: "0 14px",
+        height: 42,
+      }}
+    >
+      <span style={{ fontFamily: "var(--portal-mono)", fontSize: 13, color: "var(--amber)" }}>$</span>
       <input
+        ref={inputRef}
         type="text"
         value={query}
         onChange={(e) => onQueryChange(e.target.value)}
-        placeholder="Search applications..."
-        className="w-full bg-[#111411] border border-border text-foreground placeholder-muted-foreground text-xs tracking-wider uppercase font-mono pl-10 pr-20 py-2 focus:outline-none focus:border-primary/40 transition-all"
+        placeholder="search by name, codename or description…"
+        style={{
+          flex: 1,
+          background: "transparent",
+          border: "none",
+          outline: "none",
+          fontFamily: "var(--portal-mono)",
+          fontSize: 12.5,
+          color: "var(--fg)",
+          padding: 0,
+          minWidth: 0,
+        }}
       />
-      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground tracking-wider hidden sm:block">
-        {'[CTRL+K]'}
-      </div>
+      <span style={{ fontFamily: "var(--portal-mono)", fontSize: 10, letterSpacing: "0.1em", color: "var(--fg-5)" }}>
+        [CTRL+K]
+      </span>
+      <span style={{ fontFamily: "var(--portal-mono)", fontSize: 10, letterSpacing: "0.12em", color: "var(--fg-4)" }}>
+        {matchLabel}
+      </span>
     </div>
   )
 }

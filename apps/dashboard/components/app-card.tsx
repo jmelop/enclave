@@ -1,165 +1,186 @@
 import { useState } from "react"
 import { type AppEntry, type AppStatus } from "@/lib/apps-data"
 import {
-  Radio,
-  Eye,
-  Package,
-  FlaskConical,
-  ShieldAlert,
-  Wrench,
-  Zap,
-  Users,
-  Satellite,
-  Droplets,
-  Crosshair,
-  HeartPulse,
-  Lock,
-  ExternalLink,
+  Radio, Eye, Package, FlaskConical, ShieldAlert, Wrench, Zap, Users,
+  Satellite, Droplets, HeartPulse, Lock, CalendarDays, TrendingUp,
   ChevronRight,
-  CalendarDays,
-  TrendingUp,
 } from "lucide-react"
-import { Tooltip } from "@venator-ui/ui"
 
 const ICON_MAP: Record<string, React.ElementType> = {
-  Radio,
-  Eye,
-  Package,
-  FlaskConical,
-  ShieldAlert,
-  Wrench,
-  Zap,
-  Users,
-  Satellite,
-  Droplets,
-  Crosshair,
-  HeartPulse,
-  Lock,
-  CalendarDays,
-  TrendingUp,
+  Radio, Eye, Package, FlaskConical, ShieldAlert, Wrench, Zap, Users,
+  Satellite, Droplets, HeartPulse, Lock, CalendarDays, TrendingUp,
 }
 
-const STATUS_CONFIG: Record<
-  AppStatus,
-  { label: string; color: string; dotColor: string; glow?: string }
-> = {
-  online: {
-    label: "ONLINE",
-    color: "text-accent",
-    dotColor: "bg-[#4aba4a]",
-    glow: "0 0 4px #4aba4a",
-  },
-  offline: {
-    label: "OFFLINE",
-    color: "text-muted-foreground",
-    dotColor: "bg-[#555]",
-  },
-  maintenance: {
-    label: "MAINT.",
-    color: "text-primary",
-    dotColor: "bg-primary",
-    glow: "0 0 4px #e8a83e",
-  },
-  classified: {
-    label: "CLASSIFIED",
-    color: "text-destructive",
-    dotColor: "bg-destructive",
-    glow: "0 0 4px #c44040",
-  },
+const STATUS_CONFIG: Record<AppStatus, { label: string; color: string; glow: string }> = {
+  online:      { label: "ONLINE",     color: "var(--success)", glow: "0 0 8px var(--success)" },
+  maintenance: { label: "MAINT.",     color: "var(--warn)",    glow: "0 0 8px var(--warn)" },
+  classified:  { label: "CLASSIFIED", color: "var(--danger)",  glow: "0 0 8px var(--danger)" },
+  offline:     { label: "OFFLINE",    color: "var(--fg-4)",    glow: "none" },
 }
 
-export function AppCard({ app }: { app: AppEntry }) {
-  const [hovered, setHovered] = useState(false)
+interface AppCardProps {
+  app: AppEntry
+  onClick: () => void
+}
+
+export function AppCard({ app, onClick }: AppCardProps) {
+  const [hover, setHover] = useState(false)
   const Icon = ICON_MAP[app.icon] ?? Wrench
   const status = STATUS_CONFIG[app.status]
-  const isAccessible = app.status === "online"
+  const online = app.status === "online"
+  const lifted = hover && online
 
   return (
-    <button
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      disabled={!isAccessible}
-      className={`group relative w-full text-left border transition-all duration-300 font-mono ${
-        isAccessible
-          ? "border-border/40 hover:border-primary/40 cursor-pointer"
-          : "border-border/40 opacity-60 cursor-not-allowed"
-      } ${!isAccessible ? "bg-[#0f120f]" : hovered ? "bg-primary/5" : "bg-[#111411]"}`}
+    <div
+      onClick={online ? onClick : undefined}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        borderRadius: 12,
+        border: `1px solid ${lifted ? "var(--border-default)" : "var(--border-subtle)"}`,
+        background: lifted ? "var(--card-2)" : "var(--card-1)",
+        padding: "16px 16px 12px",
+        opacity: online ? 1 : 0.55,
+        cursor: online ? "pointer" : "default",
+        transform: lifted ? "translateY(-2px)" : "none",
+        boxShadow: lifted ? "0 10px 30px rgba(0, 0, 0, 0.25)" : "none",
+        transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease",
+      }}
     >
-      {/* Top accent line */}
-      <div
-        className={`absolute top-0 left-0 h-px transition-all duration-500 ${
-          hovered && isAccessible ? "w-full" : "w-0"
-        }`}
-        style={{ background: "linear-gradient(to right, #e8a83e, transparent)" }}
-      />
-
-      <div className="p-4">
-        {/* Header: Icon, Name, Status */}
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <div className="flex items-center gap-3 min-w-0">
-            <div
-              className={`flex items-center justify-center w-9 h-9 border shrink-0 text-primary ${
-                isAccessible ? "border-primary/30" : "border-border"
-              }`}
-            >
-              <Icon className="w-4.5 h-4.5" />
-            </div>
-            <div className="min-w-0">
-              <div
-                className="text-xs tracking-wider uppercase truncate text-[#d4d8cc]"
-                style={hovered && isAccessible ? { textShadow: "0 0 6px #e8a83e33" } : undefined}
-              >
-                {app.name}
-              </div>
-              <div className="text-[10px] text-muted-foreground tracking-wider">
-                {app.codename}
-              </div>
-            </div>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
+          <div
+            style={{
+              width: 38,
+              height: 38,
+              flexShrink: 0,
+              borderRadius: 10,
+              background: "var(--bg-2)",
+              border: "1px solid var(--border-subtle)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--amber)",
+            }}
+          >
+            <Icon size={17} />
           </div>
-
-          <div className="flex items-center gap-1.5 shrink-0">
-            <div
-              className={`w-1.5 h-1.5 rounded-full ${status.dotColor}`}
-              style={status.glow ? { boxShadow: status.glow } : undefined}
-            />
-            <span className={`text-[10px] tracking-wider ${status.color}`}>
-              {status.label}
+          <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 1 }}>
+            <span
+              style={{
+                fontSize: 14,
+                fontWeight: 600,
+                color: "var(--fg)",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {app.name}
+            </span>
+            <span
+              style={{
+                fontFamily: "var(--portal-mono)",
+                fontSize: 10,
+                letterSpacing: "0.12em",
+                color: "var(--fg-4)",
+                textTransform: "uppercase",
+              }}
+            >
+              {app.codename}
             </span>
           </div>
         </div>
 
-        {/* Description */}
-        <p className="text-[11px] text-muted-foreground leading-relaxed mb-2 line-clamp-2">
-          {app.description}
-        </p>
-
-        {/* Footer metadata */}
-        <div className="flex items-center justify-between text-[10px] text-muted-foreground tracking-wider border-t border-border/50 pt-2.5">
-          <div className="flex items-center gap-3">
-            <span>PORT:{app.port}</span>
-            <span>v{app.version}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            {isAccessible ? (
-              <Tooltip content={app.url ?? "URL not configured"} side="top">
-                <span className="flex items-center gap-1">
-                  <span className="text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                    LAUNCH
-                  </span>
-                  <ChevronRight className="w-3 h-3 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
-                </span>
-              </Tooltip>
-            ) : (
-              <ExternalLink className="w-3 h-3 opacity-30" />
-            )}
-          </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, paddingTop: 2 }}>
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: status.color,
+              boxShadow: status.glow === "none" ? undefined : status.glow,
+            }}
+          />
+          <span
+            style={{
+              fontFamily: "var(--portal-mono)",
+              fontSize: 9.5,
+              letterSpacing: "0.1em",
+              color: status.color,
+            }}
+          >
+            {status.label}
+          </span>
         </div>
       </div>
 
-      {/* Clearance indicator */}
-      <div className="absolute bottom-0 right-0 px-1.5 py-0.5 text-[9px] tracking-wider bg-secondary text-muted-foreground">
-        CL-{app.clearanceLevel}
+      {/* Description */}
+      <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: "var(--fg-3)", minHeight: 39 }}>
+        {app.description}
+      </p>
+
+      {/* Footer */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderTop: "1px solid var(--border-subtle)",
+          paddingTop: 10,
+          marginTop: "auto",
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "var(--portal-mono)",
+            fontSize: 10.5,
+            letterSpacing: "0.06em",
+            color: "var(--fg-4)",
+          }}
+        >
+          PORT:{app.port} · v{app.version}
+        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span
+            style={{
+              fontFamily: "var(--portal-mono)",
+              fontSize: 9.5,
+              letterSpacing: "0.08em",
+              color: "var(--fg-4)",
+              background: "var(--bg-2)",
+              border: "1px solid var(--border-subtle)",
+              borderRadius: 6,
+              padding: "2px 6px",
+            }}
+          >
+            CL-{app.clearanceLevel}
+          </span>
+          {online && (
+            <span
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 2,
+                fontFamily: "var(--portal-mono)",
+                fontSize: 10,
+                letterSpacing: "0.1em",
+                color: "var(--amber)",
+                opacity: lifted ? 1 : 0.65,
+                transition: "opacity 0.18s",
+              }}
+            >
+              LAUNCH
+              <ChevronRight size={12} />
+            </span>
+          )}
+        </div>
       </div>
-    </button>
+    </div>
   )
 }

@@ -17,12 +17,21 @@ const LOG_MESSAGES = [
   { type: "info",  msg: "Scheduled backup completed successfully." },
   { type: "warn",  msg: "Power grid: minor fluctuation detected." },
   { type: "info",  msg: "Certificate renewal: 12 days remaining." },
-]
+] as const
+
+type LogType = (typeof LOG_MESSAGES)[number]["type"]
 
 interface LogEntry {
   time: string
-  type: string
+  type: LogType
   msg: string
+}
+
+const TAG_LABEL: Record<LogType, string> = { info: "[INF]", warn: "[WRN]", error: "[ERR]" }
+const TAG_COLOR: Record<LogType, string> = {
+  info: "var(--success)",
+  warn: "var(--warn)",
+  error: "var(--danger)",
 }
 
 export function TerminalLog() {
@@ -30,65 +39,88 @@ export function TerminalLog() {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const initial: LogEntry[] = LOG_MESSAGES.slice(0, 4).map((l) => ({
-      ...l,
-      time: formatTime(),
-    }))
+    const initial: LogEntry[] = LOG_MESSAGES.slice(0, 4).map((l) => ({ ...l, time: formatTime() }))
     setLogs(initial)
 
     const interval = setInterval(() => {
-      const randomLog =
-        LOG_MESSAGES[Math.floor(Math.random() * LOG_MESSAGES.length)]
-      setLogs((prev) =>
-        [...prev, { ...randomLog, time: formatTime() }].slice(-20)
-      )
-    }, 4000 + Math.random() * 3000)
+      const random = LOG_MESSAGES[Math.floor(Math.random() * LOG_MESSAGES.length)]
+      setLogs((prev) => [...prev, { ...random, time: formatTime() }].slice(-30))
+    }, 4500)
 
     return () => clearInterval(interval)
   }, [])
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
   }, [logs])
 
   return (
-    <div className="bg-card font-mono">
-      <div className="px-4 py-1 border-b border-border flex items-center gap-2">
-        <Terminal className="w-3 h-3 text-muted-foreground" />
-        <span className="text-[10px] text-muted-foreground tracking-widest uppercase">
-          SYSTEM LOG
+    <div style={{ flexShrink: 0, borderTop: "1px solid var(--border-subtle)", background: "var(--bg-1)" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "6px 24px",
+          borderBottom: "1px solid var(--border-subtle)",
+        }}
+      >
+        <Terminal size={12} style={{ color: "var(--fg-4)" }} />
+        <span
+          style={{
+            fontFamily: "var(--portal-mono)",
+            fontSize: 10,
+            letterSpacing: "0.18em",
+            color: "var(--fg-4)",
+            textTransform: "uppercase",
+          }}
+        >
+          System log
+        </span>
+        <span
+          style={{
+            marginLeft: "auto",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            fontFamily: "var(--portal-mono)",
+            fontSize: 9,
+            letterSpacing: "0.14em",
+            color: "var(--fg-5)",
+          }}
+        >
+          <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--success)" }} />
+          LIVE
         </span>
       </div>
       <div
         ref={scrollRef}
-        className="h-24 overflow-y-auto px-4 py-2 space-y-0.5"
+        style={{
+          height: 88,
+          overflowY: "auto",
+          padding: "8px 24px",
+          fontFamily: "var(--portal-mono)",
+          fontSize: 10.5,
+          lineHeight: 1.9,
+        }}
       >
         {logs.map((log, i) => (
-          <div key={i} className="text-[10px] leading-5 flex gap-2">
-            <span className="text-muted-foreground/50 shrink-0">{log.time}</span>
-            <span
-              className={`shrink-0 ${
-                log.type === "error"
-                  ? "text-destructive"
-                  : log.type === "warn"
-                  ? "text-amber"
-                  : "text-accent"
-              }`}
-            >
-              {log.type === "error"
-                ? "[ERR]"
-                : log.type === "warn"
-                ? "[WRN]"
-                : "[INF]"}
-            </span>
-            <span className="text-muted-foreground">{log.msg}</span>
+          <div key={i} style={{ display: "flex", gap: 12 }}>
+            <span style={{ color: "var(--fg-5)", flexShrink: 0 }}>{log.time}</span>
+            <span style={{ color: TAG_COLOR[log.type], flexShrink: 0 }}>{TAG_LABEL[log.type]}</span>
+            <span style={{ color: "var(--fg-3)" }}>{log.msg}</span>
           </div>
         ))}
-        <div className="flex items-center gap-1 text-[10px] text-primary">
+        <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--amber)" }}>
           <span>{">"}</span>
-          <span className="w-1.5 h-3 bg-primary cursor-blink" />
+          <span
+            style={{
+              width: 7,
+              height: 12,
+              background: "var(--amber)",
+              animation: "portal-blink 1s step-end infinite",
+            }}
+          />
         </div>
       </div>
     </div>
@@ -96,8 +128,7 @@ export function TerminalLog() {
 }
 
 function formatTime() {
-  const now = new Date()
-  return now.toLocaleTimeString("en-US", {
+  return new Date().toLocaleTimeString("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",

@@ -1,84 +1,122 @@
-import { useEffect, useState } from "react"
-import { APPS } from "@/lib/apps-data"
-import { Activity, HardDrive, Thermometer, Shield } from "lucide-react"
+import { Truck, Zap, ShieldAlert } from "lucide-react"
 
-function useAnimatedValue(base: number, variance: number) {
-  const [val, setVal] = useState(base)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setVal(base + Math.floor(Math.random() * variance * 2) - variance)
-    }, 2000 + Math.random() * 2000)
-    return () => clearInterval(interval)
-  }, [base, variance])
-  return val
+interface StatusPanelProps {
+  onlineCount: number
+  totalCount: number
+  storage: number
+  temp: number
 }
 
-export function StatusPanel() {
-  const onlineCount = APPS.filter((a) => a.status === "online").length
-  const totalCount = APPS.length
-  const storage = useAnimatedValue(47, 3)
-  const coreTemp = useAnimatedValue(62, 4)
+export function StatusPanel({ onlineCount, totalCount, storage, temp }: StatusPanelProps) {
+  const onlinePct = totalCount === 0 ? 0 : Math.round((onlineCount / totalCount) * 100)
 
   return (
-    <div className="border border-border bg-card px-3 py-3 font-mono">
-      <div className="text-[10px] text-muted-foreground tracking-widest uppercase mb-2 flex items-center gap-1.5">
-        <Activity className="w-3 h-3 text-primary" />
-        System status
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 6px 8px" }}>
+        <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--fg-5)" }} />
+        <span
+          style={{
+            fontSize: 10,
+            letterSpacing: "0.16em",
+            textTransform: "uppercase",
+            color: "var(--fg-4)",
+            fontWeight: 600,
+          }}
+        >
+          System status
+        </span>
       </div>
 
-      <div className="space-y-3">
+      <div
+        style={{
+          border: "1px solid var(--border-subtle)",
+          background: "var(--bg-1)",
+          borderRadius: 12,
+          padding: 12,
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+        }}
+      >
+        {/* Apps online */}
         <div>
-          <div className="flex items-center justify-between text-[11px] tracking-wider mb-1">
-            <span className="text-muted-foreground">Apps online</span>
-            <span className="text-accent">{onlineCount}/{totalCount}</span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+            <span style={{ fontSize: 11.5, color: "var(--fg-3)" }}>Apps online</span>
+            <span style={{ fontFamily: "var(--portal-mono)", fontSize: 11, color: "var(--success)" }}>
+              {onlineCount}/{totalCount}
+            </span>
           </div>
-          <div className="w-full h-1 bg-secondary overflow-hidden">
+          <div style={{ width: "100%", height: 4, borderRadius: 99, background: "var(--bg-3)", overflow: "hidden" }}>
             <div
-              className="h-full bg-accent transition-all duration-1000"
               style={{
-                width: `${(onlineCount / totalCount) * 100}%`,
-                boxShadow: "0 0 6px #4aba4a66",
+                height: "100%",
+                borderRadius: 99,
+                background: "var(--success)",
+                width: `${onlinePct}%`,
+                transition: "width 1s ease",
               }}
             />
           </div>
         </div>
 
-        <div className="border-t border-border/50 pt-3 space-y-2.5">
-          <div className="flex items-center justify-between text-[11px] tracking-wider">
-            <span className="flex items-center gap-1.5 text-muted-foreground">
-              <HardDrive className="w-3 h-3" />
-              STORAGE
-            </span>
-            <span className="text-primary">{storage}%</span>
-          </div>
-          <div className="flex items-center justify-between text-[11px] tracking-wider">
-            <span className="flex items-center gap-1.5 text-muted-foreground">
-              <Thermometer className="w-3 h-3" />
-              CORE TEMP
-            </span>
-            <span className="text-foreground">{coreTemp}C</span>
-          </div>
-          <div className="flex items-center justify-between text-[11px] tracking-wider">
-            <span className="flex items-center gap-1.5 text-muted-foreground">
-              <Shield className="w-3 h-3" />
-              SECURITY
-            </span>
-            <span className="text-accent">NOMINAL</span>
-          </div>
+        {/* Telemetry */}
+        <div
+          style={{
+            borderTop: "1px solid var(--border-subtle)",
+            paddingTop: 11,
+            display: "flex",
+            flexDirection: "column",
+            gap: 9,
+          }}
+        >
+          <Row icon={<Truck size={12} />} label="Storage" value={`${storage}%`} valueColor="var(--amber)" />
+          <Row icon={<Zap size={12} />} label="Core temp" value={`${temp}C`} valueColor="var(--fg-2)" />
+          <Row icon={<ShieldAlert size={12} />} label="Security" value="NOMINAL" valueColor="var(--success)" />
         </div>
 
-        <div className="border-t border-border/50 pt-2">
-          <div className="text-[9px] text-center leading-relaxed opacity-30" style={{ color: "var(--muted-foreground)" }}>
-            {'================================'}
-            <br />
-            {'Enclave // self-hosted ops'}
-            <br />
-            {'Powered by venator ui'}
-            <br />
-            {'================================'}
-          </div>
+        {/* ASCII footer */}
+        <div
+          style={{
+            borderTop: "1px solid var(--border-subtle)",
+            paddingTop: 11,
+            fontFamily: "var(--portal-mono)",
+            fontSize: 8,
+            lineHeight: 1.9,
+            letterSpacing: "0.04em",
+            color: "var(--fg-5)",
+            textAlign: "center",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+          }}
+        >
+          ==========================<br />
+          Enclave // self-hosted ops<br />
+          Powered by venator ui<br />
+          ==========================
         </div>
       </div>
+    </div>
+  )
+}
+
+function Row({
+  icon,
+  label,
+  value,
+  valueColor,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: string
+  valueColor: string
+}) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <span style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "var(--fg-3)" }}>
+        {icon}
+        {label}
+      </span>
+      <span style={{ fontFamily: "var(--portal-mono)", fontSize: 11, color: valueColor }}>{value}</span>
     </div>
   )
 }
