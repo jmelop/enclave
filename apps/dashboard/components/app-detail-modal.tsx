@@ -4,12 +4,14 @@ import { type AppEntry, type AppStatus } from "@/lib/apps-data"
 import {
   Radio, Eye, Package, FlaskConical, ShieldAlert, Wrench, Zap, Users,
   Satellite, Droplets, HeartPulse, Lock, CalendarDays, TrendingUp,
+  Dumbbell, Receipt, Lightbulb, Target,
   ExternalLink, X,
 } from "lucide-react"
 
 const ICON_MAP: Record<string, React.ElementType> = {
   Radio, Eye, Package, FlaskConical, ShieldAlert, Wrench, Zap, Users,
   Satellite, Droplets, HeartPulse, Lock, CalendarDays, TrendingUp,
+  Dumbbell, Receipt, Lightbulb, Target,
 }
 
 const STATUS_LABEL: Record<AppStatus, string> = {

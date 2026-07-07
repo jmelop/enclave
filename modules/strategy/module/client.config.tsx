@@ -20,4 +20,10 @@ export const strategyClient: ModuleClientConfig = {
     { label: 'Intel',    path: 'intel',    icon: 'flask-conical'   },
   ],
   accent: 'linear-gradient(135deg, #fbbf24, #d97706)',
+  portal: {
+    codename: 'COMPASS',
+    description: 'Goals, plans, and results — long-term direction with review loops.',
+    category: 'intelligence',
+    icon: 'Target',
+  },
 };

@@ -19,4 +19,10 @@ export const labClient: ModuleClientConfig = {
     { label: 'Archive',  path: 'archive',  icon: 'archive' },
   ],
   accent: 'linear-gradient(135deg, #fdba74, #f97316)',
+  portal: {
+    codename: 'SKUNKWORKS',
+    description: 'Idea backlog, code snippets, kanban board, and experiment tracking.',
+    category: 'research',
+    icon: 'Lightbulb',
+  },
 };

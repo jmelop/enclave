@@ -14,4 +14,13 @@ export const portfolioClient: ModuleClientConfig = {
     { label: 'Portfolio', path: '', icon: 'wallet' },
   ],
   accent: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+  portal: {
+    name: 'Portfolio Tracker',
+    codename: 'VAULTCAP',
+    description: 'Strategic asset monitoring for equities, ETFs, crypto holdings, and capital allocation oversight.',
+    category: 'finance',
+    icon: 'TrendingUp',
+    version: '1.0.0',
+    clearanceLevel: 2,
+  },
 };

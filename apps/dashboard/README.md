@@ -36,7 +36,26 @@ Then update the `url` fields in `lib/apps-data.ts` accordingly.
 
 ## Adding an app
 
-Edit `lib/apps-data.ts` and add an entry to the `APPS` array. No UI changes needed.
+**Enclave modules** appear in the portal automatically: every module registered
+in `enclave.modules.client.ts` gets a card. Card metadata (codename, description,
+category, icon…) is declared in the module's `client.config` via the optional
+`portal` field — missing fields fall back to sensible defaults.
+
+```ts
+// modules/my-module/module/client.config.tsx
+export const myModuleClient: ModuleClientConfig = {
+  // ...
+  portal: {
+    codename: "CODENAME",
+    description: "What this module does.",
+    category: "utilities",
+    icon: "Wrench",
+  },
+};
+```
+
+**External apps** (not served by the shell, opened in a new tab) are added
+manually to the `EXTERNAL_APPS` array in `lib/apps-data.ts`:
 
 ```ts
 {

@@ -1,5 +1,4 @@
-// Configure real URLs in .env.local
-// NEXT_PUBLIC_APP_<ID>_URL=http://your-server-ip:port
+import { clientModules } from "../../../enclave.modules.client"
 
 export type AppStatus = "online" | "offline" | "maintenance" | "classified"
 
@@ -38,22 +37,35 @@ export const CATEGORIES: Record<AppCategory, { label: string; icon: string }> = 
   finance: { label: "FINANCE", icon: "TrendingUp" }
 }
 
-export const APPS: AppEntry[] = [
-  {
-    id: "portfolio-tracker",
-    name: "Portfolio Tracker",
-    codename: "VAULTCAP",
-    description: "Strategic asset monitoring for equities, ETFs, crypto holdings, and capital allocation oversight.",
-    category: "finance",
+// ─── Module apps (auto-generated) ────────────────────────────────────────────
+// Every module registered in enclave.modules.client gets a portal card.
+// Card metadata comes from each module's `portal` config; missing fields fall
+// back to defaults derived from the module itself.
+
+const MODULE_APPS: AppEntry[] = clientModules.map((mod) => {
+  const meta = mod.portal ?? {}
+  const category: AppCategory =
+    meta.category && meta.category in CATEGORIES ? (meta.category as AppCategory) : "utilities"
+  return {
+    id: mod.id,
+    name: meta.name ?? mod.navLabel,
+    codename: meta.codename ?? mod.id.toUpperCase(),
+    description: meta.description ?? `${mod.navLabel} — enclave module.`,
+    category,
     status: "online",
-    port: 8082,
-    version: "1.0.0",
-    lastAccess: "2026-05-14 14:32:00",
-    clearanceLevel: 2,
-    icon: "TrendingUp",
-    url: undefined,
-    route: '/portfolio',
-  },
+    port: 5173,
+    version: meta.version ?? "0.1.0",
+    lastAccess: "—",
+    clearanceLevel: meta.clearanceLevel ?? 1,
+    icon: meta.icon ?? "Package",
+    route: mod.basePath,
+  }
+})
+
+// ─── External apps (manual) ──────────────────────────────────────────────────
+// Apps not served by the enclave shell — opened in a new tab via `url`.
+
+const EXTERNAL_APPS: AppEntry[] = [
   {
     id: "icloud-calendar",
     name: "iCloud Calendar",
@@ -82,130 +94,6 @@ export const APPS: AppEntry[] = [
     icon: "FlaskConical",
     url: "https://venatorui.com/docs",
   },
-  {
-    id: "task-manager",
-    name: "Task Manager",
-    codename: "OPS",
-    description: "Project tracking, sprint planning, and backlog management across active development cycles.",
-    category: "logistics",
-    status: "online",
-    port: 8081,
-    version: "3.2.1",
-    lastAccess: "2026-05-14 12:00:00",
-    clearanceLevel: 2,
-    icon: "Package",
-    url: undefined,
-  },
-  {
-    id: "system-monitor",
-    name: "System Monitor",
-    codename: "SYSTEM",
-    description: "CPU, memory, disk, and network telemetry. Process health and resource allocation oversight.",
-    category: "utilities",
-    status: "online",
-    port: 3006,
-    version: "6.0.1",
-    lastAccess: "2026-05-14 12:01:00",
-    clearanceLevel: 2,
-    icon: "Zap",
-    url: undefined,
-  },
-  {
-    id: "identity-vault",
-    name: "Identity Vault",
-    codename: "ROSTER",
-    description: "Credential storage, access level management, and role-based permission assignments.",
-    category: "logistics",
-    status: "online",
-    port: 3007,
-    version: "3.3.3",
-    lastAccess: "2026-05-14 10:30:00",
-    clearanceLevel: 3,
-    icon: "Users",
-    url: undefined,
-  },
-  {
-    id: "remote-sync",
-    name: "Remote Sync",
-    codename: "UPLINK",
-    description: "Distributed node synchronization layer. Limited connectivity available on degraded networks.",
-    category: "communications",
-    status: "offline",
-    port: 3008,
-    version: "1.2.0",
-    lastAccess: "2026-05-10 16:00:00",
-    clearanceLevel: 5,
-    icon: "Satellite",
-    url: undefined,
-  },
-  {
-    id: "backup-service",
-    name: "Backup Service",
-    codename: "ARCHIVE",
-    description: "Automated snapshot scheduling, incremental backups, and off-site replication management.",
-    category: "utilities",
-    status: "online",
-    port: 3009,
-    version: "2.1.5",
-    lastAccess: "2026-05-14 11:00:00",
-    clearanceLevel: 1,
-    icon: "Droplets",
-    url: undefined,
-  },
-  {
-    id: "social-tracker",
-    name: "Social Tracker",
-    codename: "RADAR",
-    description: "Social media metrics, audience analytics, and cross-platform engagement tracking.",
-    category: "research",
-    status: "online",
-    port: 3010,
-    version: "0.0.1",
-    lastAccess: "2026-05-14 10:00:00",
-    clearanceLevel: 2,
-    icon: "Radio",
-    url: undefined,
-  },
-  {
-    id: "cyber-intel",
-    name: "Cyber Intel",
-    codename: "WATCHDOG",
-    description: "Network threat monitoring, vulnerability scanning, and security event aggregation across all nodes.",
-    category: "intelligence",
-    status: "online",
-    port: 3002,
-    version: "2.4.0",
-    lastAccess: "2026-05-14 09:15:00",
-    clearanceLevel: 4,
-    icon: "Eye",
-    url: undefined,
-  },
-  {
-    id: "health-monitor",
-    name: "Health Monitor",
-    codename: "PULSE",
-    description: "Service uptime tracking, latency diagnostics, and incident response queue across all endpoints.",
-    category: "defense",
-    status: "online",
-    port: 3011,
-    version: "4.5.2",
-    lastAccess: "2026-05-14 08:45:00",
-    clearanceLevel: 2,
-    icon: "HeartPulse",
-    url: undefined,
-  },
-  {
-    id: "access-control",
-    name: "Access Control",
-    codename: "SENTINEL",
-    description: "Authentication gateway, session management, and perimeter security monitoring.",
-    category: "defense",
-    status: "online",
-    port: 3012,
-    version: "7.0.0",
-    lastAccess: "2026-05-14 12:05:00",
-    clearanceLevel: 4,
-    icon: "Lock",
-    url: undefined,
-  },
 ]
+
+export const APPS: AppEntry[] = [...MODULE_APPS, ...EXTERNAL_APPS]
