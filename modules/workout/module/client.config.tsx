@@ -8,7 +8,6 @@ export const workoutClient: ModuleClientConfig = {
   navLabel: 'Workout',
   basePath: workoutMeta.basePath,
   routes: [
-    { index: true, element: <App /> },
     { path: '*', element: <App /> },
   ],
   nav: [
@@ -17,4 +16,10 @@ export const workoutClient: ModuleClientConfig = {
     { label: 'Body',      path: 'body',     icon: 'activity' },
   ],
   accent: 'linear-gradient(135deg, #a855f7, #6366f1)',
+  portal: {
+    codename: 'FORGE',
+    description: 'Training log — routines, sessions, body metrics, and progression tracking.',
+    category: 'health',
+    icon: 'Dumbbell',
+  },
 };

@@ -14,8 +14,8 @@ export function StatCards() {
     <div className="grid grid-cols-4 gap-3.5 mb-8">
       <StatCard title="Total Items"       value={total}    description={`${totalUnits} units across all categories`} />
       <StatCard title="Active Categories" value={cats}     description={`of ${CATEGORIES.length} available · all populated`} />
-      <StatCard title="Low Stock"         value={lowCount} description="needs reorder soon"              variant="warning" />
-      <StatCard title="Out of Stock"      value={outCount} description="quantity = 0 · action required"  variant="error" />
+      <StatCard title="Low Stock"         value={lowCount} description="needs reorder soon"              valueClassName="!text-warn" />
+      <StatCard title="Out of Stock"      value={outCount} description="quantity = 0 · action required"  valueClassName="!text-danger" />
     </div>
   )
 }

@@ -14,4 +14,10 @@ export const inventoryClient: ModuleClientConfig = {
     { label: 'Inventory', path: '', icon: 'grid' },
   ],
   accent: 'linear-gradient(135deg, #6ee7b7, #059669)',
+  portal: {
+    codename: 'DEPOT',
+    description: 'Personal inventory tracking — items, categories, and storage locations.',
+    category: 'home',
+    icon: 'Package',
+  },
 };

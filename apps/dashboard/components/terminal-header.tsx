@@ -1,85 +1,114 @@
-import { useState, useEffect } from "react"
-import { Wifi, Cpu, Zap } from "lucide-react"
+import { Wifi, Cpu, Zap, Sun, Moon } from "lucide-react"
 
-export function TerminalHeader() {
-  const [time, setTime] = useState("")
-  const [date, setDate] = useState("")
+interface TerminalHeaderProps {
+  time: string
+  date: string
+  cpu: number
+  theme: "dark" | "light"
+  onToggleTheme: () => void
+}
 
-  useEffect(() => {
-    const update = () => {
-      const now = new Date()
-      setTime(
-        now.toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: false,
-        })
-      )
-      setDate(
-        now.toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        })
-      )
-    }
-    update()
-    const interval = setInterval(update, 1000)
-    return () => clearInterval(interval)
-  }, [])
-
+export function TerminalHeader({ time, date, cpu, theme, onToggleTheme }: TerminalHeaderProps) {
   return (
-    <header className="border-b border-[#2a2d2a] bg-[#101310]">
-      <div className="flex items-center justify-between px-4 py-1.5 lg:px-6">
-        {/* Left: Logo and branding */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-6 h-6 text-primary font-bold text-[11px]">
-            E
-          </div>
-          <div className="hidden sm:block">
-            <div
-              className="text-foreground text-sm font-mono tracking-widest uppercase terminal-text"
-              style={{ textShadow: "0 0 10px #e8a83e88, 0 0 20px #e8a83e44" }}
-            >
-              Enclave Systems
-            </div>
-            <div className="text-muted-foreground text-[10px] tracking-wider uppercase">
-              Unified Application Portal v1.0.0
-            </div>
-          </div>
-        </div>
-
-        {/* Center: Status bar */}
-        <div className="hidden md:flex items-center gap-4 text-[10px] text-muted-foreground uppercase tracking-wider">
-          <div className="flex items-center gap-1.5">
-            <Wifi className="w-3 h-3 text-accent" />
-            <span>Net: secure</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Cpu className="w-3 h-3 text-foreground" />
-            <span>Cpu: 23%</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Zap className="w-3 h-3 text-primary" />
-            <span className="text-primary">Pwr: nominal</span>
-          </div>
-        </div>
-
-        {/* Right: Clock */}
-        <div className="text-right font-mono">
-          <div
-            className="text-primary text-[13px] tracking-widest"
-            style={{ textShadow: "0 0 6px #e8a83e66" }}
-          >
-            {time}
-          </div>
-          <div className="text-muted-foreground text-[10px] tracking-wider">
-            {date}
-          </div>
-        </div>
+    <header
+      style={{
+        flexShrink: 0,
+        height: 52,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 24px",
+        borderBottom: "1px solid var(--border-subtle)",
+      }}
+    >
+      {/* Breadcrumb */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--portal-mono)", fontSize: 12 }}>
+        <span style={{ color: "var(--fg-3)" }}>enclave</span>
+        <span style={{ color: "var(--fg-5)" }}>/</span>
+        <span style={{ color: "var(--fg)", fontWeight: 700 }}>portal</span>
+        <span
+          style={{
+            width: 7,
+            height: 13,
+            background: "var(--amber)",
+            marginLeft: 2,
+            animation: "portal-blink 1s step-end infinite",
+          }}
+        />
       </div>
 
+      {/* Center readouts */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 18,
+          fontFamily: "var(--portal-mono)",
+          fontSize: 10,
+          letterSpacing: "0.1em",
+          color: "var(--fg-4)",
+          textTransform: "uppercase",
+        }}
+      >
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <Wifi size={12} style={{ color: "var(--success)" }} />
+          NET: SECURE
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <Cpu size={12} style={{ color: "var(--fg-3)" }} />
+          CPU: {cpu}%
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--amber)" }}>
+          <Zap size={12} />
+          PWR: NOMINAL
+        </span>
+      </div>
+
+      {/* Clock + theme toggle */}
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+          <span
+            style={{
+              fontFamily: "var(--portal-mono)",
+              fontSize: 12.5,
+              letterSpacing: "0.14em",
+              color: "var(--fg)",
+            }}
+          >
+            {time}
+          </span>
+          <span
+            style={{
+              fontFamily: "var(--portal-mono)",
+              fontSize: 9.5,
+              letterSpacing: "0.1em",
+              color: "var(--fg-4)",
+            }}
+          >
+            {date}
+          </span>
+        </div>
+        <button
+          onClick={onToggleTheme}
+          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          className="portal-icon-btn"
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 8,
+            border: "1px solid var(--border-subtle)",
+            background: "var(--bg-1)",
+            color: "var(--fg-3)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            transition: "background 0.15s, color 0.15s",
+          }}
+        >
+          {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+        </button>
+      </div>
     </header>
   )
 }

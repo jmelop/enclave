@@ -40,11 +40,6 @@
   --enclave-danger: #c44040;
 }
 
-/* .portal-root keeps the same tokens for specificity + font exclusivity */
-.portal-root {
-  font-family: var(--font-share-tech-mono);
-}
-
 @layer base {
   body {
     background-color: #0c0e0c;
@@ -54,12 +49,6 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-}
-
-/* Sharp corners + terminal border color — portal only */
-.portal-root * {
-  border-color: var(--border);
-  border-radius: 0 !important;
 }
 
 /* ── Module nav + content: Inter font ── */
@@ -128,3 +117,107 @@ body::after {
   background: var(--fg-5);
   background-clip: content-box;
 }
+
+/* ──────────────────────────────────────────────────────────────────
+   Portal — Obsidian theme (scoped to .portal-root)
+   Independent from the modules' tokens; theme is shared via the
+   `data-theme` attribute on <html> and the `enclave-theme` key in
+   localStorage.
+   ────────────────────────────────────────────────────────────────── */
+
+.portal-root {
+  /* Dark (default) — Obsidian */
+  --bg:    #08090b;
+  --bg-1:  #0c0d10;
+  --bg-2:  #111317;
+  --bg-3:  #1c2028;
+  --fg:    #f5f6f7;
+  --fg-2:  #c7cad1;
+  --fg-3:  #8a8f98;
+  --fg-4:  #8b9099;
+  --fg-5:  #3a3e46;
+  --accent:     #ffffff;
+  --accent-ink: #000000;
+  --success: #5eead4;
+  --warn:    #fbbf24;
+  --danger:  #f87171;
+  --info:    #93c5fd;
+  --border-subtle:  rgba(255, 255, 255, 0.08);
+  --border-default: rgba(255, 255, 255, 0.14);
+  --card-1: #111214;
+  --card-2: #17191d;
+  --amber: #fbbf24;
+  --amber-ink: #1a1305;
+  --amber-dim: rgba(251, 191, 36, 0.12);
+
+  --portal-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --portal-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html[data-theme="light"] .portal-root {
+  --bg:    #fafafa;
+  --bg-1:  #ffffff;
+  --bg-2:  #f4f4f5;
+  --bg-3:  #e9e9ec;
+  --fg:    #0a0a0c;
+  --fg-2:  #222428;
+  --fg-3:  #5b6069;
+  --fg-4:  #8a8f98;
+  --fg-5:  #b5b8bf;
+  --accent:     #0a0a0c;
+  --accent-ink: #ffffff;
+  --success: #059669;
+  --warn:    #d97706;
+  --danger:  #dc2626;
+  --info:    #2563eb;
+  --border-subtle:  rgba(0, 0, 0, 0.08);
+  --border-default: rgba(0, 0, 0, 0.14);
+  --card-1: #ffffff;
+  --card-2: #f4f4f5;
+  --amber: #d97706;
+  --amber-ink: #ffffff;
+  --amber-dim: rgba(217, 119, 6, 0.10);
+}
+
+.portal-root {
+  font-family: var(--portal-sans);
+  color: var(--fg);
+  -webkit-font-smoothing: antialiased;
+  background:
+    radial-gradient(ellipse 85% 55% at 50% -8%, #25282f 0%, #14161c 28%, transparent 65%),
+    radial-gradient(ellipse 60% 40% at 100% 50%, #0d0e14 0%, transparent 60%),
+    radial-gradient(ellipse 130% 80% at 50% 125%, #000000 0%, transparent 55%),
+    linear-gradient(180deg, #181a21 0%, #0a0b0e 38%, #030307 100%);
+}
+
+html[data-theme="light"] .portal-root {
+  background:
+    radial-gradient(ellipse 85% 55% at 50% -8%, #d9dade 0%, #e6e7eb 28%, transparent 65%),
+    radial-gradient(ellipse 60% 40% at 0% 50%, #edeef1 0%, transparent 60%),
+    radial-gradient(ellipse 130% 80% at 50% 125%, #fdfdfe 0%, transparent 55%),
+    linear-gradient(180deg, #e6e7eb 0%, #f4f4f6 38%, #f7f7f9 100%);
+}
+
+.portal-root *,
+.portal-root *::before,
+.portal-root *::after {
+  border-color: var(--border-subtle);
+}
+
+.portal-root input::placeholder { color: var(--fg-4); opacity: 1; }
+
+.portal-root ::-webkit-scrollbar { width: 10px; height: 10px; }
+.portal-root ::-webkit-scrollbar-track { background: transparent; }
+.portal-root ::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+.portal-root ::-webkit-scrollbar-thumb:hover {
+  background: var(--fg-5);
+  background-clip: content-box;
+}
+
+@keyframes portal-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes portal-fade-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }

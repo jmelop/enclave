@@ -8,8 +8,7 @@ export const labClient: ModuleClientConfig = {
   navLabel: 'Lab',
   basePath: labMeta.basePath,
   routes: [
-    { index: true, element: <LabApp /> },
-    { path: '*',   element: <LabApp /> },
+    { path: '*', element: <LabApp /> },
   ],
   nav: [
     { label: 'Ideas',    path: '',         icon: 'lightbulb' },
@@ -19,4 +18,10 @@ export const labClient: ModuleClientConfig = {
     { label: 'Archive',  path: 'archive',  icon: 'archive' },
   ],
   accent: 'linear-gradient(135deg, #fdba74, #f97316)',
+  portal: {
+    codename: 'SKUNKWORKS',
+    description: 'Idea backlog, code snippets, kanban board, and experiment tracking.',
+    category: 'development',
+    icon: 'Lightbulb',
+  },
 };

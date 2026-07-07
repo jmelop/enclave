@@ -1,23 +1,11 @@
+import { useState } from "react"
 import { type AppCategory, CATEGORIES } from "@/lib/apps-data"
 import {
-  Radio,
-  Eye,
-  Package,
-  FlaskConical,
-  ShieldAlert,
-  Wrench,
-  LayoutGrid,
-  TrendingUp,
+  CalendarDays, Code2, HeartPulse, House, Wrench, LayoutGrid, TrendingUp,
 } from "lucide-react"
 
 const ICON_MAP: Record<string, React.ElementType> = {
-  Radio,
-  Eye,
-  Package,
-  FlaskConical,
-  ShieldAlert,
-  Wrench,
-  TrendingUp,
+  CalendarDays, Code2, HeartPulse, House, Wrench, TrendingUp,
 }
 
 interface CategoryNavProps {
@@ -26,44 +14,78 @@ interface CategoryNavProps {
   counts: Record<string, number>
 }
 
+interface RowProps {
+  active: boolean
+  Icon: React.ElementType
+  label: string
+  count: number
+  onClick: () => void
+}
+
+function CategoryRow({ active, Icon, label, count, onClick }: RowProps) {
+  const [hover, setHover] = useState(false)
+  const bg = active ? "var(--bg-2)" : hover ? "var(--bg-2)" : "transparent"
+  const border = active ? "1px solid var(--border-subtle)" : "1px solid transparent"
+  const color = active || hover ? "var(--fg)" : "var(--fg-3)"
+  const iconColor = active ? "var(--amber)" : "var(--fg-4)"
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        width: "100%",
+        padding: "8px 10px",
+        borderRadius: 8,
+        border,
+        background: bg,
+        color,
+        fontFamily: "var(--portal-sans)",
+        fontSize: 13,
+        fontWeight: 500,
+        cursor: "pointer",
+        textAlign: "left",
+        transition: "background 0.15s, color 0.15s",
+      }}
+    >
+      <span style={{ display: "flex", alignItems: "center", color: iconColor }}>
+        <Icon size={15} />
+      </span>
+      <span style={{ flex: 1 }}>{label}</span>
+      <span style={{ fontFamily: "var(--portal-mono)", fontSize: 10.5, color: "var(--fg-5)" }}>
+        {count}
+      </span>
+    </button>
+  )
+}
+
 export function CategoryNav({ selected, onSelect, counts }: CategoryNavProps) {
   return (
-    <nav className="flex flex-wrap gap-0.5 lg:flex-col">
-      <button
+    <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <CategoryRow
+        active={selected === "all"}
+        Icon={LayoutGrid}
+        label="All systems"
+        count={counts["all"] ?? 0}
         onClick={() => onSelect("all")}
-        className={`flex items-center gap-2 px-2 py-2 text-[11px] uppercase tracking-wider font-mono transition-all border w-full ${
-          selected === "all"
-            ? "border-primary/30 bg-primary/5 text-[#d4d8cc]"
-            : "border-transparent text-[#6b6e64] hover:text-[#d4d8cc] hover:border-border"
-        }`}
-        style={selected === "all" ? { textShadow: "0 0 6px #e8a83e33" } : undefined}
-      >
-        <LayoutGrid className="w-3.5 h-3.5 shrink-0" />
-        <span className="hidden lg:inline">All systems</span>
-        <span className="lg:hidden">All</span>
-        <span className="ml-auto text-[10px] opacity-40">{counts["all"] ?? 0}</span>
-      </button>
-
+      />
       {(Object.entries(CATEGORIES) as [AppCategory, { label: string; icon: string }][]).map(
         ([key, { label, icon }]) => {
           const Icon = ICON_MAP[icon] ?? Wrench
           return (
-            <button
+            <CategoryRow
               key={key}
+              active={selected === key}
+              Icon={Icon}
+              label={label}
+              count={counts[key] ?? 0}
               onClick={() => onSelect(key)}
-              className={`flex items-center gap-2 px-2 py-2 text-[11px] uppercase tracking-wider font-mono transition-all border w-full ${
-                selected === key
-                  ? "border-primary/30 bg-primary/5 text-[#d4d8cc]"
-                  : "border-transparent text-[#6b6e64] hover:text-[#d4d8cc] hover:border-border"
-              }`}
-              style={selected === key ? { textShadow: "0 0 6px #e8a83e33" } : undefined}
-            >
-              <Icon className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden lg:inline">{label}</span>
-              <span className="ml-auto text-[10px] opacity-40">{counts[key] ?? 0}</span>
-            </button>
+            />
           )
-        }
+        },
       )}
     </nav>
   )

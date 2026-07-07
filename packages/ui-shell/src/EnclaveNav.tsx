@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { NavGroup, NavItem } from '@venator-ui/ui';
-import { LayoutDashboard, Dumbbell, Activity, Wallet, LayoutGrid, Receipt, CalendarDays, BarChart2, PieChart, Lightbulb, Code2, Kanban, Tag, Archive, RefreshCcw, Target, CheckSquare, BarChart3, FlaskConical } from 'lucide-react';
+import { House, LayoutDashboard, Dumbbell, Activity, Wallet, LayoutGrid, Receipt, CalendarDays, BarChart2, PieChart, Lightbulb, Code2, Kanban, Tag, Archive, RefreshCcw, Target, CheckSquare, BarChart3, FlaskConical } from 'lucide-react';
 import { clientModules } from '../../../enclave.modules.client';
 import type { ModuleClientConfig } from '@enclave/sdk';
 
@@ -91,6 +91,19 @@ export function EnclaveNav({ externalLinks = [] }: Props) {
 
       {/* Module nav */}
       <div className="flex-1 overflow-y-auto px-2.5 py-3 flex flex-col gap-1">
+        {/* Back to the shell portal */}
+        <div
+          className="flex flex-col gap-0.5"
+          style={{ borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8, marginBottom: 2 }}
+        >
+          <NavItem
+            label="Home"
+            icon={<House size={16} />}
+            active={pathname === '/'}
+            onClick={() => navigate('/')}
+          />
+        </div>
+
         {clientModules.map((mod, i) => {
           const isModActive = pathname === mod.basePath || pathname.startsWith(mod.basePath + '/');
           return (
@@ -156,10 +169,10 @@ export function EnclaveNav({ externalLinks = [] }: Props) {
           className="w-7 h-7 rounded-full grid place-items-center text-white text-[11px] font-bold shrink-0"
           style={{ background: accent }}
         >
-          JM
+          AD
         </div>
         <div className="flex flex-col gap-[1px]">
-          <span className="text-[12px] font-semibold text-fg-2">Juan Melo</span>
+          <span className="text-[12px] font-semibold text-fg-2">Alex Doe</span>
           <span className="text-[11px] text-fg-4">enclave · v0.1.0</span>
         </div>
       </div>

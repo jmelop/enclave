@@ -22,11 +22,31 @@ export default function LineChart({
   ySpan = 'auto',
   padding,
 }: LineChartProps) {
+  const [hover, setHover] = useState<number | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
   const P = padding || { top: 16, right: 16, bottom: 32, left: 44 };
   const W = 800;
   const H = height;
   const innerW = W - P.left - P.right;
   const innerH = H - P.top - P.bottom;
+
+  if (data.length === 0) {
+    return (
+      <div
+        style={{
+          display: 'grid',
+          placeItems: 'center',
+          height: H,
+          color: 'var(--fg-4)',
+          fontFamily: 'JetBrains Mono, monospace',
+          fontSize: 11,
+        }}
+      >
+        no data yet
+      </div>
+    );
+  }
 
   const ys = data.map(d => d.y);
   let yMin: number, yMax: number;
@@ -76,9 +96,6 @@ export default function LineChart({
     const v = yMin + ((yMax - yMin) * i) / tickCount;
     yTicks.push({ v: Math.round(v * 10) / 10, y: yScale(v) });
   }
-
-  const [hover, setHover] = useState<number | null>(null);
-  const wrapRef = useRef<HTMLDivElement>(null);
 
   const onMove = (e: React.MouseEvent) => {
     if (!wrapRef.current) return;

@@ -8,9 +8,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@venator-ui/patterns": "^0.1.6",
-    "@venator-ui/tokens": "^0.1.6",
-    "@venator-ui/ui": "^0.1.8",
+    "@venator-ui/patterns": "^0.3.0",
+    "@venator-ui/tokens": "^0.3.0",
+    "@venator-ui/ui": "^0.3.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.564.0",

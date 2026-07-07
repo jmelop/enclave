@@ -2,12 +2,7 @@ import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom'
 import { Portal } from '../components/portal'
 import { EnclaveNav, type ExternalLink } from '../components/enclave-nav'
 import { APPS } from '../lib/apps-data'
-import { portfolioClient } from '../../../modules/portfolio/module/client.config'
-import { inventoryClient } from '../../../modules/inventory/module/client.config'
-import { workoutClient } from '../../../modules/workout/module/client.config'
-import { budgetClient } from '../../../modules/budget/module/client.config'
-import { labClient }      from '../../../modules/lab/module/client.config'
-import { strategyClient } from '../../../modules/strategy/module/client.config'
+import { clientModules } from '../../../enclave.modules.client'
 
 const externalLinks: ExternalLink[] = APPS
   .filter(a => a.url)
@@ -30,14 +25,13 @@ const router = createBrowserRouter([
   { path: '/', element: <Portal /> },
   {
     element: <ModuleLayout />,
-    children: [
-      { path: portfolioClient.basePath, children: portfolioClient.routes },
-      { path: inventoryClient.basePath, children: inventoryClient.routes },
-      { path: workoutClient.basePath, children: workoutClient.routes },
-      { path: budgetClient.basePath, children: budgetClient.routes },
-      { path: labClient.basePath,      children: labClient.routes },
-      { path: strategyClient.basePath, children: strategyClient.routes },
-    ],
+    children: clientModules.map((mod) =>
+      // Modules that route internally (descendant <Routes>) mount as a flat
+      // splat — a child `{ path: '*' }` would not match the module root.
+      mod.routes.length === 1 && mod.routes[0].path === '*'
+        ? { path: `${mod.basePath}/*`, element: mod.routes[0].element }
+        : { path: mod.basePath, children: mod.routes },
+    ),
   },
 ])
 

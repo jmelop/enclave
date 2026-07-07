@@ -1,16 +1,31 @@
+import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { type AppEntry } from "@/lib/apps-data"
+import { type AppEntry, type AppStatus } from "@/lib/apps-data"
 import {
-  Radio, Eye, Package, FlaskConical, ShieldAlert, Wrench,
-  Zap, Users, Satellite, Droplets, Crosshair, HeartPulse,
-  Lock, ExternalLink, CalendarDays, TrendingUp, X,
+  Radio, Eye, Package, FlaskConical, ShieldAlert, Wrench, Zap, Users,
+  Satellite, Droplets, HeartPulse, Lock, CalendarDays, TrendingUp,
+  Dumbbell, Receipt, Lightbulb, Target,
+  ExternalLink, X,
 } from "lucide-react"
-import { Modal, ModalContent, ModalFooter, Button } from "@venator-ui/ui"
 
 const ICON_MAP: Record<string, React.ElementType> = {
-  Radio, Eye, Package, FlaskConical, ShieldAlert, Wrench,
-  Zap, Users, Satellite, Droplets, Crosshair, HeartPulse,
-  Lock, CalendarDays, TrendingUp,
+  Radio, Eye, Package, FlaskConical, ShieldAlert, Wrench, Zap, Users,
+  Satellite, Droplets, HeartPulse, Lock, CalendarDays, TrendingUp,
+  Dumbbell, Receipt, Lightbulb, Target,
+}
+
+const STATUS_LABEL: Record<AppStatus, string> = {
+  online: "ONLINE",
+  maintenance: "MAINT.",
+  classified: "CLASSIFIED",
+  offline: "OFFLINE",
+}
+
+function statusColor(status: AppStatus): string {
+  if (status === "online") return "var(--success)"
+  if (status === "maintenance") return "var(--warn)"
+  if (status === "classified") return "var(--danger)"
+  return "var(--fg-4)"
 }
 
 interface AppDetailModalProps {
@@ -20,117 +35,258 @@ interface AppDetailModalProps {
 
 export function AppDetailModal({ app, onClose }: AppDetailModalProps) {
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!app) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose()
+    }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [app, onClose])
+
   if (!app) return null
 
   const Icon = ICON_MAP[app.icon] ?? Wrench
-  const isOnline = app.status === "online"
+  const online = app.status === "online"
+  const statusCol = statusColor(app.status)
 
-  const statusColor =
-    app.status === "online"      ? "var(--enclave-green)"  :
-    app.status === "maintenance" ? "var(--enclave-amber)"  :
-    app.status === "classified"  ? "var(--enclave-danger)" :
-    "var(--muted-foreground)"
+  const launch = () => {
+    if (app.route) navigate(app.route)
+    else if (app.url) window.open(app.url, "_blank")
+    onClose()
+  }
 
   return (
-    <Modal
-      open={app !== null}
-      onClose={onClose}
-      size="lg"
-      className="bg-[#111411] border border-[#2a2d2a] font-mono !rounded-none shadow-none"
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 100,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "rgba(0, 0, 0, 0.55)",
+        backdropFilter: "blur(6px)",
+        WebkitBackdropFilter: "blur(6px)",
+      }}
     >
-      {/* Manual header with icon */}
-      <div className="bg-[#0f0c00] border-b border-[#2a2d2a] flex items-center gap-2 px-4 py-2">
-        <Icon className="w-4 h-4 text-primary" />
-        <span className="text-primary tracking-widest uppercase text-sm font-mono flex-1">
-          {app.codename}
-        </span>
-        <button
-          onClick={onClose}
-          className="text-muted-foreground hover:text-foreground transition-colors"
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: 520,
+          maxWidth: "calc(100vw - 48px)",
+          borderRadius: 16,
+          border: "1px solid var(--border-default)",
+          background: "var(--bg-1)",
+          boxShadow: "0 24px 80px rgba(0, 0, 0, 0.5)",
+          overflow: "hidden",
+          animation: "portal-fade-up 0.18s ease",
+        }}
+      >
+        {/* Title bar */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "12px 18px",
+            background: "var(--bg-2)",
+            borderBottom: "1px solid var(--border-subtle)",
+          }}
         >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
+          <Icon size={13} style={{ color: "var(--amber)" }} />
+          <span
+            style={{
+              fontFamily: "var(--portal-mono)",
+              fontSize: 11,
+              letterSpacing: "0.18em",
+              color: "var(--fg-2)",
+              textTransform: "uppercase",
+              flex: 1,
+            }}
+          >
+            {app.codename}
+          </span>
+          <button
+            onClick={onClose}
+            style={{
+              width: 26,
+              height: 26,
+              borderRadius: 7,
+              border: "none",
+              background: "transparent",
+              color: "var(--fg-4)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
 
-      <ModalContent className="bg-[#111411] font-mono">
-        <div className="space-y-4">
-          {/* App name + icon */}
-          <div className="flex items-center gap-2">
-            <Icon className="w-4 h-4 text-primary" />
-            <h2
-              className="text-base text-primary tracking-wider uppercase"
-              style={{ textShadow: "0 0 6px #e8a83e33" }}
+        {/* Body */}
+        <div style={{ padding: "20px 18px", display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Identity */}
+          <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 11,
+                background: "var(--bg-2)",
+                border: "1px solid var(--border-subtle)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--amber)",
+              }}
             >
-              {app.name}
-            </h2>
+              <Icon size={20} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <span style={{ fontSize: 17, fontWeight: 650, color: "var(--fg)" }}>{app.name}</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: statusCol }} />
+                <span
+                  style={{
+                    fontFamily: "var(--portal-mono)",
+                    fontSize: 10,
+                    letterSpacing: "0.1em",
+                    color: statusCol,
+                  }}
+                >
+                  {STATUS_LABEL[app.status]}
+                </span>
+              </span>
+            </div>
           </div>
 
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            {app.description}
-          </p>
+          {/* Description */}
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: "var(--fg-3)" }}>{app.description}</p>
 
-          {/* Stats grid */}
-          <div className="border border-[#2a2d2a] bg-[#0c0e0c] p-3 space-y-2">
-            <div className="grid grid-cols-2 gap-2 text-xs">
+          {/* Metadata */}
+          <div
+            style={{
+              border: "1px solid var(--border-subtle)",
+              background: "var(--bg-2)",
+              borderRadius: 12,
+              padding: "13px 14px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 9,
+              fontFamily: "var(--portal-mono)",
+              fontSize: 11,
+            }}
+          >
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
               <div>
-                <span className="text-muted-foreground tracking-wider">Status: </span>
-                <span style={{ color: statusColor }}>{app.status.toUpperCase()}</span>
+                <span style={{ color: "var(--fg-4)" }}>PORT: </span>
+                <span style={{ color: "var(--fg-2)" }}>{app.port}</span>
               </div>
               <div>
-                <span className="text-muted-foreground tracking-wider">Port: </span>
-                <span className="text-primary">{app.port}</span>
+                <span style={{ color: "var(--fg-4)" }}>VERSION: </span>
+                <span style={{ color: "var(--fg-2)" }}>v{app.version}</span>
               </div>
               <div>
-                <span className="text-muted-foreground tracking-wider">Version: </span>
-                <span className="text-primary">{app.version}</span>
+                <span style={{ color: "var(--fg-4)" }}>CLEARANCE: </span>
+                <span style={{ color: "var(--amber)" }}>LEVEL {app.clearanceLevel}</span>
               </div>
               <div>
-                <span className="text-muted-foreground tracking-wider">Clearance: </span>
-                <span className="text-primary">Level {app.clearanceLevel}</span>
+                <span style={{ color: "var(--fg-4)" }}>STATUS: </span>
+                <span style={{ color: statusCol }}>{STATUS_LABEL[app.status]}</span>
               </div>
             </div>
-            <div className="text-xs pt-1 border-t border-[#2a2d2a]/50">
-              <span className="text-muted-foreground tracking-wider">Last access: </span>
-              <span className="text-primary">{app.lastAccess}</span>
+            <div style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: 9 }}>
+              <span style={{ color: "var(--fg-4)" }}>LAST ACCESS: </span>
+              <span style={{ color: "var(--fg-2)" }}>{app.lastAccess}</span>
             </div>
           </div>
         </div>
-      </ModalContent>
 
-      <ModalFooter className="bg-[#111411] border-t border-[#2a2d2a] font-mono !rounded-none">
-        <div className="flex gap-2 w-full">
-          {isOnline ? (
-            <Button
-              variant="primary"
-              fullWidth
-              onClick={() => {
-                if (app.route) { navigate(app.route); onClose() }
-                else if (app.url) { window.open(app.url, "_blank"); onClose() }
+        {/* Footer */}
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            padding: "14px 18px",
+            borderTop: "1px solid var(--border-subtle)",
+            background: "var(--bg-1)",
+          }}
+        >
+          {online ? (
+            <button
+              onClick={launch}
+              style={{
+                flex: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                height: 38,
+                borderRadius: 10,
+                border: "none",
+                background: "var(--amber)",
+                color: "var(--amber-ink)",
+                fontFamily: "var(--portal-sans)",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "filter 0.15s",
               }}
-              className="font-mono tracking-widest uppercase text-xs !bg-[var(--enclave-amber-glow)] !text-[var(--enclave-amber)] !border-[var(--enclave-amber-dim)]"
+              onMouseEnter={(e) => (e.currentTarget.style.filter = "brightness(1.08)")}
+              onMouseLeave={(e) => (e.currentTarget.style.filter = "none")}
             >
-              <ExternalLink className="w-3.5 h-3.5 mr-2" />
+              <ExternalLink size={14} />
               Launch application
-            </Button>
+            </button>
           ) : (
-            <Button
-              variant="ghost"
-              fullWidth
+            <button
               disabled
-              className="font-mono tracking-widest uppercase text-xs cursor-not-allowed"
+              style={{
+                flex: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: 38,
+                borderRadius: 10,
+                border: "1px solid var(--border-subtle)",
+                background: "var(--bg-2)",
+                color: "var(--fg-4)",
+                fontFamily: "var(--portal-sans)",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "not-allowed",
+              }}
             >
               {app.status === "classified" ? "Access denied" : "Unavailable"}
-            </Button>
+            </button>
           )}
-          <Button
-            variant="outline"
+          <button
             onClick={onClose}
-            className="font-mono tracking-widest uppercase text-xs"
+            style={{
+              padding: "0 18px",
+              height: 38,
+              borderRadius: 10,
+              border: "1px solid var(--border-default)",
+              background: "transparent",
+              color: "var(--fg-2)",
+              fontFamily: "var(--portal-sans)",
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: "pointer",
+              transition: "background 0.15s",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-2)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
-            CLOSE
-          </Button>
+            Close
+          </button>
         </div>
-      </ModalFooter>
-    </Modal>
+      </div>
+    </div>
   )
 }

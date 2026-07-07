@@ -97,7 +97,7 @@ export default function LogMeasurementModal({ onClose, defaultDate, lastEntry, e
   );
 
   return (
-    <Modal open onClose={onClose} size="md" className="workout-modal">
+    <Modal open onClose={onClose} size="md" className="workout-modal" backdropClassName="workout-modal-backdrop">
       <div className="wm-header">
         <h3 className="wm-title">{isEdit ? 'Edit body measurement' : 'New body measurement'}</h3>
         <button type="button" className="wm-close" onClick={onClose} aria-label="Close">
