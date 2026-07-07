@@ -8,7 +8,6 @@ export const workoutClient: ModuleClientConfig = {
   navLabel: 'Workout',
   basePath: workoutMeta.basePath,
   routes: [
-    { index: true, element: <App /> },
     { path: '*', element: <App /> },
   ],
   nav: [

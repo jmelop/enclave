@@ -8,8 +8,7 @@ export const labClient: ModuleClientConfig = {
   navLabel: 'Lab',
   basePath: labMeta.basePath,
   routes: [
-    { index: true, element: <LabApp /> },
-    { path: '*',   element: <LabApp /> },
+    { path: '*', element: <LabApp /> },
   ],
   nav: [
     { label: 'Ideas',    path: '',         icon: 'lightbulb' },

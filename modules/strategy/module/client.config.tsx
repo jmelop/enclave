@@ -8,8 +8,7 @@ export const strategyClient: ModuleClientConfig = {
   navLabel: 'Strategy',
   basePath: strategyMeta.basePath,
   routes: [
-    { index: true, element: <StrategyApp /> },
-    { path: '*',   element: <StrategyApp /> },
+    { path: '*', element: <StrategyApp /> },
   ],
   nav: [
     { label: 'Loop',     path: '',         icon: 'refresh-ccw'     },

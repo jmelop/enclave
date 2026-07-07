@@ -8,8 +8,7 @@ export const budgetClient: ModuleClientConfig = {
   navLabel: 'Budget',
   basePath: budgetMeta.basePath,
   routes: [
-    { index: true, element: <BudgetApp /> },
-    { path: '*',   element: <BudgetApp /> },
+    { path: '*', element: <BudgetApp /> },
   ],
   nav: [
     { label: 'Overview',   path: '',           icon: 'layout-dashboard' },
