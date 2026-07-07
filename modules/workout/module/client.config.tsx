@@ -20,7 +20,7 @@ export const workoutClient: ModuleClientConfig = {
   portal: {
     codename: 'FORGE',
     description: 'Training log — routines, sessions, body metrics, and progression tracking.',
-    category: 'defense',
+    category: 'health',
     icon: 'Dumbbell',
   },
 };

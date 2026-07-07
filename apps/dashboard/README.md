@@ -48,7 +48,7 @@ export const myModuleClient: ModuleClientConfig = {
   portal: {
     codename: "CODENAME",
     description: "What this module does.",
-    category: "utilities",
+    category: "tools",
     icon: "Wrench",
   },
 };
@@ -63,7 +63,7 @@ manually to the `EXTERNAL_APPS` array in `lib/apps-data.ts`:
   name: "My App",
   codename: "CODENAME",
   description: "What this app does.",
-  category: "utilities",
+  category: "tools",
   status: "online",
   port: 3000,
   version: "1.0.0",

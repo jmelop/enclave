@@ -17,7 +17,7 @@ export const inventoryClient: ModuleClientConfig = {
   portal: {
     codename: 'DEPOT',
     description: 'Personal inventory tracking — items, categories, and storage locations.',
-    category: 'logistics',
+    category: 'home',
     icon: 'Package',
   },
 };

@@ -22,7 +22,7 @@ export const labClient: ModuleClientConfig = {
   portal: {
     codename: 'SKUNKWORKS',
     description: 'Idea backlog, code snippets, kanban board, and experiment tracking.',
-    category: 'research',
+    category: 'development',
     icon: 'Lightbulb',
   },
 };

@@ -3,13 +3,12 @@ import { clientModules } from "../../../enclave.modules.client"
 export type AppStatus = "online" | "offline" | "maintenance" | "classified"
 
 export type AppCategory =
-  | "communications"
-  | "intelligence"
-  | "logistics"
-  | "research"
-  | "defense"
-  | "utilities"
   | "finance"
+  | "productivity"
+  | "health"
+  | "development"
+  | "home"
+  | "tools"
 
 export interface AppEntry {
   id: string
@@ -28,13 +27,12 @@ export interface AppEntry {
 }
 
 export const CATEGORIES: Record<AppCategory, { label: string; icon: string }> = {
-  communications: { label: "COMMS", icon: "Radio" },
-  intelligence: { label: "INTEL", icon: "Eye" },
-  logistics: { label: "LOGISTICS", icon: "Package" },
-  research: { label: "RESEARCH", icon: "FlaskConical" },
-  defense: { label: "DEFENSE", icon: "ShieldAlert" },
-  utilities: { label: "UTILITIES", icon: "Wrench" },
-  finance: { label: "FINANCE", icon: "TrendingUp" }
+  finance: { label: "Finance", icon: "TrendingUp" },
+  productivity: { label: "Productivity", icon: "CalendarDays" },
+  health: { label: "Health", icon: "HeartPulse" },
+  development: { label: "Development", icon: "Code2" },
+  home: { label: "Home", icon: "House" },
+  tools: { label: "Tools", icon: "Wrench" }
 }
 
 // ─── Module apps (auto-generated) ────────────────────────────────────────────
@@ -45,7 +43,7 @@ export const CATEGORIES: Record<AppCategory, { label: string; icon: string }> = 
 const MODULE_APPS: AppEntry[] = clientModules.map((mod) => {
   const meta = mod.portal ?? {}
   const category: AppCategory =
-    meta.category && meta.category in CATEGORIES ? (meta.category as AppCategory) : "utilities"
+    meta.category && meta.category in CATEGORIES ? (meta.category as AppCategory) : "tools"
   return {
     id: mod.id,
     name: meta.name ?? mod.navLabel,
@@ -71,7 +69,7 @@ const EXTERNAL_APPS: AppEntry[] = [
     name: "iCloud Calendar",
     codename: "CHRONOS",
     description: "Personal scheduling, events, and reminders via iCloud Calendar.",
-    category: "communications",
+    category: "productivity",
     status: "online",
     port: 443,
     version: "web",
@@ -85,7 +83,7 @@ const EXTERNAL_APPS: AppEntry[] = [
     name: "Venator UI",
     codename: "CODEX",
     description: "Component library documentation, design tokens, pattern reference, and CLI usage guides.",
-    category: "research",
+    category: "development",
     status: "online",
     port: 3004,
     version: "0.1.6",

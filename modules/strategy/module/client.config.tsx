@@ -23,7 +23,7 @@ export const strategyClient: ModuleClientConfig = {
   portal: {
     codename: 'COMPASS',
     description: 'Goals, plans, and results — long-term direction with review loops.',
-    category: 'intelligence',
+    category: 'productivity',
     icon: 'Target',
   },
 };

@@ -1,16 +1,11 @@
 import { useState } from "react"
 import { type AppCategory, CATEGORIES } from "@/lib/apps-data"
 import {
-  Radio, Eye, Package, FlaskConical, ShieldAlert, Wrench, LayoutGrid, TrendingUp,
+  CalendarDays, Code2, HeartPulse, House, Wrench, LayoutGrid, TrendingUp,
 } from "lucide-react"
 
 const ICON_MAP: Record<string, React.ElementType> = {
-  Radio, Eye, Package, FlaskConical, ShieldAlert, Wrench, TrendingUp,
-}
-
-const CATEGORY_LABEL_OVERRIDES: Partial<Record<AppCategory, string>> = {
-  communications: "Comms",
-  intelligence: "Intel",
+  CalendarDays, Code2, HeartPulse, House, Wrench, TrendingUp,
 }
 
 interface CategoryNavProps {
@@ -80,7 +75,7 @@ export function CategoryNav({ selected, onSelect, counts }: CategoryNavProps) {
       {(Object.entries(CATEGORIES) as [AppCategory, { label: string; icon: string }][]).map(
         ([key, { label, icon }]) => {
           const Icon = ICON_MAP[icon] ?? Wrench
-          const displayLabel = CATEGORY_LABEL_OVERRIDES[key] ?? toTitle(label)
+          const displayLabel = toTitle(label)
           return (
             <CategoryRow
               key={key}

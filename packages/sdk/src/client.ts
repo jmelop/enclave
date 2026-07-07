@@ -16,7 +16,7 @@ export interface ModulePortalMeta {
   /** Uppercase codename shown under the title. Defaults to the module id. */
   codename?: string;
   description?: string;
-  /** Portal category id (e.g. 'finance', 'research'). Unknown values fall back to 'utilities'. */
+  /** Portal category id (e.g. 'finance', 'health'). Unknown values fall back to 'tools'. */
   category?: string;
   /** Lucide icon name as used by the portal icon map (e.g. 'TrendingUp'). */
   icon?: string;
