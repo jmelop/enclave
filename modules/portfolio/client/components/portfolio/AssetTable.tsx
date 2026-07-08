@@ -42,7 +42,7 @@ function AssetRow({ asset, hideValues, onDelete, onEdit }: AssetRowProps) {
     if (asset.ter != null)  chips.push({ k: 'ter',  v: `${num(asset.ter, 2)}%` })
     if (asset.distribution) chips.push({ k: 'dist', v: asset.distribution })
   }
-  if (asset.type === 'crypto' && asset.entity) chips.push({ k: 'at', v: asset.entity })
+  if (asset.type === 'crypto' && asset.custody) chips.push({ k: 'at', v: asset.custody })
   if (asset.currency !== 'EUR') chips.push({ k: 'fx', v: asset.currency })
 
   // ── dropdown state ────────────────────────────────────────────────────────

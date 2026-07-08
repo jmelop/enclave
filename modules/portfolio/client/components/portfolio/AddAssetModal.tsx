@@ -68,7 +68,7 @@ interface FormState {
   subtype?: string
   valuationDate?: string
   description?: string
-  entity?: string
+  custody?: string
 }
 
 function formFromAsset(a: Asset): FormState {
@@ -87,7 +87,7 @@ function formFromAsset(a: Asset): FormState {
     subtype:       a.subtype ?? undefined,
     valuationDate: (a.valuationDate as string | null | undefined) ?? undefined,
     description:   a.description ?? undefined,
-    entity:        a.entity ?? undefined,
+    custody:       a.custody ?? undefined,
   }
 }
 
@@ -235,8 +235,8 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
       base.subtype = form.subtype || 'other'
     }
 
-    if (type === 'crypto' && form.entity?.trim()) {
-      base.entity = form.entity.trim()
+    if (type === 'crypto' && form.custody?.trim()) {
+      base.custody = form.custody.trim()
     }
 
     setSaving(true)
@@ -401,10 +401,10 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
             </div>
             {type === 'crypto' && (
               <div className="v-field">
-                <label className="v-label">Entity</label>
+                <label className="v-label">Custody</label>
                 <div className="v-input-wrap">
                   <input className="v-input" placeholder="Coinbase, Binance, cold wallet…"
-                         value={form.entity ?? ''} onChange={e => set('entity', e.target.value)} />
+                         value={form.custody ?? ''} onChange={e => set('custody', e.target.value)} />
                 </div>
                 <span className="v-hint">Where it's held — exchange, wallet, custodian.</span>
               </div>

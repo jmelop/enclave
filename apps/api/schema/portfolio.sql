@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS assets (
   change_pct_24h   NUMERIC(8, 4),
 
   -- Solo crypto: dónde está custodiado (exchange, wallet, custodio)
-  entity           TEXT,
+  custody          TEXT,
 
   -- Solo funds
   isin             TEXT,
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS assets (
 );
 
 -- Añade la columna en instalaciones previas (idempotente)
-ALTER TABLE assets ADD COLUMN IF NOT EXISTS entity TEXT;
+ALTER TABLE assets ADD COLUMN IF NOT EXISTS custody TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_assets_type ON assets(type);
 
