@@ -43,9 +43,6 @@ CREATE TABLE IF NOT EXISTS assets (
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Añade la columna en instalaciones previas (idempotente)
-ALTER TABLE assets ADD COLUMN IF NOT EXISTS custody TEXT;
-
 CREATE INDEX IF NOT EXISTS idx_assets_type ON assets(type);
 
 CREATE TABLE IF NOT EXISTS allocation_targets (
