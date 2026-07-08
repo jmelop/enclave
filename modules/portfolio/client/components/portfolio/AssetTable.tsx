@@ -192,7 +192,7 @@ function AssetRow({ asset, hideValues, onDelete, onEdit }: AssetRowProps) {
         </div>
 
         {/* ── confirmation modal ── */}
-        <Modal open={confirmOpen} onClose={() => !deleting && setConfirmOpen(false)} size="sm">
+        <Modal open={confirmOpen} onClose={() => !deleting && setConfirmOpen(false)} size="sm" backdropClassName="backdrop-blur-sm">
           <ModalHeader
             title="Delete asset"
             onClose={() => !deleting && setConfirmOpen(false)}
