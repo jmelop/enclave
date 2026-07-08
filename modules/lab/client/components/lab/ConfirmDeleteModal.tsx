@@ -18,7 +18,7 @@ export function ConfirmDeleteModal({
   onCancel,
 }: ConfirmDeleteModalProps) {
   return (
-    <Modal open={open} onClose={() => !loading && onCancel()} size="sm" backdropClassName="backdrop-blur-sm">
+    <Modal open={open} onClose={() => !loading && onCancel()} size="sm" backdropClassName="!bg-[color-mix(in_oklab,var(--bg)_28%,transparent)] backdrop-blur-[3px]">
       <ModalHeader title={title} onClose={() => !loading && onCancel()} />
       <ModalContent>
         <p style={{ margin: 0, fontSize: 14, color: 'var(--fg-2)', lineHeight: 1.55 }}>
