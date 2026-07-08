@@ -25,6 +25,7 @@ function mapAsset(row: AssetRow) {
     price:            toNumber(row['price']),
     quantity:         toNumber(row['quantity']),
     changePercent24h: toNumber(row['change_pct_24h']),
+    entity:           (row['entity'] ?? null) as string | null,
     isin:             (row['isin'] ?? null) as string | null,
     ter:              toNumber(row['ter']),
     distribution:     (row['distribution'] ?? null) as string | null,
@@ -72,13 +73,13 @@ export function createPortfolioRouter(pool: DbPool): Router {
           symbol, price, quantity, change_pct_24h,
           isin, ter, distribution,
           amount, subtype, valuation_date,
-          bank, apy, updated_at
+          bank, apy, entity, updated_at
         ) VALUES (
           $1, $2, $3, $4, $5,
           $6, $7, $8, $9,
           $10, $11, $12,
           $13, $14, $15,
-          $16, $17, NOW()
+          $16, $17, $18, NOW()
         ) RETURNING *`,
         [
           id,
@@ -98,6 +99,7 @@ export function createPortfolioRouter(pool: DbPool): Router {
           input.valuationDate ?? null,
           input.bank ?? null,
           input.apy ?? null,
+          input.entity ?? null,
         ],
       );
       return res.status(201).json(mapAsset(rows[0]));
@@ -128,7 +130,7 @@ export function createPortfolioRouter(pool: DbPool): Router {
           symbol=$6, price=$7, quantity=$8, change_pct_24h=$9,
           isin=$10, ter=$11, distribution=$12,
           amount=$13, subtype=$14, valuation_date=$15,
-          bank=$16, apy=$17, updated_at=NOW()
+          bank=$16, apy=$17, entity=$18, updated_at=NOW()
         WHERE id=$1
         RETURNING *`,
         [
@@ -149,6 +151,7 @@ export function createPortfolioRouter(pool: DbPool): Router {
           input.valuationDate ?? null,
           input.bank ?? null,
           input.apy ?? null,
+          input.entity ?? null,
         ],
       );
       if (rows.length === 0) {

@@ -19,6 +19,7 @@ export interface Asset {
   price?: number
   quantity?: number
   changePercent24h?: number
+  entity?: string
   isin?: string
   ter?: number
   distribution?: 'Acc' | 'Dist'

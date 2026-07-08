@@ -68,6 +68,7 @@ interface FormState {
   subtype?: string
   valuationDate?: string
   description?: string
+  entity?: string
 }
 
 function formFromAsset(a: Asset): FormState {
@@ -86,6 +87,7 @@ function formFromAsset(a: Asset): FormState {
     subtype:       a.subtype ?? undefined,
     valuationDate: (a.valuationDate as string | null | undefined) ?? undefined,
     description:   a.description ?? undefined,
+    entity:        a.entity ?? undefined,
   }
 }
 
@@ -139,23 +141,6 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
   }, [onClose])
 
   const set = (k: keyof FormState, v: string) => setForm(f => ({ ...f, [k]: v }))
-
-  // Live position value (price × quantity) so the multiplication is never a surprise
-  const previewValue = (() => {
-    const p = parseFloat(form.price ?? '')
-    const q = parseFloat(form.quantity ?? '')
-    if (!form.price || !form.quantity || !isFinite(p) || !isFinite(q)) return null
-    return p * q
-  })()
-
-  const valuePreview = previewValue != null ? (
-    <div className="v-field">
-      <span className="v-hint">
-        Position value ≈ {previewValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
-        {form.currency ?? 'EUR'} · price × quantity
-      </span>
-    </div>
-  ) : null
 
   const switchType = (t: AssetCategory) => {
     if (isEdit) return
@@ -250,8 +235,8 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
       base.subtype = form.subtype || 'other'
     }
 
-    if (type === 'crypto' && form.bank?.trim()) {
-      base.bank = form.bank.trim()
+    if (type === 'crypto' && form.entity?.trim()) {
+      base.entity = form.entity.trim()
     }
 
     setSaving(true)
@@ -410,7 +395,6 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
                 </div>
               </div>
             </div>
-            {valuePreview}
             <div className="v-field">
               <label className="v-label">Price currency</label>
               <CurrencyPicker value={form.currency ?? 'EUR'} onChange={v => set('currency', v)} />
@@ -420,7 +404,7 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
                 <label className="v-label">Entity</label>
                 <div className="v-input-wrap">
                   <input className="v-input" placeholder="Coinbase, Binance, cold wallet…"
-                         value={form.bank ?? ''} onChange={e => set('bank', e.target.value)} />
+                         value={form.entity ?? ''} onChange={e => set('entity', e.target.value)} />
                 </div>
                 <span className="v-hint">Where it's held — exchange, wallet, custodian.</span>
               </div>
@@ -493,7 +477,6 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
                 </div>
               </div>
             </div>
-            {valuePreview}
           </>}
 
           {/* Savings */}
