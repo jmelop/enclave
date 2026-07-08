@@ -140,6 +140,23 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
 
   const set = (k: keyof FormState, v: string) => setForm(f => ({ ...f, [k]: v }))
 
+  // Live position value (price × quantity) so the multiplication is never a surprise
+  const previewValue = (() => {
+    const p = parseFloat(form.price ?? '')
+    const q = parseFloat(form.quantity ?? '')
+    if (!form.price || !form.quantity || !isFinite(p) || !isFinite(q)) return null
+    return p * q
+  })()
+
+  const valuePreview = previewValue != null ? (
+    <div className="v-field">
+      <span className="v-hint">
+        Position value ≈ {previewValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
+        {form.currency ?? 'EUR'} · price × quantity
+      </span>
+    </div>
+  ) : null
+
   const switchType = (t: AssetCategory) => {
     if (isEdit) return
     setType(t)
@@ -231,6 +248,10 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
     } else if (type === 'investment') {
       base.amount = parseFloat(form.amount ?? '') || 0
       base.subtype = form.subtype || 'other'
+    }
+
+    if (type === 'crypto' && form.bank?.trim()) {
+      base.bank = form.bank.trim()
     }
 
     setSaving(true)
@@ -389,10 +410,21 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
                 </div>
               </div>
             </div>
+            {valuePreview}
             <div className="v-field">
               <label className="v-label">Price currency</label>
               <CurrencyPicker value={form.currency ?? 'EUR'} onChange={v => set('currency', v)} />
             </div>
+            {type === 'crypto' && (
+              <div className="v-field">
+                <label className="v-label">Entity</label>
+                <div className="v-input-wrap">
+                  <input className="v-input" placeholder="Coinbase, Binance, cold wallet…"
+                         value={form.bank ?? ''} onChange={e => set('bank', e.target.value)} />
+                </div>
+                <span className="v-hint">Where it's held — exchange, wallet, custodian.</span>
+              </div>
+            )}
           </>}
 
           {/* Fund */}
@@ -461,6 +493,7 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
                 </div>
               </div>
             </div>
+            {valuePreview}
           </>}
 
           {/* Savings */}
@@ -527,11 +560,11 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
           <div className="v-field">
             <label className="v-label">Short Description</label>
             <div className="v-input-wrap">
-              <input className="v-input" placeholder="E.g. My main investment" maxLength={30}
+              <input className="v-input" placeholder="E.g. My main investment" maxLength={120}
                      value={form.description ?? ''} onChange={e => set('description', e.target.value)} />
-              <div className="v-input-suffix">{(form.description ?? '').length}/30</div>
+              <div className="v-input-suffix">{(form.description ?? '').length}/120</div>
             </div>
-            <span className="v-hint">Max 30 characters. Shown in the asset list.</span>
+            <span className="v-hint">Max 120 characters. Shown in the asset list.</span>
           </div>
         </div>
 
