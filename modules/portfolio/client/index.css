@@ -500,6 +500,13 @@ body {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   min-width: 0;
 }
+.p-asset-name .note {
+  color: var(--fg-4);
+  font-size: 11.5px;
+  margin-top: 1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  min-width: 0;
+}
 .p-asset-desc {
   color: var(--fg-3);
   font-size: 12px;
@@ -552,7 +559,7 @@ body {
   text-transform: lowercase;
 }
 .p-chip b { color: var(--fg-2); font-weight: 500; }
-.p-asset-name .dimsep { color: var(--fg-5); }
+.p-asset-name .dimsep { color: var(--fg-4); padding: 0 1px; }
 
 /* ===== Manual/Auto toggle ===== */
 .v-toggle {

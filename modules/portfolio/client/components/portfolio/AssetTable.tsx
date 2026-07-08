@@ -102,15 +102,17 @@ function AssetRow({ asset, hideValues, onDelete, onEdit }: AssetRowProps) {
             ))}
           </div>
         )}
-        <div className="nm">
-          {secondary}
-          {asset.type === 'crypto' && asset.custody && (
-            <><span className="dimsep"> · </span>at {asset.custody}</>
-          )}
-          {asset.description && (
-            <><span className="dimsep"> · </span>{asset.description}</>
-          )}
-        </div>
+        {(secondary || (asset.type === 'crypto' && asset.custody)) && (
+          <div className="nm">
+            {secondary}
+            {asset.type === 'crypto' && asset.custody && (
+              <><span className="dimsep"> · </span>at {asset.custody}</>
+            )}
+          </div>
+        )}
+        {asset.description && (
+          <div className="note" title={asset.description}>{asset.description}</div>
+        )}
       </div>
 
       <div className="p-asset-desc">{detail}</div>
