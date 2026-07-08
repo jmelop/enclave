@@ -68,6 +68,7 @@ interface FormState {
   subtype?: string
   valuationDate?: string
   description?: string
+  custody?: string
 }
 
 function formFromAsset(a: Asset): FormState {
@@ -86,6 +87,7 @@ function formFromAsset(a: Asset): FormState {
     subtype:       a.subtype ?? undefined,
     valuationDate: (a.valuationDate as string | null | undefined) ?? undefined,
     description:   a.description ?? undefined,
+    custody:       a.custody ?? undefined,
   }
 }
 
@@ -231,6 +233,10 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
     } else if (type === 'investment') {
       base.amount = parseFloat(form.amount ?? '') || 0
       base.subtype = form.subtype || 'other'
+    }
+
+    if (type === 'crypto' && form.custody?.trim()) {
+      base.custody = form.custody.trim()
     }
 
     setSaving(true)
@@ -393,6 +399,16 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
               <label className="v-label">Price currency</label>
               <CurrencyPicker value={form.currency ?? 'EUR'} onChange={v => set('currency', v)} />
             </div>
+            {type === 'crypto' && (
+              <div className="v-field">
+                <label className="v-label">Custody</label>
+                <div className="v-input-wrap">
+                  <input className="v-input" placeholder="Coinbase, Binance, cold wallet…"
+                         value={form.custody ?? ''} onChange={e => set('custody', e.target.value)} />
+                </div>
+                <span className="v-hint">Where it's held — exchange, wallet, custodian.</span>
+              </div>
+            )}
           </>}
 
           {/* Fund */}
@@ -527,11 +543,11 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
           <div className="v-field">
             <label className="v-label">Short Description</label>
             <div className="v-input-wrap">
-              <input className="v-input" placeholder="E.g. My main investment" maxLength={30}
+              <input className="v-input" placeholder="E.g. My main investment" maxLength={120}
                      value={form.description ?? ''} onChange={e => set('description', e.target.value)} />
-              <div className="v-input-suffix">{(form.description ?? '').length}/30</div>
+              <div className="v-input-suffix">{(form.description ?? '').length}/120</div>
             </div>
-            <span className="v-hint">Max 30 characters. Shown in the asset list.</span>
+            <span className="v-hint">Max 120 characters. Shown in the asset list.</span>
           </div>
         </div>
 
