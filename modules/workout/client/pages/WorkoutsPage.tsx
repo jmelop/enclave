@@ -4,6 +4,7 @@ import { Button, Badge, Separator, Table, TableHeader, TableBody, TableRow, Tabl
 import { Plus, ChevronRight, Search } from 'lucide-react';
 import LogWorkoutModal from '../modals/LogWorkoutModal';
 import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
+import { HeroActions } from '../components/HeroActions';
 import { useWorkoutStore } from '../store/workoutStore';
 import { workoutVolume, formatDate, dayOfWeek } from '../lib/workoutUtils';
 import type { WorkoutSession } from '../types/workout';
@@ -135,25 +136,26 @@ export default function WorkoutsPage() {
 
   return (
     <>
+      <HeroActions>
+        <Button variant="primary" size="sm" onClick={() => setModal({})}>
+          <Plus size={14} />
+          Log Workout
+        </Button>
+      </HeroActions>
+
       <div className="flex items-center justify-between gap-4 mb-5">
         <p className="text-sm text-fg-3">{sessions.length} sessions logged — sorted by date</p>
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search
-              size={13}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-fg-4 pointer-events-none"
-            />
-            <Input
-              placeholder="Search exercise or session…"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              className="pl-8 w-56 text-sm"
-            />
-          </div>
-          <Button variant="primary" size="sm" onClick={() => setModal({})}>
-            <Plus size={14} />
-            Log Workout
-          </Button>
+        <div className="relative">
+          <Search
+            size={13}
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-fg-4 pointer-events-none"
+          />
+          <Input
+            placeholder="Search exercise or session…"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            className="pl-8 w-56 text-sm"
+          />
         </div>
       </div>
 

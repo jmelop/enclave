@@ -6,6 +6,7 @@ import { Plus } from 'lucide-react';
 import LineChart from '../components/LineChart';
 import LogMeasurementModal from '../modals/LogMeasurementModal';
 import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
+import { HeroActions } from '../components/HeroActions';
 import { useWorkoutStore } from '../store/workoutStore';
 import { formatDate } from '../lib/workoutUtils';
 import type { BodyEntry } from '../types/workout';
@@ -147,12 +148,15 @@ export default function BodyPage() {
   if (!latest) {
     return (
       <>
-        <div className="flex items-center justify-between gap-4 mb-5">
-          <p className="text-sm text-fg-3">No measurements logged yet</p>
+        <HeroActions>
           <Button variant="primary" size="sm" onClick={() => setModal({})}>
             <Plus size={14} />
             Log Measurement
           </Button>
+        </HeroActions>
+
+        <div className="flex items-center justify-between gap-4 mb-5">
+          <p className="text-sm text-fg-3">No measurements logged yet</p>
         </div>
         <div className="bg-bg-1 border border-[var(--border-subtle)] rounded-lg p-10 text-center text-fg-4 text-sm">
           Log your first body measurement to start tracking progress over time.
@@ -175,12 +179,15 @@ export default function BodyPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between gap-4 mb-5">
-        <p className="text-sm text-fg-3">{bodyLog.length} entries · {formatDate(bodyLog[0].date, { short: true })} → {formatDate(latest.date, { short: true })}</p>
+      <HeroActions>
         <Button variant="primary" size="sm" onClick={() => setModal({})}>
           <Plus size={14} />
           Log Measurement
         </Button>
+      </HeroActions>
+
+      <div className="flex items-center justify-between gap-4 mb-5">
+        <p className="text-sm text-fg-3">{bodyLog.length} entries · {formatDate(bodyLog[0].date, { short: true })} → {formatDate(latest.date, { short: true })}</p>
       </div>
 
       {/* Weight chart */}
