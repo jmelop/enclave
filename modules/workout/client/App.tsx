@@ -84,6 +84,7 @@ export default function App() {
       <div className="hero-tag mono">// MODULE · enclave-workout</div>
       <div className="hero-row">
         <h1 className="hero-title">Workout<span className="hero-dot">.</span></h1>
+        <div className="hero-actions" id="workout-hero-actions" />
       </div>
       <div className="hero-sub">
         Track your training — sessions, exercises, and body composition over time.

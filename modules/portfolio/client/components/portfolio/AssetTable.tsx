@@ -42,7 +42,6 @@ function AssetRow({ asset, hideValues, onDelete, onEdit }: AssetRowProps) {
     if (asset.ter != null)  chips.push({ k: 'ter',  v: `${num(asset.ter, 2)}%` })
     if (asset.distribution) chips.push({ k: 'dist', v: asset.distribution })
   }
-  if (asset.type === 'crypto' && asset.custody) chips.push({ k: 'at', v: asset.custody })
   if (asset.currency !== 'EUR') chips.push({ k: 'fx', v: asset.currency })
 
   // ── dropdown state ────────────────────────────────────────────────────────
@@ -105,6 +104,9 @@ function AssetRow({ asset, hideValues, onDelete, onEdit }: AssetRowProps) {
         )}
         <div className="nm">
           {secondary}
+          {asset.type === 'crypto' && asset.custody && (
+            <><span className="dimsep"> · </span>at {asset.custody}</>
+          )}
           {asset.description && (
             <><span className="dimsep"> · </span>{asset.description}</>
           )}
@@ -190,7 +192,7 @@ function AssetRow({ asset, hideValues, onDelete, onEdit }: AssetRowProps) {
         </div>
 
         {/* ── confirmation modal ── */}
-        <Modal open={confirmOpen} onClose={() => !deleting && setConfirmOpen(false)} size="sm">
+        <Modal open={confirmOpen} onClose={() => !deleting && setConfirmOpen(false)} size="sm" backdropClassName="!bg-[color-mix(in_oklab,var(--bg)_28%,transparent)] backdrop-blur-[3px]">
           <ModalHeader
             title="Delete asset"
             onClose={() => !deleting && setConfirmOpen(false)}

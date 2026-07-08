@@ -1,10 +1,12 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { StatCard } from '@venator-ui/patterns';
 import { Button, Separator, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, useToast } from '@venator-ui/ui';
 import { Plus } from 'lucide-react';
 import LineChart from '../components/LineChart';
 import LogMeasurementModal from '../modals/LogMeasurementModal';
 import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
+import { HeroActions } from '../components/HeroActions';
 import { useWorkoutStore } from '../store/workoutStore';
 import { formatDate } from '../lib/workoutUtils';
 import type { BodyEntry } from '../types/workout';
@@ -33,16 +35,34 @@ function EntryRowMenu({ entry, onEdit }: EntryRowMenuProps) {
   const [dropOpen, setDropOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const dropRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  const openMenu = () => {
+    if (dropOpen) { setDropOpen(false); return; }
+    const r = btnRef.current?.getBoundingClientRect();
+    if (r) setPos({ top: r.bottom + 4, right: window.innerWidth - r.right });
+    setDropOpen(true);
+  };
 
   useEffect(() => {
     if (!dropOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setDropOpen(false);
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (btnRef.current?.contains(t) || menuRef.current?.contains(t)) return;
+      setDropOpen(false);
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    const onReflow = () => setDropOpen(false);
+    document.addEventListener('mousedown', onDown);
+    window.addEventListener('scroll', onReflow, true);
+    window.addEventListener('resize', onReflow);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      window.removeEventListener('scroll', onReflow, true);
+      window.removeEventListener('resize', onReflow);
+    };
   }, [dropOpen]);
 
   const handleDelete = async () => {
@@ -58,10 +78,11 @@ function EntryRowMenu({ entry, onEdit }: EntryRowMenuProps) {
   };
 
   return (
-    <div ref={dropRef} style={{ position: 'relative', display: 'inline-block' }}>
+    <div style={{ position: 'relative', display: 'inline-block' }}>
       <button
+        ref={btnRef}
         title="More options"
-        onClick={() => setDropOpen(o => !o)}
+        onClick={openMenu}
         style={{
           display: 'grid', placeItems: 'center', width: 26, height: 26, padding: 0,
           borderRadius: 7, background: 'transparent', border: '1px solid var(--border-subtle)',
@@ -70,10 +91,10 @@ function EntryRowMenu({ entry, onEdit }: EntryRowMenuProps) {
       >
         ···
       </button>
-      {dropOpen && (
-        <div style={{
-          position: 'absolute', right: 0, top: '100%', marginTop: 4,
-          minWidth: 110, zIndex: 10,
+      {dropOpen && pos && createPortal(
+        <div ref={menuRef} onClick={e => e.stopPropagation()} style={{
+          position: 'fixed', top: pos.top, right: pos.right,
+          minWidth: 120, zIndex: 1000,
           background: 'var(--bg-2)',
           border: '1px solid var(--border-default)',
           borderRadius: 8,
@@ -96,7 +117,8 @@ function EntryRowMenu({ entry, onEdit }: EntryRowMenuProps) {
           >
             Delete
           </button>
-        </div>
+        </div>,
+        btnRef.current?.closest('[data-theme]') ?? document.body,
       )}
       <ConfirmDeleteModal
         open={confirmOpen}
@@ -126,12 +148,15 @@ export default function BodyPage() {
   if (!latest) {
     return (
       <>
-        <div className="flex items-center justify-between gap-4 mb-5">
-          <p className="text-sm text-fg-3">No measurements logged yet</p>
+        <HeroActions>
           <Button variant="primary" size="sm" onClick={() => setModal({})}>
             <Plus size={14} />
             Log Measurement
           </Button>
+        </HeroActions>
+
+        <div className="flex items-center justify-between gap-4 mb-5">
+          <p className="text-sm text-fg-3">No measurements logged yet</p>
         </div>
         <div className="bg-bg-1 border border-[var(--border-subtle)] rounded-lg p-10 text-center text-fg-4 text-sm">
           Log your first body measurement to start tracking progress over time.
@@ -154,12 +179,15 @@ export default function BodyPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between gap-4 mb-5">
-        <p className="text-sm text-fg-3">{bodyLog.length} entries · {formatDate(bodyLog[0].date, { short: true })} → {formatDate(latest.date, { short: true })}</p>
+      <HeroActions>
         <Button variant="primary" size="sm" onClick={() => setModal({})}>
           <Plus size={14} />
           Log Measurement
         </Button>
+      </HeroActions>
+
+      <div className="flex items-center justify-between gap-4 mb-5">
+        <p className="text-sm text-fg-3">{bodyLog.length} entries · {formatDate(bodyLog[0].date, { short: true })} → {formatDate(latest.date, { short: true })}</p>
       </div>
 
       {/* Weight chart */}
