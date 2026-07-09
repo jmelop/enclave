@@ -33,3 +33,13 @@ export const INITIAL_ASSETS = [
   { id: 'i2', type: 'investment', name: 'Mintos · P2P Lending',         amount: 3500,  currency: 'EUR', subtype: 'p2p',         description: 'Auto-invest · 9% target' },
   { id: 'i3', type: 'investment', name: 'Seedrs · Allplants SAFE',      amount: 2000,  currency: 'GBP', subtype: 'startup',     description: 'Pre-seed · 2022 vintage' },
 ]
+
+export const INITIAL_SNAPSHOTS = [
+  { monthKey: '2026-01', label: 'January',  year: 2026, snapshotDate: '2026-01-01', totalValue: 404250, assetCount: 19, note: 'Seed snapshot' },
+  { monthKey: '2026-02', label: 'February', year: 2026, snapshotDate: '2026-02-01', totalValue: 410900, assetCount: 19, note: 'Seed snapshot' },
+  { monthKey: '2026-03', label: 'March',    year: 2026, snapshotDate: '2026-03-01', totalValue: 418500, assetCount: 20, note: 'Seed snapshot' },
+  { monthKey: '2026-04', label: 'April',    year: 2026, snapshotDate: '2026-04-01', totalValue: 423800, assetCount: 20, note: 'Seed snapshot' },
+  { monthKey: '2026-05', label: 'May',      year: 2026, snapshotDate: '2026-05-01', totalValue: 430600, assetCount: 21, note: 'Seed snapshot' },
+  { monthKey: '2026-06', label: 'June',     year: 2026, snapshotDate: '2026-06-01', totalValue: 435200, assetCount: 21, note: 'Seed snapshot' },
+  { monthKey: '2026-07', label: 'July',     year: 2026, snapshotDate: '2026-07-01', totalValue: 437775, assetCount: 21, note: 'Seed snapshot' },
+]
