@@ -31,7 +31,7 @@ export function PortfolioValueChart({ snapshots, activeKey, hideValues, onSelect
   const maxDomain = maxValue + span * 0.25
   const domain = maxDomain - minDomain || 1
   const slot = iw / data.length
-  const bw = Math.min(34, slot * 0.36)
+  const bw = Math.min(20.4, slot * 0.216)
 
   const xv = (i: number) => padL + slot * i + slot / 2
 
@@ -65,7 +65,7 @@ export function PortfolioValueChart({ snapshots, activeKey, hideValues, onSelect
             x2={W - padR}
             y2={y}
             stroke="var(--border-subtle)"
-            strokeWidth="1"
+            strokeWidth="0.6"
             strokeDasharray={tick === 1 ? undefined : '3 6'}
           />
         )
@@ -77,9 +77,9 @@ export function PortfolioValueChart({ snapshots, activeKey, hideValues, onSelect
         const active = d.monthKey === activeKey
         const x = xv(i)
         const y = yv(d.value)
-        const barH = Math.max(4, baselineY - y)
+        const barH = Math.max(2.4, baselineY - y)
         const barY = baselineY - barH
-        const labelInside = barH > 28
+        const labelInside = barH > 17
 
         return (
           <g key={`${d.monthKey}-bar`} onClick={() => onSelect(d.monthKey)} style={{ cursor: 'pointer' }}>
@@ -89,7 +89,7 @@ export function PortfolioValueChart({ snapshots, activeKey, hideValues, onSelect
               y={barY}
               width={bw}
               height={barH}
-              rx="4"
+              rx="2.5"
               fill={active ? 'var(--accent)' : 'var(--bg-3)'}
               stroke={active ? 'none' : 'var(--border-subtle)'}
               style={{ transition: 'all 160ms ease' }}
@@ -97,9 +97,9 @@ export function PortfolioValueChart({ snapshots, activeKey, hideValues, onSelect
             {active && !hideValues && (
               <text
                 x={x}
-                y={labelInside ? barY + 15 : barY - 7}
+                y={labelInside ? barY + 9 : barY - 4}
                 textAnchor="middle"
-                fontSize="9.5"
+                fontSize="5.7"
                 fontFamily="JetBrains Mono, monospace"
                 fontWeight="600"
                 fill={labelInside ? 'var(--accent-ink)' : 'var(--fg)'}
@@ -115,7 +115,7 @@ export function PortfolioValueChart({ snapshots, activeKey, hideValues, onSelect
         points={linePoints}
         fill="none"
         stroke="var(--success)"
-        strokeWidth="1.3"
+        strokeWidth="0.8"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -130,23 +130,23 @@ export function PortfolioValueChart({ snapshots, activeKey, hideValues, onSelect
             <rect x={x - slot / 2} y={padT} width={slot} height={ih} fill="transparent" />
             {active && (
               <>
-                <line x1={x} y1={padT} x2={x} y2={padT + ih} stroke="var(--border-default)" strokeDasharray="3 5" />
+                <line x1={x} y1={padT} x2={x} y2={padT + ih} stroke="var(--border-default)" strokeWidth="0.6" strokeDasharray="3 5" />
               </>
             )}
             <circle
               cx={x}
               cy={y}
-              r={active ? 4 : 2.8}
+              r={active ? 2.4 : 1.7}
               fill={active ? 'var(--fg)' : 'var(--bg-1)'}
               stroke={active ? 'var(--fg)' : 'var(--info)'}
-              strokeWidth="1.6"
+              strokeWidth="1"
               style={{ transition: 'all 120ms ease' }}
             />
             <text
               x={x}
               y={H - 10}
               textAnchor="middle"
-              fontSize="9"
+              fontSize="5.4"
               fontFamily="JetBrains Mono, monospace"
               fill={active ? 'var(--fg)' : 'var(--fg-4)'}
               fontWeight={active ? '600' : '400'}
