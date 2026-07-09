@@ -23,6 +23,17 @@ const SUBTYPES = {
 
 const CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF']
 
+// Where the asset is held — one column (`institution`), per-type label.
+// Real estate is intentionally omitted.
+const INSTITUTION: Partial<Record<AssetCategory, { label: string; placeholder: string; required?: boolean }>> = {
+  crypto:      { label: 'Custody',  placeholder: 'Coinbase, Binance, cold wallet…' },
+  stock:       { label: 'Broker',   placeholder: 'MyInvestor, DeGiro…' },
+  fund:        { label: 'Broker',   placeholder: 'MyInvestor, DeGiro…' },
+  investment:  { label: 'Platform', placeholder: 'Indexa, Mintos, Seedrs…' },
+  collectible: { label: 'Seller',   placeholder: 'Andorrano, dealer…' },
+  savings:     { label: 'Bank',     placeholder: 'Trade Republic, Revolut…', required: true },
+}
+
 const KNOWN: Record<string, { name: string; price: number; currency: string; type: AssetCategory; isin?: string; ter?: number; distribution?: 'Acc' | 'Dist' }> = {
   BTC:  { name: 'Bitcoin',                 price: 43250.75, currency: 'USD', type: 'crypto' },
   ETH:  { name: 'Ethereum',                price: 2580.90,  currency: 'USD', type: 'crypto' },
@@ -63,12 +74,11 @@ interface FormState {
   isin?: string
   ter?: string
   distribution?: string
-  bank?: string
+  institution?: string
   apy?: string
   subtype?: string
   valuationDate?: string
   description?: string
-  custody?: string
 }
 
 function formFromAsset(a: Asset): FormState {
@@ -82,12 +92,11 @@ function formFromAsset(a: Asset): FormState {
     isin:          a.isin ?? undefined,
     ter:           a.ter != null ? String(a.ter) : undefined,
     distribution:  a.distribution ?? undefined,
-    bank:          a.bank ?? undefined,
+    institution:   a.institution ?? undefined,
     apy:           a.apy != null ? String(a.apy) : undefined,
     subtype:       a.subtype ?? undefined,
     valuationDate: (a.valuationDate as string | null | undefined) ?? undefined,
     description:   a.description ?? undefined,
-    custody:       a.custody ?? undefined,
   }
 }
 
@@ -172,8 +181,8 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
 
   const submit = async () => {
     if (type === 'savings') {
-      if (!form.bank?.trim()) {
-        toast({ title: 'Bank / Institution is required', variant: 'error' })
+      if (!form.institution?.trim()) {
+        toast({ title: 'Bank is required', variant: 'error' })
         return
       }
     } else {
@@ -219,8 +228,7 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
       if (form.ter) base.ter = parseFloat(form.ter) || 0
       base.distribution = (form.distribution as 'Acc' | 'Dist') ?? 'Acc'
     } else if (type === 'savings') {
-      base.bank = form.bank || form.name || 'Bank'
-      base.name = form.name || form.bank || 'Savings'
+      base.name = form.name || form.institution || 'Savings'
       base.amount = parseFloat(form.amount ?? '') || 0
       if (form.apy) base.apy = parseFloat(form.apy) || 0
     } else if (type === 'realestate') {
@@ -235,8 +243,8 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
       base.subtype = form.subtype || 'other'
     }
 
-    if (type === 'crypto' && form.custody?.trim()) {
-      base.custody = form.custody.trim()
+    if (INSTITUTION[type] && form.institution?.trim()) {
+      base.institution = form.institution.trim()
     }
 
     setSaving(true)
@@ -399,16 +407,6 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
               <label className="v-label">Price currency</label>
               <CurrencyPicker value={form.currency ?? 'EUR'} onChange={v => set('currency', v)} />
             </div>
-            {type === 'crypto' && (
-              <div className="v-field">
-                <label className="v-label">Custody</label>
-                <div className="v-input-wrap">
-                  <input className="v-input" placeholder="Coinbase, Binance, cold wallet…"
-                         value={form.custody ?? ''} onChange={e => set('custody', e.target.value)} />
-                </div>
-                <span className="v-hint">Where it's held — exchange, wallet, custodian.</span>
-              </div>
-            )}
           </>}
 
           {/* Fund */}
@@ -481,18 +479,10 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
 
           {/* Savings */}
           {type === 'savings' && <>
-            <div className="v-grid-2">
-              <div className="v-field">
-                <label className="v-label">Bank / Institution <span className="req">*</span></label>
-                <div className="v-input-wrap">
-                  <input className="v-input" placeholder="Trade Republic, Revolut…" value={form.bank ?? ''} onChange={e => set('bank', e.target.value)} />
-                </div>
-              </div>
-              <div className="v-field">
-                <label className="v-label">Account label</label>
-                <div className="v-input-wrap">
-                  <input className="v-input" placeholder="Emergency fund" value={form.name ?? ''} onChange={e => set('name', e.target.value)} />
-                </div>
+            <div className="v-field">
+              <label className="v-label">Account label</label>
+              <div className="v-input-wrap">
+                <input className="v-input" placeholder="Emergency fund" value={form.name ?? ''} onChange={e => set('name', e.target.value)} />
               </div>
             </div>
             <div className="v-grid-3">
@@ -538,6 +528,20 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
               </div>
             </div>
           </>}
+
+          {/* Shared: institution (where the asset is held) — per-type label */}
+          {INSTITUTION[type] && (
+            <div className="v-field">
+              <label className="v-label">
+                {INSTITUTION[type]!.label}
+                {INSTITUTION[type]!.required && <span className="req"> *</span>}
+              </label>
+              <div className="v-input-wrap">
+                <input className="v-input" placeholder={INSTITUTION[type]!.placeholder}
+                       value={form.institution ?? ''} onChange={e => set('institution', e.target.value)} />
+              </div>
+            </div>
+          )}
 
           {/* Shared: description */}
           <div className="v-field">

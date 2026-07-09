@@ -19,12 +19,11 @@ export interface Asset {
   price?: number
   quantity?: number
   changePercent24h?: number
-  custody?: string
   isin?: string
   ter?: number
   distribution?: 'Acc' | 'Dist'
   amount?: number
-  bank?: string
+  institution?: string
   apy?: number
   subtype?: string
   valuationDate?: string

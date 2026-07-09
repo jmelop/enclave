@@ -19,7 +19,7 @@ function AssetRow({ asset, hideValues, onDelete, onEdit }: AssetRowProps) {
   const isUp = isMarket && (asset.changePercent24h ?? 0) >= 0
 
   const primary = isMarket ? asset.symbol! : asset.name
-  const secondary = isMarket ? asset.name : (asset.bank ?? '')
+  const secondary = isMarket ? asset.name : (asset.institution ?? '')
 
   let detail = ''
   if (isMarket) {
@@ -101,11 +101,11 @@ function AssetRow({ asset, hideValues, onDelete, onEdit }: AssetRowProps) {
             ))}
           </div>
         )}
-        {(secondary || (asset.type === 'crypto' && asset.custody)) && (
+        {(secondary || (isMarket && asset.institution)) && (
           <div className="nm">
             {secondary}
-            {asset.type === 'crypto' && asset.custody && (
-              <><span className="dimsep"> · </span>{asset.custody}</>
+            {isMarket && asset.institution && (
+              <><span className="dimsep"> · </span>{asset.institution}</>
             )}
           </div>
         )}

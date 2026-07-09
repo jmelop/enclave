@@ -9,9 +9,9 @@ export const INITIAL_ASSETS = [
   { id: 'c3', type: 'collectible', name: 'Silver coin collection',  amount: 1850,  currency: 'EUR', subtype: 'silver', description: 'Mixed European' },
 
   // Crypto
-  { id: 'k1', type: 'crypto', symbol: 'BTC', name: 'Bitcoin',  price: 43250.75, quantity: 0.5,   changePercent24h: 2.45,  currency: 'USD', custody: 'Cold wallet', description: 'Long-term hold' },
-  { id: 'k2', type: 'crypto', symbol: 'ETH', name: 'Ethereum', price: 2580.90,  quantity: 2.3,   changePercent24h: -1.20, currency: 'USD', custody: 'Coinbase' },
-  { id: 'k3', type: 'crypto', symbol: 'SOL', name: 'Solana',   price: 145.20,   quantity: 18.4,  changePercent24h: 4.81,  currency: 'USD', custody: 'Binance' },
+  { id: 'k1', type: 'crypto', symbol: 'BTC', name: 'Bitcoin',  price: 43250.75, quantity: 0.5,   changePercent24h: 2.45,  currency: 'USD', institution: 'Cold wallet', description: 'Long-term hold' },
+  { id: 'k2', type: 'crypto', symbol: 'ETH', name: 'Ethereum', price: 2580.90,  quantity: 2.3,   changePercent24h: -1.20, currency: 'USD', institution: 'Coinbase' },
+  { id: 'k3', type: 'crypto', symbol: 'SOL', name: 'Solana',   price: 145.20,   quantity: 18.4,  changePercent24h: 4.81,  currency: 'USD', institution: 'Binance' },
 
   // Stocks
   { id: 's1', type: 'stock', symbol: 'AAPL', name: 'Apple Inc.',         price: 187.42, quantity: 24, changePercent24h: 0.65,  currency: 'USD' },
@@ -24,9 +24,9 @@ export const INITIAL_ASSETS = [
   { id: 'f3', type: 'fund', symbol: 'AGGH', name: 'iShares Global Aggregate Bond',  price: 4.85,   quantity: 1200, changePercent24h: 0.12,  currency: 'EUR', isin: 'IE00BDBRDM35', ter: 0.10, distribution: 'Dist', description: 'Bond ballast' },
 
   // Savings
-  { id: 'v1', type: 'savings', name: 'Trade Republic', bank: 'Trade Republic', amount: 8500, currency: 'EUR', apy: 3.75, description: 'Emergency fund' },
-  { id: 'v2', type: 'savings', name: 'Revolut Pocket',  bank: 'Revolut',       amount: 4200, currency: 'EUR', apy: 2.20, description: 'Daily checking buffer' },
-  { id: 'v3', type: 'savings', name: 'HSBC USD',        bank: 'HSBC',          amount: 3200, currency: 'USD', apy: 4.10, description: 'USD float for travel' },
+  { id: 'v1', type: 'savings', name: 'Trade Republic', institution: 'Trade Republic', amount: 8500, currency: 'EUR', apy: 3.75, description: 'Emergency fund' },
+  { id: 'v2', type: 'savings', name: 'Revolut Pocket',  institution: 'Revolut', amount: 4200, currency: 'EUR', apy: 2.20, description: 'Daily checking buffer' },
+  { id: 'v3', type: 'savings', name: 'HSBC USD',        institution: 'HSBC',    amount: 3200, currency: 'USD', apy: 4.10, description: 'USD float for travel' },
 
   // Investments
   { id: 'i1', type: 'investment', name: 'Indexa Capital · Portfolio 9', amount: 12000, currency: 'EUR', subtype: 'roboadvisor', description: '60/40 stocks / bonds' },
