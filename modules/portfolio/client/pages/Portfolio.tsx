@@ -30,6 +30,7 @@ const DEFAULT_MODES: Modes = {
 }
 
 const ASSET_CSV_HEADERS = [
+  'id',
   'type',
   'name',
   'description',
@@ -50,6 +51,12 @@ const ASSET_CSV_HEADERS = [
 
 type AssetCsvHeader = typeof ASSET_CSV_HEADERS[number]
 type AssetCsvRow = Record<AssetCsvHeader, string>
+
+interface AssetCsvImport {
+  id?: string
+  input: AssetInput
+  rowNumber: number
+}
 
 const ASSET_CSV_HEADER_SET = new Set<string>(ASSET_CSV_HEADERS)
 
@@ -220,7 +227,7 @@ function assetInputFromCsvRow(row: AssetCsvRow, rowNumber: number): AssetInput {
   return input
 }
 
-function parseAssetCsv(text: string): AssetInput[] {
+function parseAssetCsv(text: string): AssetCsvImport[] {
   const rows = parseCsvRows(text.replace(/^\ufeff/, ''))
   if (rows.length === 0) return []
 
@@ -232,15 +239,20 @@ function parseAssetCsv(text: string): AssetInput[] {
     ASSET_CSV_HEADER_SET.has(header) ? header as AssetCsvHeader : null
   )
 
-  return rows.slice(1).reduce<AssetInput[]>((inputs, cells, index) => {
+  return rows.slice(1).reduce<AssetCsvImport[]>((imports, cells, index) => {
+    const rowNumber = index + 2
     const row = emptyCsvRow()
     mappedHeaders.forEach((header, cellIndex) => {
       if (header) row[header] = cells[cellIndex] ?? ''
     })
-    if (Object.values(row).every((value) => !value.trim())) return inputs
+    if (Object.values(row).every((value) => !value.trim())) return imports
 
-    inputs.push(assetInputFromCsvRow(row, index + 2))
-    return inputs
+    imports.push({
+      id: clean(row.id),
+      input: assetInputFromCsvRow(row, rowNumber),
+      rowNumber,
+    })
+    return imports
   }, [])
 }
 
@@ -324,12 +336,26 @@ export function Portfolio() {
         throw new Error('CSV has no assets to import')
       }
 
+      let created = 0
+      let updated = 0
+
       for (const asset of importedAssets) {
-        await createAsset(asset)
+        try {
+          if (asset.id) {
+            await updateAsset(asset.id, asset.input)
+            updated += 1
+          } else {
+            await createAsset(asset.input)
+            created += 1
+          }
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Error importing asset'
+          throw new Error(`Row ${asset.rowNumber}: ${message}`)
+        }
       }
 
       toast({
-        title: `Imported ${importedAssets.length} asset${importedAssets.length === 1 ? '' : 's'}`,
+        title: `CSV processed: ${created} created, ${updated} updated`,
         variant: 'success',
       })
     } catch (err) {
