@@ -42,11 +42,9 @@ CREATE TABLE IF NOT EXISTS assets (
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Migración única: unifica bank + custody en institution (idempotente).
--- Se puede borrar tras aplicarla una vez.
+-- Añade institution en BDs ya creadas (idempotente). Sin backfill de
+-- bank/custody: son solo datos de prueba. Se puede borrar tras aplicarla.
 ALTER TABLE assets ADD COLUMN IF NOT EXISTS institution TEXT;
-UPDATE assets SET institution = COALESCE(institution, bank, custody)
-  WHERE institution IS NULL AND (bank IS NOT NULL OR custody IS NOT NULL);
 
 CREATE INDEX IF NOT EXISTS idx_assets_type ON assets(type);
 
