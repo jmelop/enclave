@@ -452,7 +452,7 @@ body {
 /* ===== Asset row ===== */
 .p-asset {
   display: grid;
-  grid-template-columns: 44px minmax(260px, 1.8fr) minmax(120px, 1fr) 140px 100px 36px;
+  grid-template-columns: 44px minmax(180px, 1.3fr) minmax(120px, 1.4fr) minmax(96px, 0.9fr) 132px 92px 32px;
   align-items: center;
   gap: 16px;
   padding: 12px 18px;
@@ -461,6 +461,22 @@ body {
 }
 .p-asset:hover { background: var(--bg-2); }
 .p-asset:first-child { border-top: 0; }
+
+/* Column headers — grid-template-columns MUST match .p-asset */
+.p-asset-head {
+  display: grid;
+  grid-template-columns: 44px minmax(180px, 1.3fr) minmax(120px, 1.4fr) minmax(96px, 0.9fr) 132px 92px 32px;
+  align-items: center;
+  gap: 16px;
+  padding: 9px 18px 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--fg-4);
+}
+.p-asset-head .r { text-align: right; }
 .p-asset-mono {
   width: 36px; height: 36px;
   border-radius: 9px;
@@ -499,6 +515,16 @@ body {
   font-size: 12px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   min-width: 0;
+}
+.p-asset-note {
+  color: var(--fg-4);
+  font-size: 12px;
+  line-height: 1.4;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .p-asset-desc {
   color: var(--fg-3);
@@ -552,7 +578,7 @@ body {
   text-transform: lowercase;
 }
 .p-chip b { color: var(--fg-2); font-weight: 500; }
-.p-asset-name .dimsep { color: var(--fg-5); }
+.p-asset-name .dimsep { color: var(--fg-4); padding: 0 1px; }
 
 /* ===== Manual/Auto toggle ===== */
 .v-toggle {

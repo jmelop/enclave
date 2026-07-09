@@ -23,8 +23,8 @@ CREATE TABLE IF NOT EXISTS assets (
   quantity         NUMERIC(18, 6),
   change_pct_24h   NUMERIC(8, 4),
 
-  -- Solo crypto: dónde está custodiado (exchange, wallet, custodio)
-  custody          TEXT,
+  -- Dónde está el activo (broker, custody, banco, plataforma, seller…)
+  institution      TEXT,
 
   -- Solo funds
   isin             TEXT,
@@ -37,7 +37,6 @@ CREATE TABLE IF NOT EXISTS assets (
   valuation_date   DATE,
 
   -- Solo savings
-  bank             TEXT,
   apy              NUMERIC(6, 4),
 
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()

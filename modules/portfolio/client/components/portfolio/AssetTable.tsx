@@ -19,7 +19,7 @@ function AssetRow({ asset, hideValues, onDelete, onEdit }: AssetRowProps) {
   const isUp = isMarket && (asset.changePercent24h ?? 0) >= 0
 
   const primary = isMarket ? asset.symbol! : asset.name
-  const secondary = isMarket ? asset.name : (asset.bank ?? '')
+  const secondary = isMarket ? asset.name : (asset.institution ?? '')
 
   let detail = ''
   if (isMarket) {
@@ -42,7 +42,6 @@ function AssetRow({ asset, hideValues, onDelete, onEdit }: AssetRowProps) {
     if (asset.ter != null)  chips.push({ k: 'ter',  v: `${num(asset.ter, 2)}%` })
     if (asset.distribution) chips.push({ k: 'dist', v: asset.distribution })
   }
-  if (asset.currency !== 'EUR') chips.push({ k: 'fx', v: asset.currency })
 
   // ── dropdown state ────────────────────────────────────────────────────────
   const [dropOpen, setDropOpen] = useState(false)
@@ -102,15 +101,18 @@ function AssetRow({ asset, hideValues, onDelete, onEdit }: AssetRowProps) {
             ))}
           </div>
         )}
-        <div className="nm">
-          {secondary}
-          {asset.type === 'crypto' && asset.custody && (
-            <><span className="dimsep"> · </span>at {asset.custody}</>
-          )}
-          {asset.description && (
-            <><span className="dimsep"> · </span>{asset.description}</>
-          )}
-        </div>
+        {(secondary || (isMarket && asset.institution)) && (
+          <div className="nm">
+            {secondary}
+            {isMarket && asset.institution && (
+              <><span className="dimsep"> · </span>{asset.institution}</>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="p-asset-note" title={asset.description || undefined}>
+        {asset.description ?? ''}
       </div>
 
       <div className="p-asset-desc">{detail}</div>
@@ -297,11 +299,22 @@ export function AssetTable({ assets, category, hideValues, mode, onModeChange, o
           <p>Add your first {cat.label.toLowerCase()} from the Add Asset button.</p>
         </div>
       ) : (
-        <div>
-          {filtered.map((a) => (
-            <AssetRow key={a.id} asset={a} hideValues={hideValues} onDelete={onDelete} onEdit={onEdit} />
-          ))}
-        </div>
+        <>
+          <div className="p-asset-head">
+            <div />
+            <div>Asset</div>
+            <div>Description</div>
+            <div>Detail</div>
+            <div className="r">Value</div>
+            <div className="r">24h</div>
+            <div />
+          </div>
+          <div>
+            {filtered.map((a) => (
+              <AssetRow key={a.id} asset={a} hideValues={hideValues} onDelete={onDelete} onEdit={onEdit} />
+            ))}
+          </div>
+        </>
       )}
     </Card>
   )
