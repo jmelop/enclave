@@ -42,10 +42,6 @@ CREATE TABLE IF NOT EXISTS assets (
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Añade institution en BDs ya creadas (idempotente). Sin backfill de
--- bank/custody: son solo datos de prueba. Se puede borrar tras aplicarla.
-ALTER TABLE assets ADD COLUMN IF NOT EXISTS institution TEXT;
-
 CREATE INDEX IF NOT EXISTS idx_assets_type ON assets(type);
 
 CREATE TABLE IF NOT EXISTS allocation_targets (
