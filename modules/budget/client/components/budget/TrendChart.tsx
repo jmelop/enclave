@@ -19,13 +19,17 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
   const H = compact ? 144 : 204;
   const padL = 8, padR = 8, padT = compact ? 14 : 16, padB = 24;
   const maxV = Math.max(...data.map(d => Math.max(d.income, d.spent, d.budget))) * 1.15;
-  const iw = W - padL - padR;
+  const fullIw = W - padL - padR;
+  const plotScale = compact ? 1 : 0.68;
+  const iw = fullIw * plotScale;
+  const plotL = padL + (fullIw - iw) / 2;
+  const plotR = plotL + iw;
   const ih = H - padT - padB;
   const n = data.length;
   const slot = iw / n;
   const bw = Math.min(compact ? 16.8 : 19.2, slot * (compact ? 0.192 : 0.216));
   const yv = (v: number) => padT + ih - (v / maxV) * ih;
-  const xv = (i: number) => padL + slot * i + slot / 2;
+  const xv = (i: number) => plotL + slot * i + slot / 2;
 
   const incomePts = data.map((d, i) => `${xv(i)},${yv(d.income)}`).join(' ');
 
@@ -36,8 +40,8 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
     >
       {/* budget reference line */}
       <line
-        x1={padL} y1={yv(data[data.length - 1].budget)}
-        x2={W - padR} y2={yv(data[data.length - 1].budget)}
+        x1={plotL} y1={yv(data[data.length - 1].budget)}
+        x2={plotR} y2={yv(data[data.length - 1].budget)}
         stroke="var(--border-default)" strokeWidth="0.6" strokeDasharray="3 4"
       />
 
