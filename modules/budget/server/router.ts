@@ -18,8 +18,12 @@ function daysInMonth(year: number, monthZeroIdx: number): number {
   return new Date(year, monthZeroIdx + 1, 0).getDate()
 }
 
+function monthKeyFromDate(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+}
+
 function currentMonthKey(): string {
-  return new Date().toISOString().slice(0, 7)
+  return monthKeyFromDate(new Date())
 }
 
 function monthKeyOf(dateStr: string): string {
@@ -100,7 +104,7 @@ async function insertRecurringAsTransaction(
   bill: RecurringBillRow,
   monthKey: string,
 ): Promise<void> {
-  const dateStr = `${monthKey}-01`
+  const dateStr = makeDateStr(monthKey, bill.day)
   await client.query(
     `INSERT INTO budget_transactions
        (id, date, name, vendor, amount, category, source, recurring_bill_id)
@@ -109,23 +113,24 @@ async function insertRecurringAsTransaction(
   )
 }
 
-// Called inside a BEGIN transaction. Idempotent: skips if recurring rows already exist.
+// Called inside a BEGIN transaction. Idempotent per recurring bill + month.
 async function materializeMonth(client: DbClient, monthKey: string): Promise<void> {
   if (monthKey > currentMonthKey()) return  // never materialize future months
-
-  const { rows: exists } = await client.query(
-    `SELECT 1 FROM budget_transactions
-     WHERE source = 'recurring'
-       AND TO_CHAR(date, 'YYYY-MM') = $1
-     LIMIT 1`,
-    [monthKey],
-  )
-  if (exists.length > 0) return  // already materialized
 
   const { rows: bills } = await client.query('SELECT * FROM budget_recurring')
   if (bills.length === 0) return
 
   for (const bill of bills) {
+    const { rows: exists } = await client.query(
+      `SELECT 1 FROM budget_transactions
+       WHERE source = 'recurring'
+         AND recurring_bill_id = $1
+         AND TO_CHAR(date, 'YYYY-MM') = $2
+       LIMIT 1`,
+      [bill['id'], monthKey],
+    )
+    if (exists.length > 0) continue
+
     await insertRecurringAsTransaction(
       client,
       {
@@ -158,7 +163,7 @@ export function createBudgetRouter(pool: DbPool): Router {
         ORDER BY 1 DESC
       `)
 
-      if (keyRows.length === 0) return res.json(SEED_MONTH_SUMMARIES)
+      if (keyRows.length === 0) return res.json([])
 
       const keys = keyRows.map(r => r['month_key'] as string)
 
@@ -193,6 +198,7 @@ export function createBudgetRouter(pool: DbPool): Router {
             note:    mr ? String(mr['note'] ?? '') : '',
             asOfDay: asOfDayFor(key),
             spent:   spentByMonth.get(key) ?? {},
+            created: true,
           }
         }),
       )
@@ -203,27 +209,10 @@ export function createBudgetRouter(pool: DbPool): Router {
   })
 
   // ── GET /months/:key ───────────────────────────────────────────────────────
-  // Materializes recurring transactions lazily on first visit, then reads.
   router.get('/months/:key', async (req, res) => {
     const { key } = req.params
     if (!/^\d{4}-\d{2}$/.test(key)) {
       return res.status(400).json({ error: 'invalid month key format' })
-    }
-
-    // Lazy materialization (past + current months only)
-    if (key <= currentMonthKey()) {
-      const client = await pool.connect()
-      try {
-        await client.query('BEGIN')
-        await materializeMonth(client, key)
-        await client.query('COMMIT')
-      } catch (e) {
-        try { await client.query('ROLLBACK') } catch { /* swallow: connection gone */ }
-        console.warn('[budget] materializeMonth error:', e)
-        // continue — read will fall through to seed if needed
-      } finally {
-        client.release()
-      }
     }
 
     try {
@@ -246,6 +235,7 @@ export function createBudgetRouter(pool: DbPool): Router {
       ])
 
       const mr = monthRow.rows[0]
+      const created = Boolean(mr) || txRows.rows.length > 0
       return res.json({
         key,
         income:       mr ? Number(mr['income']) : 0,
@@ -254,10 +244,45 @@ export function createBudgetRouter(pool: DbPool): Router {
         transactions: txRows.rows.map(mapTransaction),
         recurring:    recurringRows.rows.map(mapRecurring),
         targets:      rowsToTargets(targetRows.rows),
+        created,
       })
     } catch (err) {
       console.warn('[budget] GET /months/:key db error:', err)
       return res.json(buildSeedMonthDetail(key))
+    }
+  })
+
+  // ── POST /months/:key/create ────────────────────────────────────────────────
+  router.post('/months/:key/create', async (req, res) => {
+    const { key } = req.params
+    if (!/^\d{4}-\d{2}$/.test(key)) {
+      return res.status(400).json({ error: 'invalid month key format' })
+    }
+    if (key > currentMonthKey()) {
+      return res.status(400).json({ error: 'cannot create a future month' })
+    }
+
+    const { income, note } = req.body as { income?: number; note?: string }
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+      await client.query(
+        `INSERT INTO budget_months (month_key, income, note)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (month_key) DO UPDATE
+           SET income = budget_months.income,
+               note   = budget_months.note`,
+        [key, Number(income) || 0, note ?? ''],
+      )
+      await materializeMonth(client, key)
+      await client.query('COMMIT')
+      return res.status(201).json({ key, created: true })
+    } catch (err) {
+      try { await client.query('ROLLBACK') } catch { /* swallow */ }
+      console.warn('[budget] POST /months/:key/create db error:', err)
+      return res.status(503).json({ error: 'Database unavailable' })
+    } finally {
+      client.release()
     }
   })
 
@@ -298,8 +323,7 @@ export function createBudgetRouter(pool: DbPool): Router {
 
   // ── POST /recurring ────────────────────────────────────────────────────────
   // Inserts the template AND immediately materializes it as a transaction for
-  // the current month (past months stay immutable; future months pick it up
-  // lazily via materializeMonth when first opened).
+  // the current month. Historical months pick it up when the user creates them.
   router.post('/recurring', async (req, res) => {
     const b = req.body as { name?: string; vendor?: string; amount?: number; cat?: string; day?: number; variable?: boolean }
     if (!b.name?.trim())              return res.status(400).json({ error: 'name is required' })

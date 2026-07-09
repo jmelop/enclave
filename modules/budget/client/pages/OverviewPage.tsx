@@ -7,6 +7,7 @@ import { CATEGORIES } from '@/lib/seed';
 import { SpendingGauge } from '@/components/budget/SpendingGauge';
 import { TrendChart } from '@/components/budget/TrendChart';
 import { CategoryGlyph } from '@/components/budget/CategoryGlyph';
+import { CreateMonthGate } from '@/components/budget/CreateMonthGate';
 import type { CategoryId } from '@/types/budget';
 
 interface Props {
@@ -68,7 +69,7 @@ export function OverviewPage({ onAddExpense }: Props) {
   const projDelta = prev ? (m.projected - prev.spent) / prev.spent : 0;
   const catsSorted = [...m.cats].sort((a, b) => b.spent - a.spent);
 
-  return (
+  const content = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {/* Hero */}
@@ -233,6 +234,8 @@ export function OverviewPage({ onAddExpense }: Props) {
       </footer>
     </div>
   );
+
+  return month.created === false ? <CreateMonthGate>{content}</CreateMonthGate> : content;
 }
 
 function StatTile({ icon, label, value, sub, valueColor, trend }: {

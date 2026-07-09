@@ -74,8 +74,10 @@ export default function BudgetApp() {
   })();
 
   const heroBtnDef = HERO_BTN[sectionLabel] ?? { label: 'Add expense', action: 'expense' as HeroAction };
+  const expenseActionsLocked = heroBtnDef.action === 'expense' && month.created === false;
 
   const handleHeroBtn = () => {
+    if (expenseActionsLocked) return;
     if (heroBtnDef.action === 'recurring') setAddRecurringOpen(true);
     else setExpenseModal({ mode: 'add' });
   };
@@ -159,7 +161,12 @@ export default function BudgetApp() {
           <div className="hero-row">
             <h1 className="hero-title">Budget<span className="hero-dot">.</span></h1>
             <div className="hero-actions">
-              <button className="btn btn-primary" onClick={handleHeroBtn}>
+              <button
+                className="btn btn-primary"
+                onClick={handleHeroBtn}
+                disabled={expenseActionsLocked}
+                title={expenseActionsLocked ? 'Create this month first' : undefined}
+              >
                 + {heroBtnDef.label}
               </button>
             </div>

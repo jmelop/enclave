@@ -44,6 +44,7 @@ export interface MonthData {
   spent: Record<CategoryId, number>;
   asOfDay: number;
   extra: Transaction[];
+  created?: boolean;
   note?: string;
 }
 

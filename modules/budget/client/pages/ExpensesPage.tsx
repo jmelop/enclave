@@ -8,6 +8,7 @@ import { fmt, fmt2 } from '@/lib/utils';
 import { CATEGORIES } from '@/lib/seed';
 import { CategoryGlyph } from '@/components/budget/CategoryGlyph';
 import { ConfirmDeleteModal } from '@/components/budget/ConfirmDeleteModal';
+import { CreateMonthGate } from '@/components/budget/CreateMonthGate';
 import type { CategoryId, Transaction } from '@/types/budget';
 
 interface ExpenseCsvImport {
@@ -366,7 +367,7 @@ export function ExpensesPage({ onAddExpense, onEditExpense }: Props) {
   }
 
   if (hydrated && transactions.length === 0) {
-    return (
+    const emptyState = (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, height: '40vh', color: 'var(--fg-3)' }}>
         <span>No expenses this month.</span>
         <div style={{ display: 'flex', gap: 10 }}>
@@ -384,6 +385,8 @@ export function ExpensesPage({ onAddExpense, onEditExpense }: Props) {
         />
       </div>
     );
+
+    return month.created === false ? <CreateMonthGate>{emptyState}</CreateMonthGate> : emptyState;
   }
 
   // ── Normal state ───────────────────────────────────────────────────────────
@@ -392,7 +395,7 @@ export function ExpensesPage({ onAddExpense, onEditExpense }: Props) {
   const manual        = month.extra;
   const variableTotal = transactions.filter(t => !t.recurring).reduce((s, t) => s + t.amount, 0);
 
-  return (
+  const content = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <button className="btn btn-secondary" onClick={() => importInputRef.current?.click()} disabled={importing}>
@@ -473,4 +476,6 @@ export function ExpensesPage({ onAddExpense, onEditExpense }: Props) {
       </footer>
     </div>
   );
+
+  return month.created === false ? <CreateMonthGate>{content}</CreateMonthGate> : content;
 }
