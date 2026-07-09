@@ -122,11 +122,20 @@ function CurrencyPicker({ value, onChange }: { value: string; onChange: (v: stri
   )
 }
 
+// Keep only digits and a single decimal point (accepts comma as decimal too).
+// Blocks letters and symbols from numeric fields.
+function numeric(v: string): string {
+  let s = v.replace(/,/g, '.').replace(/[^0-9.]/g, '')
+  const i = s.indexOf('.')
+  if (i !== -1) s = s.slice(0, i + 1) + s.slice(i + 1).replace(/\./g, '')
+  return s
+}
+
 function MoneyInput({ value, onChange, placeholder = '0.00', currency = 'EUR' }: { value: string; onChange: (v: string) => void; placeholder?: string; currency?: string }) {
   return (
     <div className="v-input-wrap">
       <input className="v-input p-mono" placeholder={placeholder} inputMode="decimal"
-             value={value} onChange={e => onChange(e.target.value)} />
+             value={value} onChange={e => onChange(numeric(e.target.value))} />
       <div className="v-input-suffix">{currency}</div>
     </div>
   )
@@ -398,7 +407,7 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
                 <label className="v-label">Quantity</label>
                 <div className="v-input-wrap">
                   <input className="v-input p-mono" placeholder="0.0000" inputMode="decimal"
-                         value={form.quantity ?? ''} onChange={e => set('quantity', e.target.value)} />
+                         value={form.quantity ?? ''} onChange={e => set('quantity', numeric(e.target.value))} />
                   <div className="v-input-suffix">{type === 'crypto' ? 'unit' : 'shares'}</div>
                 </div>
               </div>
@@ -446,7 +455,7 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
                 <label className="v-label">TER</label>
                 <div className="v-input-wrap">
                   <input className="v-input p-mono" placeholder="0.22" inputMode="decimal"
-                         value={form.ter ?? ''} onChange={e => set('ter', e.target.value)} />
+                         value={form.ter ?? ''} onChange={e => set('ter', numeric(e.target.value))} />
                   <div className="v-input-suffix">%</div>
                 </div>
                 <span className="v-hint">annual expense ratio</span>
@@ -470,7 +479,7 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
                 <label className="v-label">Shares</label>
                 <div className="v-input-wrap">
                   <input className="v-input p-mono" placeholder="0.0000" inputMode="decimal"
-                         value={form.quantity ?? ''} onChange={e => set('quantity', e.target.value)} />
+                         value={form.quantity ?? ''} onChange={e => set('quantity', numeric(e.target.value))} />
                   <div className="v-input-suffix">shares</div>
                 </div>
               </div>
@@ -498,7 +507,7 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
                 <label className="v-label">APY</label>
                 <div className="v-input-wrap">
                   <input className="v-input p-mono" placeholder="0.00" inputMode="decimal"
-                         value={form.apy ?? ''} onChange={e => set('apy', e.target.value)} />
+                         value={form.apy ?? ''} onChange={e => set('apy', numeric(e.target.value))} />
                   <div className="v-input-suffix">%</div>
                 </div>
               </div>
