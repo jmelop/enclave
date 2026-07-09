@@ -321,6 +321,12 @@ body {
 .v-btn.v-btn-sm { height: 28px; padding: 0 10px; font-size: 12px; gap: 5px; }
 .v-btn.v-btn-icon { width: 34px; padding: 0; }
 .v-btn.v-btn-icon.v-btn-sm { width: 28px; }
+.p-action-icon {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  margin-right: 6px;
+}
 
 /* ===== Card ===== */
 .v-card {

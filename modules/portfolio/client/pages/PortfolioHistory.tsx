@@ -161,10 +161,12 @@ export function PortfolioHistory() {
             <Icon name="eye" />
           </Button>
           <Button variant="secondary" size="sm" onClick={() => void fetchHistory()} disabled={historyLoading}>
-            <Icon name="refresh" /> Refresh
+            <span className="p-action-icon"><Icon name="refresh" /></span>
+            <span>Refresh</span>
           </Button>
           <Button variant="primary" size="sm" onClick={handleCapture} disabled={historyLoading}>
-            <Icon name="chart" /> Capture snapshot
+            <span className="p-action-icon"><Icon name="chart" /></span>
+            <span>Capture snapshot</span>
           </Button>
         </div>
       </div>
