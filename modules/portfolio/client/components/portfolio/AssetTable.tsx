@@ -42,7 +42,6 @@ function AssetRow({ asset, hideValues, onDelete, onEdit }: AssetRowProps) {
     if (asset.ter != null)  chips.push({ k: 'ter',  v: `${num(asset.ter, 2)}%` })
     if (asset.distribution) chips.push({ k: 'dist', v: asset.distribution })
   }
-  if (asset.currency !== 'EUR') chips.push({ k: 'fx', v: asset.currency })
 
   // ── dropdown state ────────────────────────────────────────────────────────
   const [dropOpen, setDropOpen] = useState(false)
@@ -106,13 +105,14 @@ function AssetRow({ asset, hideValues, onDelete, onEdit }: AssetRowProps) {
           <div className="nm">
             {secondary}
             {asset.type === 'crypto' && asset.custody && (
-              <><span className="dimsep"> · </span>at {asset.custody}</>
+              <><span className="dimsep"> · </span>{asset.custody}</>
             )}
           </div>
         )}
-        {asset.description && (
-          <div className="note" title={asset.description}>{asset.description}</div>
-        )}
+      </div>
+
+      <div className="p-asset-note" title={asset.description || undefined}>
+        {asset.description ?? ''}
       </div>
 
       <div className="p-asset-desc">{detail}</div>
