@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppShell } from './components/layout/AppShell'
 import { Portfolio } from './pages/Portfolio'
+import { PortfolioHistory } from './pages/PortfolioHistory'
 
 export default function App() {
   return (
@@ -9,6 +10,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/portfolio" replace />} />
           <Route path="/portfolio" element={<Portfolio />} />
+          <Route path="/portfolio/history" element={<PortfolioHistory />} />
           <Route
             path="*"
             element={

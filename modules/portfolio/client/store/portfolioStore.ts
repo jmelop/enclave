@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Asset, AllocationTarget, FXRate, PortfolioState, AssetInput } from '../types/portfolio'
+import type { Asset, AllocationTarget, FXRate, PortfolioState, AssetInput, PortfolioSnapshot } from '../types/portfolio'
 import { CATEGORY_ORDER, TARGETS } from '../lib/utils'
 
 const fxRates: FXRate[] = [
@@ -19,14 +19,34 @@ async function fetchHoldings(): Promise<Asset[]> {
   return (await res.json()) as Asset[]
 }
 
+async function fetchSnapshots(): Promise<PortfolioSnapshot[]> {
+  const res = await fetch('/api/portfolio/history')
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return (await res.json()) as PortfolioSnapshot[]
+}
+
+async function postSnapshot(): Promise<PortfolioSnapshot> {
+  const res = await fetch('/api/portfolio/history/snapshot', { method: 'POST' })
+  if (!res.ok) {
+    const body = await res.json() as { error?: string }
+    throw new Error(body.error ?? `HTTP ${res.status}`)
+  }
+  return (await res.json()) as PortfolioSnapshot
+}
+
 interface Store extends PortfolioState {
+  snapshots: PortfolioSnapshot[]
   setAssets: (assets: Asset[]) => void
   setLastSync: (ts: string) => void
   loading: boolean
+  historyLoading: boolean
   error: string | null
+  historyError: string | null
   hydrated: boolean
   hydrate: () => Promise<void>
   refetch: () => Promise<void>
+  fetchHistory: () => Promise<void>
+  captureSnapshot: () => Promise<void>
   createAsset: (input: AssetInput) => Promise<void>
   updateAsset: (id: string, input: AssetInput) => Promise<void>
   deleteAsset: (id: string) => Promise<void>
@@ -34,11 +54,14 @@ interface Store extends PortfolioState {
 
 export const usePortfolioStore = create<Store>()((set, get) => ({
   assets: [],
+  snapshots: [],
   targets,
   fxRates,
   lastSync: '2026-05-18T23:15:00Z',
   loading: false,
+  historyLoading: false,
   error: null,
+  historyError: null,
   hydrated: false,
   setAssets: (assets) => set({ assets }),
   setLastSync: (lastSync) => set({ lastSync }),
@@ -66,6 +89,32 @@ export const usePortfolioStore = create<Store>()((set, get) => ({
         error: err instanceof Error ? err.message : 'Network error',
         loading: false,
       })
+    }
+  },
+  fetchHistory: async () => {
+    set({ historyLoading: true, historyError: null })
+    try {
+      const snapshots = await fetchSnapshots()
+      set({ snapshots, historyLoading: false, historyError: null })
+    } catch (err) {
+      set({
+        historyError: err instanceof Error ? err.message : 'Network error',
+        historyLoading: false,
+      })
+    }
+  },
+  captureSnapshot: async () => {
+    set({ historyLoading: true, historyError: null })
+    try {
+      await postSnapshot()
+      const snapshots = await fetchSnapshots()
+      set({ snapshots, historyLoading: false, historyError: null })
+    } catch (err) {
+      set({
+        historyError: err instanceof Error ? err.message : 'Network error',
+        historyLoading: false,
+      })
+      throw err
     }
   },
   updateAsset: async (id: string, input: AssetInput) => {
