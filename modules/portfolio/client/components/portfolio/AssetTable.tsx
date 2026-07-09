@@ -299,11 +299,22 @@ export function AssetTable({ assets, category, hideValues, mode, onModeChange, o
           <p>Add your first {cat.label.toLowerCase()} from the Add Asset button.</p>
         </div>
       ) : (
-        <div>
-          {filtered.map((a) => (
-            <AssetRow key={a.id} asset={a} hideValues={hideValues} onDelete={onDelete} onEdit={onEdit} />
-          ))}
-        </div>
+        <>
+          <div className="p-asset-head">
+            <div />
+            <div>Asset</div>
+            <div>Description</div>
+            <div>Detail</div>
+            <div className="r">Value</div>
+            <div className="r">24h</div>
+            <div />
+          </div>
+          <div>
+            {filtered.map((a) => (
+              <AssetRow key={a.id} asset={a} hideValues={hideValues} onDelete={onDelete} onEdit={onEdit} />
+            ))}
+          </div>
+        </>
       )}
     </Card>
   )

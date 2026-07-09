@@ -461,6 +461,22 @@ body {
 }
 .p-asset:hover { background: var(--bg-2); }
 .p-asset:first-child { border-top: 0; }
+
+/* Column headers — grid-template-columns MUST match .p-asset */
+.p-asset-head {
+  display: grid;
+  grid-template-columns: 44px minmax(180px, 1.3fr) minmax(120px, 1.4fr) minmax(96px, 0.9fr) 132px 92px 32px;
+  align-items: center;
+  gap: 16px;
+  padding: 9px 18px 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--fg-4);
+}
+.p-asset-head .r { text-align: right; }
 .p-asset-mono {
   width: 36px; height: 36px;
   border-radius: 9px;
