@@ -18,7 +18,7 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
   const W = 700;
   const H = compact ? 144 : 204;
   const padL = 8, padR = 8, padT = compact ? 14 : 16, padB = 24;
-  const maxV = Math.max(...data.map(d => Math.max(d.income, d.spent, d.budget))) * 1.15;
+  const maxV = Math.max(1, ...data.map(d => Math.max(d.income, d.spent, d.budget))) * 1.15;
   const fullIw = W - padL - padR;
   const plotScale = compact ? 1 : 0.68;
   const iw = fullIw * plotScale;
@@ -31,7 +31,18 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
   const yv = (v: number) => padT + ih - (v / maxV) * ih;
   const xv = (i: number) => plotL + slot * i + slot / 2;
 
-  const incomePts = data.map((d, i) => `${xv(i)},${yv(d.income)}`).join(' ');
+  const hasIncomePoint = (d: typeof data[number]) => d.m.created !== false && d.income > 0;
+  const incomeSegments = data.reduce<string[][]>((segments, d, i) => {
+    if (!hasIncomePoint(d)) return segments;
+
+    const point = `${xv(i)},${yv(d.income)}`;
+    if (i === 0 || !hasIncomePoint(data[i - 1]) || segments.length === 0) {
+      segments.push([point]);
+    } else {
+      segments[segments.length - 1].push(point);
+    }
+    return segments;
+  }, []);
 
   return (
     <svg
@@ -86,14 +97,17 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
       })}
 
       {/* income polyline */}
-      <polyline
-        points={incomePts}
-        fill="none" stroke="var(--success)" strokeWidth={compact ? 0.7 : 0.75}
-        strokeLinejoin="round" strokeLinecap="round"
-      />
-      {data.map((d, i) => (
-        <circle key={i} cx={xv(i)} cy={yv(d.income)} r={compact ? 1.1 : 1.25} fill="var(--bg-1)" stroke="var(--success)" strokeWidth={compact ? 0.7 : 0.75} />
+      {incomeSegments.map((segment, i) => (
+        <polyline
+          key={i}
+          points={segment.join(' ')}
+          fill="none" stroke="var(--success)" strokeWidth={compact ? 0.7 : 0.75}
+          strokeLinejoin="round" strokeLinecap="round"
+        />
       ))}
+      {data.map((d, i) => hasIncomePoint(d) ? (
+        <circle key={i} cx={xv(i)} cy={yv(d.income)} r={compact ? 1.1 : 1.25} fill="var(--bg-1)" stroke="var(--success)" strokeWidth={compact ? 0.7 : 0.75} />
+      ) : null)}
     </svg>
   );
 }
