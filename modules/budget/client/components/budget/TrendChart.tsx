@@ -31,11 +31,11 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
   const yv = (v: number) => padT + ih - (v / maxV) * ih;
   const xv = (i: number) => plotL + slot * i + slot / 2;
 
-  const incomeLineValues = (() => {
+  const incomeLine = (() => {
     const fallback = data.map(d => Math.max(d.spent, 1));
     const positiveIncome = data.map(d => d.income).filter(income => income > 0);
     const hasUsefulIncomeTrend = new Set(positiveIncome).size > 1;
-    if (!hasUsefulIncomeTrend) return fallback;
+    if (!hasUsefulIncomeTrend) return { values: fallback, followsBars: true };
 
     const values = data.map(d => d.income > 0 ? d.income : null);
 
@@ -52,11 +52,16 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
       else if (next !== null) filled[i] = next;
     }
 
-    return filled.map((v, i) => v ?? fallback[i]);
+    return { values: filled.map((v, i) => v ?? fallback[i]), followsBars: false };
   })();
-  const incomeMax = Math.max(1, ...incomeLineValues) * 1.15;
-  const incomeYv = (v: number) => padT + ih - (v / incomeMax) * ih;
-  const incomePts = incomeLineValues.map((v, i) => `${xv(i)},${incomeYv(v)}`).join(' ');
+  const incomeMax = Math.max(1, ...incomeLine.values) * 1.15;
+  const lineGap = compact ? 5 : 7;
+  const incomeYv = (v: number) => (
+    incomeLine.followsBars
+      ? Math.max(padT, yv(v) - lineGap)
+      : padT + ih - (v / incomeMax) * ih
+  );
+  const incomePts = incomeLine.values.map((v, i) => `${xv(i)},${incomeYv(v)}`).join(' ');
 
   return (
     <svg
@@ -116,7 +121,7 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
         fill="none" stroke="var(--success)" strokeWidth={compact ? 0.7 : 0.75}
         strokeLinejoin="round" strokeLinecap="round"
       />
-      {incomeLineValues.map((v, i) => (
+      {incomeLine.values.map((v, i) => (
         <circle key={i} cx={xv(i)} cy={incomeYv(v)} r={compact ? 1.1 : 1.25} fill="var(--bg-1)" stroke="var(--success)" strokeWidth={compact ? 0.7 : 0.75} />
       ))}
     </svg>
