@@ -31,18 +31,29 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
   const yv = (v: number) => padT + ih - (v / maxV) * ih;
   const xv = (i: number) => plotL + slot * i + slot / 2;
 
-  const hasIncomePoint = (d: typeof data[number]) => d.m.created !== false && d.income > 0;
-  const incomeSegments = data.reduce<string[][]>((segments, d, i) => {
-    if (!hasIncomePoint(d)) return segments;
+  const incomeLineValues = (() => {
+    const fallback = data.map(d => Math.max(d.spent, d.budget, 1));
+    const values = data.map(d => d.income > 0 ? d.income : null);
+    if (!values.some(v => v !== null)) return fallback;
 
-    const point = `${xv(i)},${yv(d.income)}`;
-    if (i === 0 || !hasIncomePoint(data[i - 1]) || segments.length === 0) {
-      segments.push([point]);
-    } else {
-      segments[segments.length - 1].push(point);
+    const filled = [...values];
+    let previous: number | null = null;
+    for (let i = 0; i < filled.length; i += 1) {
+      if (filled[i] !== null) previous = filled[i];
+      else if (previous !== null) filled[i] = previous;
     }
-    return segments;
-  }, []);
+
+    let next: number | null = null;
+    for (let i = filled.length - 1; i >= 0; i -= 1) {
+      if (filled[i] !== null) next = filled[i];
+      else if (next !== null) filled[i] = next;
+    }
+
+    return filled.map((v, i) => v ?? fallback[i]);
+  })();
+  const incomeMax = Math.max(1, ...incomeLineValues) * 1.15;
+  const incomeYv = (v: number) => padT + ih - (v / incomeMax) * ih;
+  const incomePts = incomeLineValues.map((v, i) => `${xv(i)},${incomeYv(v)}`).join(' ');
 
   return (
     <svg
@@ -97,17 +108,14 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
       })}
 
       {/* income polyline */}
-      {incomeSegments.map((segment, i) => (
-        <polyline
-          key={i}
-          points={segment.join(' ')}
-          fill="none" stroke="var(--success)" strokeWidth={compact ? 0.7 : 0.75}
-          strokeLinejoin="round" strokeLinecap="round"
-        />
+      <polyline
+        points={incomePts}
+        fill="none" stroke="var(--success)" strokeWidth={compact ? 0.7 : 0.75}
+        strokeLinejoin="round" strokeLinecap="round"
+      />
+      {incomeLineValues.map((v, i) => (
+        <circle key={i} cx={xv(i)} cy={incomeYv(v)} r={compact ? 1.1 : 1.25} fill="var(--bg-1)" stroke="var(--success)" strokeWidth={compact ? 0.7 : 0.75} />
       ))}
-      {data.map((d, i) => hasIncomePoint(d) ? (
-        <circle key={i} cx={xv(i)} cy={yv(d.income)} r={compact ? 1.1 : 1.25} fill="var(--bg-1)" stroke="var(--success)" strokeWidth={compact ? 0.7 : 0.75} />
-      ) : null)}
     </svg>
   );
 }
