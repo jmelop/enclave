@@ -31,11 +31,16 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
   const yv = (v: number) => padT + ih - (v / maxV) * ih;
   const xv = (i: number) => plotL + slot * i + slot / 2;
 
-  const incomeLine = (() => {
+  // Placeholder months (never created) get no line point — no bar to anchor to.
+  const isRealMonth = (d: typeof data[number]) => d.m.created !== false;
+
+  // Without at least two distinct incomes the line would be flat or empty,
+  // so it traces spending instead and still reads as a trend over the bars.
+  const incomeLineValues = (() => {
     const fallback = data.map(d => Math.max(d.spent, 1));
     const positiveIncome = data.map(d => d.income).filter(income => income > 0);
     const hasUsefulIncomeTrend = new Set(positiveIncome).size > 1;
-    if (!hasUsefulIncomeTrend) return { values: fallback, followsBars: true };
+    if (!hasUsefulIncomeTrend) return fallback;
 
     const values = data.map(d => d.income > 0 ? d.income : null);
 
@@ -52,16 +57,12 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
       else if (next !== null) filled[i] = next;
     }
 
-    return { values: filled.map((v, i) => v ?? fallback[i]), followsBars: false };
+    return filled.map((v, i) => v ?? fallback[i]);
   })();
-  const incomeMax = Math.max(1, ...incomeLine.values) * 1.15;
-  const lineGap = compact ? 5 : 7;
-  const incomeYv = (v: number) => (
-    incomeLine.followsBars
-      ? Math.max(padT, yv(v) - lineGap)
-      : padT + ih - (v / incomeMax) * ih
-  );
-  const incomePts = incomeLine.values.map((v, i) => `${xv(i)},${incomeYv(v)}`).join(' ');
+  const incomePts = incomeLineValues
+    .map((v, i) => (isRealMonth(data[i]) ? `${xv(i)},${yv(v)}` : null))
+    .filter((p): p is string => p !== null)
+    .join(' ');
 
   return (
     <svg
@@ -121,9 +122,9 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
         fill="none" stroke="var(--success)" strokeWidth={compact ? 0.7 : 0.75}
         strokeLinejoin="round" strokeLinecap="round"
       />
-      {incomeLine.values.map((v, i) => (
-        <circle key={i} cx={xv(i)} cy={incomeYv(v)} r={compact ? 1.1 : 1.25} fill="var(--bg-1)" stroke="var(--success)" strokeWidth={compact ? 0.7 : 0.75} />
-      ))}
+      {incomeLineValues.map((v, i) => isRealMonth(data[i]) ? (
+        <circle key={i} cx={xv(i)} cy={yv(v)} r={compact ? 1.1 : 1.25} fill="var(--bg-1)" stroke="var(--success)" strokeWidth={compact ? 0.7 : 0.75} />
+      ) : null)}
     </svg>
   );
 }
