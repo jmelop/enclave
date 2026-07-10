@@ -90,8 +90,7 @@ export default function BudgetApp() {
   ) => {
     if (expenseModal?.mode === 'edit') {
       void updateExpense(expenseModal.tx.id, {
-        name, vendor: name, amount, cat, day,
-        recurring: false, manual: true,
+        name, vendor: expenseModal.tx.vendor || name, amount, cat, day,
       });
     } else {
       void addExpense({ name, vendor: name, amount, cat, day, recurring: false });

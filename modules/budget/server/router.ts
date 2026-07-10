@@ -121,10 +121,11 @@ async function materializeMonth(client: DbClient, monthKey: string): Promise<voi
   if (bills.length === 0) return
 
   for (const bill of bills) {
+    // No source filter: a materialized row edited into 'manual' still counts,
+    // otherwise re-running create for the month would duplicate the bill.
     const { rows: exists } = await client.query(
       `SELECT 1 FROM budget_transactions
-       WHERE source = 'recurring'
-         AND recurring_bill_id = $1
+       WHERE recurring_bill_id = $1
          AND TO_CHAR(date, 'YYYY-MM') = $2
        LIMIT 1`,
       [bill['id'], monthKey],
@@ -479,6 +480,8 @@ export function createBudgetRouter(pool: DbPool): Router {
   })
 
   // ── PUT /transactions/:id ──────────────────────────────────────────────────
+  // Editing detaches the row from its recurring template: source flips to
+  // 'manual' (recurring_bill_id is kept so materialization stays idempotent).
   router.put('/transactions/:id', async (req, res) => {
     const { id } = req.params
     const b = req.body as { name?: string; vendor?: string; amount?: number; cat?: string; day?: number; monthKey?: string }
@@ -493,7 +496,7 @@ export function createBudgetRouter(pool: DbPool): Router {
     try {
       const { rows } = await pool.query(
         `UPDATE budget_transactions
-         SET name=$2, vendor=$3, amount=$4, category=$5, date=$6
+         SET name=$2, vendor=$3, amount=$4, category=$5, date=$6, source='manual'
          WHERE id=$1
          RETURNING *`,
         [id, b.name.trim(), b.vendor?.trim() ?? b.name.trim(), b.amount, b.cat, dateStr],

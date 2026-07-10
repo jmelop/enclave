@@ -238,42 +238,42 @@ function ExpenseRow({ t, monthLabel, onEdit, onDelete }: ExpenseRowProps) {
       <div className="mono" style={{ fontSize: 11.5, color: 'var(--fg-3)' }}>{monthLabel.slice(0, 3)} {t.day}</div>
       <div className="mono" style={{ fontSize: 13, fontWeight: 600, textAlign: 'right' }}>−{fmt2(t.amount)}</div>
 
-      {/* Actions — dropdown only for manual transactions */}
+      {/* Actions — edit for every row (recurring rows turn manual on save), delete only for manual ones */}
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        {t.manual ? (
-          <div ref={dropRef} style={{ position: 'relative' }}>
-            <button
-              className="icon-btn"
-              title="More options"
-              onClick={() => setDropOpen(o => !o)}
-              style={{ width: 28, padding: 0, fontWeight: 700, fontSize: 15, letterSpacing: 1 }}
-            >
-              ···
-            </button>
+        <div ref={dropRef} style={{ position: 'relative' }}>
+          <button
+            className="icon-btn"
+            title="More options"
+            onClick={() => setDropOpen(o => !o)}
+            style={{ width: 28, padding: 0, fontWeight: 700, fontSize: 15, letterSpacing: 1 }}
+          >
+            ···
+          </button>
 
-            {dropOpen && (
-              <div style={{
-                position: 'absolute', right: 0, top: '100%', marginTop: 4,
-                minWidth: 110, zIndex: 10,
-                background: 'var(--bg-2)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 8,
-                boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
-                padding: '4px 0',
-              }}>
-                <button
-                  onClick={() => { setDropOpen(false); onEdit(t); }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    width: '100%', padding: '8px 14px', textAlign: 'left',
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    fontSize: 13, color: 'var(--fg-1)', transition: 'background 0.12s',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-3)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                >
-                  Edit
-                </button>
+          {dropOpen && (
+            <div style={{
+              position: 'absolute', right: 0, top: '100%', marginTop: 4,
+              minWidth: 110, zIndex: 10,
+              background: 'var(--bg-2)',
+              border: '1px solid var(--border-default)',
+              borderRadius: 8,
+              boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+              padding: '4px 0',
+            }}>
+              <button
+                onClick={() => { setDropOpen(false); onEdit(t); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  width: '100%', padding: '8px 14px', textAlign: 'left',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 13, color: 'var(--fg-1)', transition: 'background 0.12s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-3)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+              >
+                Edit
+              </button>
+              {t.manual && (
                 <button
                   onClick={() => { setDropOpen(false); setConfirmOpen(true); }}
                   style={{
@@ -287,21 +287,19 @@ function ExpenseRow({ t, monthLabel, onEdit, onDelete }: ExpenseRowProps) {
                 >
                   Delete
                 </button>
-              </div>
-            )}
+              )}
+            </div>
+          )}
 
-            <ConfirmDeleteModal
-              open={confirmOpen}
-              itemName={t.name}
-              title="Delete expense"
-              loading={deleting}
-              onConfirm={() => void handleConfirmDelete()}
-              onCancel={() => setConfirmOpen(false)}
-            />
-          </div>
-        ) : (
-          <span style={{ width: 30 }} />
-        )}
+          <ConfirmDeleteModal
+            open={confirmOpen}
+            itemName={t.name}
+            title="Delete expense"
+            loading={deleting}
+            onConfirm={() => void handleConfirmDelete()}
+            onCancel={() => setConfirmOpen(false)}
+          />
+        </div>
       </div>
     </div>
   );
