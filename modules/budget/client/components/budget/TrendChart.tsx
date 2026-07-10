@@ -32,9 +32,12 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
   const xv = (i: number) => plotL + slot * i + slot / 2;
 
   const incomeLineValues = (() => {
-    const fallback = data.map(d => Math.max(d.spent, d.budget, 1));
+    const fallback = data.map(d => Math.max(d.spent, 1));
+    const positiveIncome = data.map(d => d.income).filter(income => income > 0);
+    const hasUsefulIncomeTrend = new Set(positiveIncome).size > 1;
+    if (!hasUsefulIncomeTrend) return fallback;
+
     const values = data.map(d => d.income > 0 ? d.income : null);
-    if (!values.some(v => v !== null)) return fallback;
 
     const filled = [...values];
     let previous: number | null = null;
