@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { ChangeEvent } from 'react';
 import { Card } from '@venator-ui/ui';
-import { List, Zap, Plus, Upload } from 'lucide-react';
+import { Download, List, Zap, Plus, Upload } from 'lucide-react';
 import { useBudgetStore, useCurrentMonth } from '@/store/budgetStore';
 import { useToast } from '@venator-ui/ui';
 import { fmt, fmt2 } from '@/lib/utils';
@@ -18,6 +18,35 @@ interface ExpenseCsvImport {
   cat: CategoryId
   day: number
   rowNumber: number
+}
+
+const EXPORT_HEADERS = ['id', 'date', 'day', 'name', 'vendor', 'amount', 'cat', 'source'];
+
+function csvCell(value: string | number | undefined): string {
+  const text = String(value ?? '')
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
+}
+
+function dateFromMonthDay(monthKey: string, day: number): string {
+  return `${monthKey}-${String(day).padStart(2, '0')}`
+}
+
+function exportExpenseCsv(transactions: Transaction[], monthKey: string): string {
+  const rows = transactions.map((tx) => [
+    tx.id,
+    dateFromMonthDay(monthKey, tx.day),
+    tx.day,
+    tx.name,
+    tx.vendor,
+    tx.amount.toFixed(2),
+    tx.cat,
+    tx.recurring ? 'recurring' : 'manual',
+  ])
+
+  return [
+    EXPORT_HEADERS.join(','),
+    ...rows.map(row => row.map(csvCell).join(',')),
+  ].join('\n')
 }
 
 function parseCsvRows(text: string): string[][] {
@@ -300,6 +329,26 @@ export function ExpensesPage({ onAddExpense, onEditExpense }: Props) {
   const [catFilter, setCatFilter] = useState<CategoryId | null>(null);
   const [importing, setImporting] = useState(false);
 
+  const handleExportCsv = () => {
+    if (transactions.length === 0) return;
+
+    const csv = exportExpenseCsv(transactions, month.key);
+    const blob = new Blob([`\ufeff${csv}\n`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `budget-expenses-${month.key}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: `Exported ${transactions.length} expense${transactions.length === 1 ? '' : 's'}`,
+      variant: 'success',
+    });
+  };
+
   const handleImportCsv = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -372,6 +421,9 @@ export function ExpensesPage({ onAddExpense, onEditExpense }: Props) {
         <span>No expenses this month.</span>
         <div style={{ display: 'flex', gap: 10 }}>
           <button className="btn btn-primary" onClick={onAddExpense}>+ Add your first expense</button>
+          <button className="btn btn-secondary" onClick={handleExportCsv} disabled>
+            <Download size={14} /> Export CSV
+          </button>
           <button className="btn btn-secondary" onClick={() => importInputRef.current?.click()} disabled={importing}>
             <Upload size={14} /> {importing ? 'Importing' : 'Import CSV'}
           </button>
@@ -397,7 +449,10 @@ export function ExpensesPage({ onAddExpense, onEditExpense }: Props) {
 
   const content = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+        <button className="btn btn-secondary" onClick={handleExportCsv} disabled={transactions.length === 0}>
+          <Download size={14} /> Export CSV
+        </button>
         <button className="btn btn-secondary" onClick={() => importInputRef.current?.click()} disabled={importing}>
           <Upload size={14} /> {importing ? 'Importing' : 'Import CSV'}
         </button>
