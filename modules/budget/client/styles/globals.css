@@ -230,7 +230,11 @@ button { font-family: inherit; }
 }
 .btn:hover { background: var(--bg-3); border-color: var(--border-default); }
 .btn-primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-.btn-primary:hover { filter: brightness(1.06); }
+/* Double class beats the .btn:hover / .btn-primary:hover rules that every
+   module's stylesheet also registers globally in the dashboard — the last one
+   loaded was repainting primary buttons with the dark --bg-3 on hover.
+   Hover keeps the accent and just dims slightly. */
+.btn.btn-primary:hover { background: var(--accent); border-color: var(--accent); filter: brightness(0.92); }
 .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn-ghost { background: transparent; }
 .btn-ghost:hover { background: var(--bg-2); }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Card } from '@venator-ui/ui';
-import { Zap, TrendingUp, Wallet, Target, Banknote } from 'lucide-react';
+import { Zap, TrendingUp, Wallet, Target, HandCoins } from 'lucide-react';
 import { useBudgetStore, useCurrentMonth } from '@/store/budgetStore';
 import { computeMetrics, fmt, fmt2, fmtSigned, pct } from '@/lib/utils';
 import { CATEGORIES } from '@/lib/seed';
@@ -117,7 +117,7 @@ export function OverviewPage({ onAddExpense }: Props) {
         <StatTile icon={<Target size={14} />} label="Projected" value={fmt(m.inProgress ? m.projected : m.spent)} valueColor={over ? 'var(--danger)' : undefined}
           sub={`${over ? 'Over' : 'Under'} budget by ${fmt(Math.abs(m.totalBudget - (m.inProgress ? m.projected : m.spent)))}`}
           trend={prev ? { dir: projDelta, label: pct(Math.abs(projDelta)) } : undefined} />
-        <StatTile icon={<Banknote size={14} />} label="Income this month" value={fmt(m.income)} valueColor="var(--success)"
+        <StatTile icon={<HandCoins size={14} />} label="Income this month" value={fmt(m.income)} valueColor="var(--success)"
           sub={incomes.length > 0 ? `${incomes.length} income ${incomes.length === 1 ? 'entry' : 'entries'}` : 'No income logged yet'} />
         <StatTile icon={<TrendingUp size={14} />} label="Saved this month" value={fmtSigned(m.income - m.spent)} valueColor={m.income - m.spent >= 0 ? 'var(--success)' : 'var(--danger)'}
           sub={`Income ${fmt(m.income)} − spent ${fmt(m.spent)}`} />

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card } from '@venator-ui/ui';
-import { Banknote, Star, TrendingUp } from 'lucide-react';
+import { HandCoins, Star, TrendingUp } from 'lucide-react';
 import { useBudgetStore, useCurrentMonth } from '@/store/budgetStore';
 import { useToast } from '@venator-ui/ui';
 import { computeMetrics, fmt, fmt2, fmtSigned } from '@/lib/utils';
@@ -56,7 +56,7 @@ function IncomeRow({ e, monthLabel, onEdit, onDelete }: IncomeRowProps) {
         width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: 'color-mix(in srgb, var(--success) 14%, transparent)', color: 'var(--success)',
       }}>
-        <Banknote size={15} />
+        <HandCoins size={15} />
       </div>
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -185,7 +185,7 @@ export function IncomePage({ onAddIncome, onEditIncome }: Props) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div className="stats">
         <div className="stat-card">
-          <div className="stat-head"><div className="stat-icon"><Banknote size={14} /></div><span className="stat-label">TOTAL THIS MONTH</span></div>
+          <div className="stat-head"><div className="stat-icon"><HandCoins size={14} /></div><span className="stat-label">TOTAL THIS MONTH</span></div>
           <div className="stat-value mono" style={{ color: 'var(--success)' }}>{fmt(total)}</div>
           <div className="stat-sub">{incomes.length} income {incomes.length === 1 ? 'entry' : 'entries'}</div>
         </div>

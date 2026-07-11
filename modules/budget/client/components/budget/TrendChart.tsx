@@ -34,6 +34,9 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
   // Spent + income bars sit side by side, centered on the month slot.
   const spentCx  = (i: number) => xv(i) - pairGap / 2 - bw / 2;
   const incomeCx = (i: number) => xv(i) + pairGap / 2 + bw / 2;
+  const labelSize = compact ? 5.1 : 5.7;
+  // Compact slots are too narrow for two full €-figures side by side.
+  const fmtBar = (v: number) => (compact && v >= 1000 ? `€${(v / 1000).toFixed(1)}k` : fmt(v));
 
   return (
     <svg
@@ -50,36 +53,51 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
       {data.map((d, i) => {
         const active = i === activeIdx;
         const over = d.spent > d.budget;
-        const barY = yv(d.spent);
-        const barH = padT + ih - barY;
-        const labelInside = barH > (compact ? 14 : 16);
         return (
           <g key={i} onClick={() => onSelect(i)} style={{ cursor: 'pointer' }}>
             <rect x={xv(i) - slot / 2} y={padT} width={slot} height={ih} fill="transparent" />
-            <rect
-              x={spentCx(i) - bw / 2} y={barY} width={bw} height={barH} rx="2.1"
-              fill={active ? 'var(--accent)' : (over ? 'var(--danger)' : 'var(--bg-3)')}
-              stroke={active ? 'none' : 'var(--border-subtle)'}
-              style={{ transition: 'all .25s ease' }}
-            />
-            {d.income > 0 && (
-              <rect
-                x={incomeCx(i) - bw / 2} y={yv(d.income)} width={bw} height={padT + ih - yv(d.income)} rx="2.1"
-                fill="var(--success)" opacity={active ? 0.9 : 0.55}
-                style={{ transition: 'all .25s ease' }}
-              />
+            {d.spent > 0 && (
+              <>
+                <rect
+                  x={spentCx(i) - bw / 2} y={yv(d.spent)} width={bw} height={padT + ih - yv(d.spent)} rx="2.1"
+                  fill={over ? 'var(--danger)' : 'var(--accent)'}
+                  opacity={active ? 1 : 0.38}
+                  style={{ transition: 'all .25s ease' }}
+                />
+                <text
+                  x={spentCx(i)} y={yv(d.spent) - 4}
+                  textAnchor="middle"
+                  fontSize={labelSize}
+                  fontFamily="JetBrains Mono, monospace"
+                  fontWeight="600"
+                  fill={active ? 'var(--fg)' : 'var(--fg-4)'}
+                  style={{ transition: 'fill .25s ease' }}
+                >
+                  {fmtBar(d.spent)}
+                </text>
+              </>
             )}
-            {active && (
-              <text
-                x={spentCx(i)} y={labelInside ? barY + (compact ? 7.2 : 8.4) : barY - 4}
-                textAnchor="middle"
-                fontSize={compact ? 5.3 : 5.7}
-                fontFamily="JetBrains Mono, monospace"
-                fontWeight="600"
-                fill={labelInside ? '#000' : 'var(--fg)'}
-              >
-                {fmt(d.spent)}
-              </text>
+            {d.income > 0 && (
+              <>
+                <rect
+                  x={incomeCx(i) - bw / 2} y={yv(d.income)} width={bw} height={padT + ih - yv(d.income)} rx="2.1"
+                  fill="var(--success)"
+                  opacity={active ? 1 : 0.38}
+                  style={{ transition: 'all .25s ease' }}
+                />
+                <text
+                  x={incomeCx(i)} y={yv(d.income) - 4}
+                  textAnchor="middle"
+                  fontSize={labelSize}
+                  fontFamily="JetBrains Mono, monospace"
+                  fontWeight="600"
+                  fill="var(--success)"
+                  opacity={active ? 1 : 0.5}
+                  style={{ transition: 'opacity .25s ease' }}
+                >
+                  {fmtBar(d.income)}
+                </text>
+              </>
             )}
             <text
               x={xv(i)} y={H - 7}
