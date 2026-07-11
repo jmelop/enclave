@@ -2,6 +2,7 @@ import type { ModuleClientConfig } from '@enclave/sdk';
 import '../client/index.css';
 import { portfolioMeta } from './meta';
 import { Portfolio } from '../client/pages/Portfolio';
+import { PortfolioHistory } from '../client/pages/PortfolioHistory';
 
 export const portfolioClient: ModuleClientConfig = {
   id: portfolioMeta.id,
@@ -9,9 +10,11 @@ export const portfolioClient: ModuleClientConfig = {
   basePath: portfolioMeta.basePath,
   routes: [
     { index: true, element: <Portfolio /> },
+    { path: 'history', element: <PortfolioHistory /> },
   ],
   nav: [
     { label: 'Portfolio', path: '', icon: 'wallet' },
+    { label: 'History', path: 'history', icon: 'bar-chart-2' },
   ],
   accent: 'linear-gradient(135deg, #3b82f6, #2563eb)',
   portal: {

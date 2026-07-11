@@ -19,3 +19,13 @@ export interface PortfolioState {
   fxRates: FXRate[]
   lastSync: string
 }
+
+export interface PortfolioSnapshot {
+  monthKey: string
+  label: string
+  year: number
+  snapshotDate: string
+  totalValue: number
+  assetCount: number
+  note?: string
+}

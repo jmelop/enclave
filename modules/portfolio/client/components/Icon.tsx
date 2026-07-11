@@ -25,6 +25,8 @@ export function Icon({ name, size = 16, stroke = 1.5 }: IconProps) {
     case 'trendUp':   return <svg {...p}><path d="M2 11l4-4 3 3 5-5"/><path d="M10 5h4v4"/></svg>
     case 'trendDown': return <svg {...p}><path d="M2 5l4 4 3-3 5 5"/><path d="M10 11h4V7"/></svg>
     case 'refresh':   return <svg {...p}><path d="M2 8a6 6 0 0110-4.5L13 5"/><path d="M14 8a6 6 0 01-10 4.5L3 11"/><path d="M11 2v3h3M5 14v-3H2"/></svg>
+    case 'download':  return <svg {...p}><path d="M8 2v8"/><path d="M5 7l3 3 3-3"/><path d="M3 13h10"/></svg>
+    case 'upload':    return <svg {...p}><path d="M8 14V6"/><path d="M5 9l3-3 3 3"/><path d="M3 13h10"/></svg>
     case 'dots':      return <svg {...p}><circle cx="3.5" cy="8" r="1"/><circle cx="8" cy="8" r="1"/><circle cx="12.5" cy="8" r="1"/></svg>
     case 'search':    return <svg {...p}><circle cx="7" cy="7" r="4.5"/><path d="M13.5 13.5L10.5 10.5"/></svg>
     case 'bell':      return <svg {...p}><path d="M4 12V7a4 4 0 118 0v5l1 1H3l1-1z"/><path d="M6.5 14a1.5 1.5 0 003 0"/></svg>

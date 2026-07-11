@@ -29,16 +29,24 @@ export function HistoryPage() {
     );
   }
 
-  if (hydrated && months.length === 0) {
+  const historyMonths = months.filter(m => m.created !== false);
+
+  if (hydrated && historyMonths.length === 0) {
     return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '40vh', color: 'var(--fg-3)' }}>No history yet.</div>;
   }
 
   // ── Normal state ───────────────────────────────────────────────────────────
 
-  const rows = months.map(m => {
+  const rows = historyMonths.map(m => {
     const mm = computeMetrics(m, budgets);
     return { m, ...mm, saved: m.income - mm.spent };
   });
+  const activeHistoryIdx = historyMonths.findIndex(m => m.key === months[monthIndex]?.key);
+  const selectHistoryMonth = (i: number) => {
+    const key = historyMonths[i]?.key;
+    const nextIndex = months.findIndex(m => m.key === key);
+    if (nextIndex >= 0) void setMonthIndex(nextIndex);
+  };
 
   const avgSpent   = Math.round(rows.reduce((s, r) => s + r.spent, 0) / rows.length);
   const totalSaved = rows.reduce((s, r) => s + r.saved, 0);
@@ -50,12 +58,12 @@ export function HistoryPage() {
         <div className="stat-card">
           <div className="stat-head"><div className="stat-icon"><TrendingUp size={14} /></div><span className="stat-label">AVG. MONTHLY SPEND</span></div>
           <div className="stat-value mono">{fmt(avgSpent)}</div>
-          <div className="stat-sub">Across the last {months.length} months</div>
+          <div className="stat-sub">Across the last {historyMonths.length} months</div>
         </div>
         <div className="stat-card">
           <div className="stat-head"><div className="stat-icon"><Wallet size={14} /></div><span className="stat-label">TOTAL SAVED</span></div>
           <div className="stat-value mono" style={{ color: totalSaved >= 0 ? 'var(--success)' : 'var(--danger)' }}>{fmtSigned(totalSaved)}</div>
-          <div className="stat-sub">Income minus spending, {months.length} mo</div>
+          <div className="stat-sub">Income minus spending, {historyMonths.length} mo</div>
         </div>
         <div className="stat-card">
           <div className="stat-head"><div className="stat-icon"><Star size={14} /></div><span className="stat-label">BEST MONTH</span></div>
@@ -69,11 +77,11 @@ export function HistoryPage() {
           <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Spending vs income</h3>
           <div style={{ display: 'flex', gap: 12 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-3)' }}><span style={{ width: 9, height: 9, borderRadius: 3, background: 'var(--accent)', display: 'inline-block' }} />Spent</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-3)' }}><span style={{ width: 12, height: 2, background: 'var(--success)', display: 'inline-block' }} />Income</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-3)' }}><span style={{ width: 9, height: 9, borderRadius: 3, background: 'var(--success)', display: 'inline-block' }} />Income</span>
           </div>
         </div>
         <div style={{ padding: '14px 18px 18px' }}>
-          <TrendChart months={months} budgets={budgets} activeIdx={monthIndex} onSelect={i => void setMonthIndex(i)} />
+          <TrendChart months={historyMonths} budgets={budgets} activeIdx={activeHistoryIdx} onSelect={selectHistoryMonth} />
         </div>
       </Card>
 
@@ -85,7 +93,7 @@ export function HistoryPage() {
           <div className="hist-table" style={{ marginTop: 12 }}>
             <div className="hist-head mono"><span>MONTH</span><span style={{ textAlign: 'right' }}>INCOME</span><span style={{ textAlign: 'right' }}>SPENT</span><span style={{ textAlign: 'right' }}>SAVED</span><span>OF BUDGET</span></div>
             {rows.slice().reverse().map(r => {
-              const active = r.m.key === months[monthIndex].key;
+              const active = r.m.key === months[monthIndex]?.key;
               return (
                 <button key={r.m.key} type="button" className={`hist-row ${active ? 'active' : ''}`} onClick={() => void setMonthIndex(months.findIndex(x => x.key === r.m.key))}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, fontWeight: 600 }}>
@@ -110,7 +118,7 @@ export function HistoryPage() {
       </Card>
 
       <footer className="page-foot mono">
-        <span>END · {months.length} months tracked</span>
+        <span>END · {historyMonths.length} months tracked</span>
         <span className="dim">enclave/budget · build 2026.05</span>
       </footer>
     </div>

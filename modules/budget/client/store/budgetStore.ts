@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { CategoryId, MonthData, RecurringBill, Transaction } from '@/types/budget'
+import type { CategoryId, IncomeEntry, MonthData, RecurringBill, Transaction } from '@/types/budget'
 import { SEED_MONTHS, SEED_RECURRING, DEFAULT_BUDGETS } from '@/lib/seed'
 
 // ── Client-side date helpers ──────────────────────────────────────────────────
@@ -13,18 +13,22 @@ function labelFromKey(key: string): string {
   return new Date(y, m - 1, 1).toLocaleString('en-US', { month: 'long' })
 }
 
+function monthKeyFromDate(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+}
+
 function asOfDayClient(key: string): number {
   const [y, m] = key.split('-').map(Number)
   const maxDay = daysInMonthClient(y, m - 1)
   const today = new Date()
-  const currentKey = today.toISOString().slice(0, 7)
+  const currentKey = monthKeyFromDate(today)
   if (key === currentKey) return today.getDate()
   if (key < currentKey) return maxDay
   return 0
 }
 
 export function currentMonthKey(): string {
-  return new Date().toISOString().slice(0, 7)
+  return monthKeyFromDate(new Date())
 }
 
 // ── Seed helpers ──────────────────────────────────────────────────────────────
@@ -41,8 +45,10 @@ interface ApiMonthDetail {
   note: string
   asOfDay: number
   transactions: Transaction[]
+  incomes?: IncomeEntry[]
   recurring: RecurringBill[]
   targets: Record<string, number>
+  created?: boolean
 }
 
 interface ApiMonthSummary {
@@ -51,6 +57,54 @@ interface ApiMonthSummary {
   note: string
   asOfDay: number
   spent: Record<string, number>
+  created?: boolean
+}
+
+function emptySpent(): Record<CategoryId, number> {
+  return {} as Record<CategoryId, number>
+}
+
+function januaryCurrentYearKey(): string {
+  return `${new Date().getFullYear()}-01`
+}
+
+function addMonth(key: string): string {
+  const [year, month] = key.split('-').map(Number)
+  const nextYear = month === 12 ? year + 1 : year
+  const nextMonth = month === 12 ? 1 : month + 1
+  return `${nextYear}-${String(nextMonth).padStart(2, '0')}`
+}
+
+function monthFromKey(key: string): MonthData {
+  return {
+    key,
+    label: labelFromKey(key),
+    year: parseInt(key.slice(0, 4)),
+    income: 0,
+    spent: emptySpent(),
+    asOfDay: asOfDayClient(key),
+    extra: [],
+    created: false,
+  }
+}
+
+function buildMonthTimeline(summaries: ApiMonthSummary[]): MonthData[] {
+  const byKey = new Map(summaries.map(summary => [summary.key, summaryToMonthData(summary)]))
+  const earliestExisting = summaries.reduce<string | null>(
+    (earliest, summary) => (!earliest || summary.key < earliest ? summary.key : earliest),
+    null,
+  )
+  const startKey = earliestExisting && earliestExisting < januaryCurrentYearKey()
+    ? earliestExisting
+    : januaryCurrentYearKey()
+  const endKey = currentMonthKey()
+  const months: MonthData[] = []
+
+  for (let key = startKey; key <= endKey; key = addMonth(key)) {
+    months.push(byKey.get(key) ?? monthFromKey(key))
+  }
+
+  return months
 }
 
 async function fetchMonthDetail(key: string): Promise<ApiMonthDetail> {
@@ -79,6 +133,7 @@ function detailToMonthData(d: ApiMonthDetail): MonthData {
     spent:   spent as Record<CategoryId, number>,
     asOfDay: d.asOfDay,
     extra:   d.transactions.filter(t => t.manual),
+    created: d.created ?? true,
     note:    d.note || undefined,
   }
 }
@@ -93,6 +148,7 @@ function summaryToMonthData(s: ApiMonthSummary): MonthData {
     spent:   s.spent as Record<CategoryId, number>,
     asOfDay: s.asOfDay,
     extra:   [],
+    created: s.created ?? true,
     note:    s.note || undefined,
   }
 }
@@ -103,6 +159,7 @@ interface BudgetState {
   months: MonthData[]
   monthIndex: number
   transactions: Transaction[]
+  incomes: IncomeEntry[]
   recurring: RecurringBill[]
   budgets: Record<CategoryId, number>
 
@@ -113,14 +170,17 @@ interface BudgetState {
   hydrate: () => Promise<void>
   refetch: () => Promise<void>
   setMonthIndex: (i: number) => Promise<void>
+  createMonth: (monthKey: string) => Promise<void>
   addExpense: (tx: Omit<Transaction, 'id' | 'monthKey'>) => Promise<void>
   updateExpense: (id: string, tx: Omit<Transaction, 'id' | 'monthKey'>) => Promise<void>
   deleteExpense: (id: string) => Promise<void>
+  addIncome: (entry: Omit<IncomeEntry, 'id' | 'monthKey'>) => Promise<void>
+  updateIncome: (id: string, entry: Omit<IncomeEntry, 'id' | 'monthKey'>) => Promise<void>
+  deleteIncome: (id: string) => Promise<void>
   setBudget: (cat: CategoryId, amount: number) => Promise<void>
   addRecurring: (r: Omit<RecurringBill, 'id'>) => Promise<void>
   updateRecurring: (r: RecurringBill) => Promise<void>
   deleteRecurring: (id: string) => Promise<void>
-  setIncome: (monthKey: string, income: number) => Promise<void>
 }
 
 // ── Store ─────────────────────────────────────────────────────────────────────
@@ -129,6 +189,7 @@ export const useBudgetStore = create<BudgetState>()((set, get) => ({
   months:       seedMonths(),
   monthIndex:   SEED_MONTHS.length - 1,
   transactions: [],
+  incomes:      [],
   recurring:    SEED_RECURRING.map(r => ({ ...r })),
   budgets:      { ...DEFAULT_BUDGETS },
 
@@ -147,9 +208,8 @@ export const useBudgetStore = create<BudgetState>()((set, get) => ({
         fetchMonthDetail(currentMonthKey()),
       ])
 
-      // Build months array (oldest first to match nav convention)
-      const monthsDesc = summaries.map(summaryToMonthData)
-      const months = [...monthsDesc].reverse()
+      // Build a navigable month timeline (oldest first to match nav convention).
+      const months = buildMonthTimeline(summaries)
 
       // Find or append current month in the list
       const curKey = detail.key
@@ -161,12 +221,13 @@ export const useBudgetStore = create<BudgetState>()((set, get) => ({
         months.push(curMonthData)
       }
 
-      const monthIndex = months.length - 1  // most recent = last
+      const monthIndex = Math.max(0, months.findIndex(m => m.key === curKey))
 
       set({
         months,
         monthIndex,
         transactions: detail.transactions,
+        incomes:      detail.incomes ?? [],
         recurring:    detail.recurring,
         budgets:      detail.targets as Record<CategoryId, number>,
         hydrated:     true,
@@ -192,17 +253,18 @@ export const useBudgetStore = create<BudgetState>()((set, get) => ({
         fetchMonthDetail(key),
       ])
 
-      const monthsDesc = summaries.map(summaryToMonthData)
-      const newMonths = [...monthsDesc].reverse()
+      const newMonths = buildMonthTimeline(summaries)
       const curIdx = newMonths.findIndex(m => m.key === detail.key)
       const curMonthData = detailToMonthData(detail)
       if (curIdx >= 0) newMonths[curIdx] = curMonthData
       else newMonths.push(curMonthData)
+      const nextIndex = newMonths.findIndex(m => m.key === key)
 
       set({
         months:       newMonths,
-        monthIndex:   Math.min(monthIndex, newMonths.length - 1),
+        monthIndex:   nextIndex >= 0 ? nextIndex : Math.min(monthIndex, newMonths.length - 1),
         transactions: detail.transactions,
+        incomes:      detail.incomes ?? [],
         recurring:    detail.recurring,
         budgets:      detail.targets as Record<CategoryId, number>,
         hydrated:     true,
@@ -227,6 +289,7 @@ export const useBudgetStore = create<BudgetState>()((set, get) => ({
       set({
         months:       newMonths,
         transactions: detail.transactions,
+        incomes:      detail.incomes ?? [],
         recurring:    detail.recurring,
         budgets:      detail.targets as Record<CategoryId, number>,
         loading:      false,
@@ -237,6 +300,19 @@ export const useBudgetStore = create<BudgetState>()((set, get) => ({
   },
 
   // ── mutations ──────────────────────────────────────────────────────────────
+
+  createMonth: async (monthKey) => {
+    const res = await fetch(`/api/budget/months/${monthKey}/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    })
+    if (!res.ok) {
+      const body = (await res.json()) as { error?: string }
+      throw new Error(body.error ?? `HTTP ${res.status}`)
+    }
+    await get().refetch()
+  },
 
   addExpense: async (tx) => {
     const { months, monthIndex } = get()
@@ -325,12 +401,38 @@ export const useBudgetStore = create<BudgetState>()((set, get) => ({
     await get().refetch()
   },
 
-  setIncome: async (monthKey, income) => {
-    const res = await fetch(`/api/budget/months/${monthKey}`, {
+  addIncome: async (entry) => {
+    const { months, monthIndex } = get()
+    const monthKey = months[monthIndex]?.key ?? currentMonthKey()
+    const res = await fetch('/api/budget/incomes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...entry, monthKey }),
+    })
+    if (!res.ok) {
+      const body = (await res.json()) as { error?: string }
+      throw new Error(body.error ?? `HTTP ${res.status}`)
+    }
+    await get().refetch()
+  },
+
+  updateIncome: async (id, entry) => {
+    const { months, monthIndex } = get()
+    const monthKey = months[monthIndex]?.key ?? currentMonthKey()
+    const res = await fetch(`/api/budget/incomes/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ income, note: get().months.find(m => m.key === monthKey)?.note ?? '' }),
+      body: JSON.stringify({ ...entry, monthKey }),
     })
+    if (!res.ok) {
+      const body = (await res.json()) as { error?: string }
+      throw new Error(body.error ?? `HTTP ${res.status}`)
+    }
+    await get().refetch()
+  },
+
+  deleteIncome: async (id: string) => {
+    const res = await fetch(`/api/budget/incomes/${id}`, { method: 'DELETE' })
     if (!res.ok) {
       const body = (await res.json()) as { error?: string }
       throw new Error(body.error ?? `HTTP ${res.status}`)
@@ -357,6 +459,7 @@ export function useCurrentMonth(): MonthData {
       spent:   {} as Record<CategoryId, number>,
       asOfDay: asOfDayClient(key),
       extra:   [],
+      created: false,
     }
   }
 

@@ -5,6 +5,19 @@ CREATE TABLE IF NOT EXISTS asset_categories (
   id  TEXT PRIMARY KEY   -- 'stock'|'fund'|'crypto'|'savings'|'realestate'|'collectible'|'investment'
 );
 
+CREATE TABLE IF NOT EXISTS portfolio_month_snapshots (
+  month_key       TEXT PRIMARY KEY,  -- 'YYYY-MM'
+  snapshot_date   DATE NOT NULL,
+  total_value_eur NUMERIC(18, 2) NOT NULL CHECK (total_value_eur >= 0),
+  asset_count     INTEGER NOT NULL DEFAULT 0 CHECK (asset_count >= 0),
+  note            TEXT NOT NULL DEFAULT '',
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_portfolio_month_snapshots_date
+  ON portfolio_month_snapshots(snapshot_date);
+
 INSERT INTO asset_categories (id) VALUES
   ('stock'), ('fund'), ('crypto'), ('savings'),
   ('realestate'), ('collectible'), ('investment')

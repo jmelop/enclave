@@ -230,7 +230,11 @@ button { font-family: inherit; }
 }
 .btn:hover { background: var(--bg-3); border-color: var(--border-default); }
 .btn-primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-.btn-primary:hover { filter: brightness(1.06); }
+/* Double class beats the .btn:hover / .btn-primary:hover rules that every
+   module's stylesheet also registers globally in the dashboard — the last one
+   loaded was repainting primary buttons with the dark --bg-3 on hover.
+   Hover keeps the accent and just dims slightly. */
+.btn.btn-primary:hover { background: var(--accent); border-color: var(--accent); filter: brightness(0.92); }
 .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn-ghost { background: transparent; }
 .btn-ghost:hover { background: var(--bg-2); }
@@ -417,6 +421,26 @@ button { font-family: inherit; }
   color: var(--fg); text-align: left; font-family: inherit; font-size: 13px;
 }
 .expense-row:first-of-type { border-top: 0; }
+
+/* ============================================================
+   INCOME TABLE
+   ============================================================ */
+.income-table { border: 1px solid var(--border-subtle); border-radius: 8px; overflow: hidden; background: var(--bg-1); }
+.income-head, .income-row {
+  display: grid;
+  grid-template-columns: 32px minmax(160px, 2fr) 70px 110px 36px;
+  gap: 14px; align-items: center; padding: 10px 16px;
+}
+.income-head {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--fg-4); letter-spacing: 0.1em;
+  background: var(--bg); border-bottom: 1px solid var(--border-subtle);
+}
+.income-row {
+  border-top: 1px solid var(--border-subtle);
+  font-size: 13px;
+}
+.income-row:first-of-type { border-top: 0; }
 
 /* ============================================================
    RECURRING

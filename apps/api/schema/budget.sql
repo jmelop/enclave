@@ -42,6 +42,15 @@ CREATE TABLE IF NOT EXISTS budget_transactions (
     REFERENCES budget_recurring(id) ON DELETE SET NULL
 );
 
+CREATE TABLE IF NOT EXISTS budget_incomes (
+  id     TEXT          PRIMARY KEY,
+  date   DATE          NOT NULL,
+  name   TEXT          NOT NULL,
+  source TEXT          NOT NULL DEFAULT '',
+  amount NUMERIC(10,2) NOT NULL CHECK (amount > 0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_budget_income_date  ON budget_incomes(date);
 CREATE INDEX IF NOT EXISTS idx_budget_tx_date      ON budget_transactions(date);
 CREATE INDEX IF NOT EXISTS idx_budget_tx_category  ON budget_transactions(category);
 CREATE INDEX IF NOT EXISTS idx_budget_tx_source    ON budget_transactions(source);
