@@ -9,7 +9,7 @@ import { CATEGORIES } from '@/lib/seed';
 import { CategoryGlyph } from '@/components/budget/CategoryGlyph';
 import { ConfirmDeleteModal } from '@/components/budget/ConfirmDeleteModal';
 import { CreateMonthGate } from '@/components/budget/CreateMonthGate';
-import type { CategoryId, Transaction } from '@/types/budget';
+import type { CategoryId, IncomeEntry, Transaction } from '@/types/budget';
 
 interface ExpenseCsvImport {
   name: string
@@ -17,10 +17,11 @@ interface ExpenseCsvImport {
   amount: number
   cat: CategoryId
   day: number
+  type: 'expense' | 'income'
   rowNumber: number
 }
 
-const EXPORT_HEADERS = ['id', 'date', 'day', 'name', 'vendor', 'amount', 'cat', 'source'];
+const EXPORT_HEADERS = ['id', 'date', 'day', 'name', 'vendor', 'amount', 'cat', 'type', 'source'];
 
 function csvCell(value: string | number | undefined): string {
   const text = String(value ?? '')
@@ -31,8 +32,8 @@ function dateFromMonthDay(monthKey: string, day: number): string {
   return `${monthKey}-${String(day).padStart(2, '0')}`
 }
 
-function exportExpenseCsv(transactions: Transaction[], monthKey: string): string {
-  const rows = transactions.map((tx) => [
+function exportBudgetCsv(transactions: Transaction[], incomes: IncomeEntry[], monthKey: string): string {
+  const expenseRows = transactions.map((tx) => [
     tx.id,
     dateFromMonthDay(monthKey, tx.day),
     tx.day,
@@ -40,12 +41,25 @@ function exportExpenseCsv(transactions: Transaction[], monthKey: string): string
     tx.vendor,
     tx.amount.toFixed(2),
     tx.cat,
+    'expense',
     tx.recurring ? 'recurring' : 'manual',
+  ])
+
+  const incomeRows = incomes.map((e) => [
+    e.id,
+    dateFromMonthDay(monthKey, e.day),
+    e.day,
+    e.name,
+    e.source,
+    e.amount.toFixed(2),
+    '',
+    'income',
+    '',
   ])
 
   return [
     EXPORT_HEADERS.join(','),
-    ...rows.map(row => row.map(csvCell).join(',')),
+    ...[...expenseRows, ...incomeRows].map(row => row.map(csvCell).join(',')),
   ].join('\n')
 }
 
@@ -160,19 +174,25 @@ function parseExpenseCsv(text: string, selectedMonthKey: string): ExpenseCsvImpo
     const amount = getCsvValue(row, ['amount', 'importe', 'value', 'valor', 'eur'])
     const day = getCsvValue(row, ['day', 'dia']) ?? getCsvValue(row, ['date', 'fecha', 'operation_date', 'fecha_operacion'])
     const category = getCsvValue(row, ['cat', 'category', 'categoria']) ?? 'other'
+    const type = (getCsvValue(row, ['type', 'tipo']) ?? 'expense').toLowerCase()
 
     if (!name) throw new Error(`Row ${rowNumber}: name or concept is required`)
     if (!amount) throw new Error(`Row ${rowNumber}: amount is required`)
-    if (!CATEGORIES.some((cat) => cat.id === category)) {
+    if (type !== 'expense' && type !== 'income') {
+      throw new Error(`Row ${rowNumber}: type must be "expense" or "income"`)
+    }
+    if (type === 'expense' && !CATEGORIES.some((cat) => cat.id === category)) {
       throw new Error(`Row ${rowNumber}: invalid category "${category}"`)
     }
 
     return {
       name,
-      vendor: getCsvValue(row, ['vendor', 'merchant', 'comercio', 'payee']) ?? name,
+      // For incomes the vendor column holds the source; an empty one stays empty.
+      vendor: getCsvValue(row, ['vendor', 'merchant', 'comercio', 'payee']) ?? (type === 'income' ? '' : name),
       amount: parseCsvAmount(amount, rowNumber),
       cat: category as CategoryId,
       day: parseCsvDay(day, selectedMonthKey, rowNumber),
+      type,
       rowNumber,
     }
   })
@@ -314,8 +334,10 @@ interface Props {
 
 export function ExpensesPage({ onAddExpense, onEditExpense }: Props) {
   const transactions  = useBudgetStore(s => s.transactions);
+  const incomes       = useBudgetStore(s => s.incomes);
   const deleteExpense = useBudgetStore(s => s.deleteExpense);
   const addExpense    = useBudgetStore(s => s.addExpense);
+  const addIncome     = useBudgetStore(s => s.addIncome);
   const loading       = useBudgetStore(s => s.loading);
   const error         = useBudgetStore(s => s.error);
   const hydrated      = useBudgetStore(s => s.hydrated);
@@ -328,21 +350,21 @@ export function ExpensesPage({ onAddExpense, onEditExpense }: Props) {
   const [importing, setImporting] = useState(false);
 
   const handleExportCsv = () => {
-    if (transactions.length === 0) return;
+    if (transactions.length + incomes.length === 0) return;
 
-    const csv = exportExpenseCsv(transactions, month.key);
+    const csv = exportBudgetCsv(transactions, incomes, month.key);
     const blob = new Blob([`\ufeff${csv}\n`], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `budget-expenses-${month.key}.csv`;
+    link.download = `budget-${month.key}.csv`;
     document.body.appendChild(link);
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
 
     toast({
-      title: `Exported ${transactions.length} expense${transactions.length === 1 ? '' : 's'}`,
+      title: `Exported ${transactions.length} expense${transactions.length === 1 ? '' : 's'} and ${incomes.length} income${incomes.length === 1 ? '' : 's'}`,
       variant: 'success',
     });
   };
@@ -356,35 +378,49 @@ export function ExpensesPage({ onAddExpense, onEditExpense }: Props) {
       const imported = parseExpenseCsv(await file.text(), month.key);
       if (imported.length === 0) throw new Error('CSV has no expenses to import');
 
-      let created = 0;
+      let createdExpenses = 0;
+      let createdIncomes = 0;
       let skipped = 0;
-      const seen = new Set(transactions.map((t) => `${t.day}|${t.name.trim().toLowerCase()}|${t.amount.toFixed(2)}`));
+      const dupKey = (name: string, amount: number, day: number) => `${day}|${name.trim().toLowerCase()}|${amount.toFixed(2)}`;
+      const seenExpenses = new Set(transactions.map((t) => dupKey(t.name, t.amount, t.day)));
+      const seenIncomes  = new Set(incomes.map((e) => dupKey(e.name, e.amount, e.day)));
 
-      for (const expense of imported) {
-        const duplicateKey = `${expense.day}|${expense.name.trim().toLowerCase()}|${expense.amount.toFixed(2)}`;
+      for (const item of imported) {
+        const seen = item.type === 'income' ? seenIncomes : seenExpenses;
+        const duplicateKey = dupKey(item.name, item.amount, item.day);
         if (seen.has(duplicateKey)) {
           skipped += 1;
           continue;
         }
 
         try {
-          await addExpense({
-            name: expense.name,
-            vendor: expense.vendor,
-            amount: expense.amount,
-            cat: expense.cat,
-            day: expense.day,
-          });
+          if (item.type === 'income') {
+            await addIncome({
+              name: item.name,
+              source: item.vendor,
+              amount: item.amount,
+              day: item.day,
+            });
+            createdIncomes += 1;
+          } else {
+            await addExpense({
+              name: item.name,
+              vendor: item.vendor,
+              amount: item.amount,
+              cat: item.cat,
+              day: item.day,
+            });
+            createdExpenses += 1;
+          }
           seen.add(duplicateKey);
-          created += 1;
         } catch (err) {
-          const message = err instanceof Error ? err.message : 'Error importing expense';
-          throw new Error(`Row ${expense.rowNumber}: ${message}`);
+          const message = err instanceof Error ? err.message : 'Error importing row';
+          throw new Error(`Row ${item.rowNumber}: ${message}`);
         }
       }
 
       toast({
-        title: `CSV processed: ${created} created, ${skipped} skipped`,
+        title: `CSV processed: ${createdExpenses} expenses, ${createdIncomes} incomes created, ${skipped} skipped`,
         variant: 'success',
       });
     } catch (err) {
@@ -419,7 +455,7 @@ export function ExpensesPage({ onAddExpense, onEditExpense }: Props) {
         <span>No expenses this month.</span>
         <div style={{ display: 'flex', gap: 10 }}>
           <button className="btn btn-primary" onClick={onAddExpense}>+ Add your first expense</button>
-          <button className="btn btn-secondary" onClick={handleExportCsv} disabled>
+          <button className="btn btn-secondary" onClick={handleExportCsv} disabled={incomes.length === 0}>
             <Download size={14} /> Export CSV
           </button>
           <button className="btn btn-secondary" onClick={() => importInputRef.current?.click()} disabled={importing}>
@@ -448,7 +484,7 @@ export function ExpensesPage({ onAddExpense, onEditExpense }: Props) {
   const content = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-        <button className="btn btn-secondary" onClick={handleExportCsv} disabled={transactions.length === 0}>
+        <button className="btn btn-secondary" onClick={handleExportCsv} disabled={transactions.length + incomes.length === 0}>
           <Download size={14} /> Export CSV
         </button>
         <button className="btn btn-secondary" onClick={() => importInputRef.current?.click()} disabled={importing}>
