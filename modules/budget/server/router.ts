@@ -48,10 +48,16 @@ function makeDateStr(monthKey: string, day: number): string {
 
 // ── Row mappers ───────────────────────────────────────────────────────────────
 
+// pg returns DATE columns as a JS Date at LOCAL midnight — toISOString() (UTC)
+// would shift it back a day in timezones ahead of UTC, so read local parts.
+function localDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 function mapTransaction(row: Row) {
   const raw = row['date']
   const dateStr = raw instanceof Date
-    ? raw.toISOString().slice(0, 10)
+    ? localDateStr(raw)
     : String(raw).slice(0, 10)
   const day = parseInt(dateStr.slice(8, 10))
   const monthKey = dateStr.slice(0, 7)
