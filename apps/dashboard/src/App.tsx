@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom'
 import { Portal } from '../components/portal'
 import { EnclaveNav, type ExternalLink } from '../components/enclave-nav'
+import { fetchEnclaveSettings, applyEnclaveSettings } from '@enclave/ui-shell'
 import { APPS } from '../lib/apps-data'
 import { clientModules } from '../../../enclave.modules.client'
 
@@ -36,5 +38,9 @@ const router = createBrowserRouter([
 ])
 
 export default function App() {
+  // Apply the persisted defaults (theme, currency mirrors, module visibility)
+  // once on boot; main.tsx already set a synchronous theme from localStorage.
+  useEffect(() => { void fetchEnclaveSettings().then(applyEnclaveSettings) }, [])
+
   return <RouterProvider router={router} />
 }

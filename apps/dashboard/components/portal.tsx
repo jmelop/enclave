@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react"
+import { useEnclaveSettings } from "@enclave/ui-shell"
 import { APPS, type AppCategory, type AppEntry, CATEGORIES } from "@/lib/apps-data"
 import { AppDetailModal } from "./app-detail-modal"
 import { TerminalHeader } from "./terminal-header"
@@ -76,9 +77,17 @@ export function Portal() {
     return () => window.removeEventListener("keydown", handler)
   }, [])
 
+  const settings = useEnclaveSettings()
+
+  // Module cards hidden from Options disappear from the portal too.
+  const visibleApps = useMemo(
+    () => APPS.filter((app) => !app.route || !settings.disabledModules.includes(app.id)),
+    [settings.disabledModules],
+  )
+
   const filteredApps = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
-    return APPS.filter((app) => {
+    return visibleApps.filter((app) => {
       const matchesCategory = selectedCategory === "all" || app.category === selectedCategory
       const matchesSearch =
         q === "" ||
@@ -87,16 +96,16 @@ export function Portal() {
         app.description.toLowerCase().includes(q)
       return matchesCategory && matchesSearch
     })
-  }, [selectedCategory, searchQuery])
+  }, [visibleApps, selectedCategory, searchQuery])
 
   const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: APPS.length }
-    APPS.forEach((app) => { counts[app.category] = (counts[app.category] || 0) + 1 })
+    const counts: Record<string, number> = { all: visibleApps.length }
+    visibleApps.forEach((app) => { counts[app.category] = (counts[app.category] || 0) + 1 })
     return counts
-  }, [])
+  }, [visibleApps])
 
-  const onlineCount = useMemo(() => APPS.filter((a) => a.status === "online").length, [])
-  const totalCount = APPS.length
+  const onlineCount = useMemo(() => visibleApps.filter((a) => a.status === "online").length, [visibleApps])
+  const totalCount = visibleApps.length
   const totalCategories = Object.keys(CATEGORIES).length
 
   const filterLabel = selectedCategory === "all" ? "" : (CATEGORIES[selectedCategory]?.label ?? "").toUpperCase()

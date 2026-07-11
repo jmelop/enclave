@@ -1,14 +1,20 @@
 import { CATEGORIES } from '@/lib/seed';
 import type { CategoryId, MonthData, MonthMetrics } from '@/types/budget';
 
+// Currency symbol chosen in the options module (mirrored to localStorage by
+// the shell's applyEnclaveSettings); euro when unset or outside the browser.
+function currency(): string {
+  try { return localStorage.getItem('enclave-currency-symbol') ?? '€'; } catch { return '€'; }
+}
+
 export const fmt = (n: number): string =>
-  '€' + Math.round(n).toLocaleString('en-US');
+  currency() + Math.round(n).toLocaleString('en-US');
 
 export const fmt2 = (n: number): string =>
-  '€' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  currency() + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export const fmtSigned = (n: number): string =>
-  (n < 0 ? '−' : '+') + '€' + Math.abs(Math.round(n)).toLocaleString('en-US');
+  (n < 0 ? '−' : '+') + currency() + Math.abs(Math.round(n)).toLocaleString('en-US');
 
 export const pct = (n: number): string => Math.round(n * 100) + '%';
 

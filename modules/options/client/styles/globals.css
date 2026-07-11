@@ -1,0 +1,109 @@
+/* enclave · options module
+   Scoped styles only: the shell already loads the shared obsidian classes
+   (.canvas, .v-topbar, .hero, .btn, …) from the other modules' stylesheets.
+   Tokens are scoped under .options-app so this module keeps its own accent
+   regardless of stylesheet load order. */
+
+.options-app {
+  --accent: #94a3b8;
+  --accent-soft: rgba(148, 163, 184, 0.14);
+  --accent-ink: #0b0d10;
+}
+
+/* ── Card sections ─────────────────────────────────────────────────────────── */
+
+.options-app .opt-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--fg-3);
+}
+.options-app .opt-card-head h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--fg);
+}
+.options-app .opt-card-head p {
+  font-size: 10px;
+  color: var(--fg-4);
+  margin: 2px 0 0;
+}
+.options-app .opt-card-body { padding: 16px 18px 18px; }
+
+/* ── Segmented choices ─────────────────────────────────────────────────────── */
+
+.options-app .opt-seg {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-2);
+  color: var(--fg-3);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: 120ms;
+}
+.options-app .opt-seg:hover { color: var(--fg); border-color: var(--border-default); }
+.options-app .opt-seg.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--fg);
+}
+.options-app .opt-seg-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ── Module rows + switch ──────────────────────────────────────────────────── */
+
+.options-app .opt-module-row {
+  display: grid;
+  grid-template-columns: 10px 1fr auto 36px;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.options-app .opt-module-row:last-child { border-bottom: none; }
+.options-app .opt-module-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.options-app .opt-switch {
+  appearance: none;
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-3);
+  cursor: pointer;
+  padding: 0;
+  transition: 150ms;
+}
+.options-app .opt-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--fg-3);
+  transition: 150ms;
+}
+.options-app .opt-switch.on {
+  background: var(--success);
+  border-color: var(--success);
+}
+.options-app .opt-switch.on .opt-switch-knob {
+  left: 18px;
+  background: #0b0d10;
+}

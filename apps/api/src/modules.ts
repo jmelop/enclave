@@ -5,6 +5,7 @@ import { createLabServer } from '../../../modules/lab/module/server.config';
 import { createBudgetServer } from '../../../modules/budget/module/server.config';
 import { createStrategyServer } from '../../../modules/strategy/module/server.config';
 import { createWorkoutServer } from '../../../modules/workout/module/server.config';
+import { createOptionsServer } from '../../../modules/options/module/server.config';
 
 export function createModules(pool: Pool) {
   return [
@@ -14,5 +15,6 @@ export function createModules(pool: Pool) {
     createBudgetServer(pool),
     createStrategyServer(pool),
     createWorkoutServer(pool),
+    createOptionsServer(pool),
   ];
 }

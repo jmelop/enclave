@@ -1,9 +1,10 @@
 import type { CSSProperties } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { NavGroup, NavItem } from '@venator-ui/ui';
-import { House, LayoutDashboard, Dumbbell, Activity, Wallet, LayoutGrid, Receipt, HandCoins, CalendarDays, BarChart2, PieChart, Lightbulb, Code2, Kanban, Tag, Archive, RefreshCcw, Target, CheckSquare, BarChart3, FlaskConical } from 'lucide-react';
+import { House, LayoutDashboard, Dumbbell, Activity, Wallet, LayoutGrid, Receipt, HandCoins, CalendarDays, BarChart2, PieChart, Lightbulb, Code2, Kanban, Tag, Archive, RefreshCcw, Target, CheckSquare, BarChart3, FlaskConical, Settings } from 'lucide-react';
 import { clientModules } from '../../../enclave.modules.client';
 import type { ModuleClientConfig } from '@enclave/sdk';
+import { useEnclaveSettings } from './settings';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -42,6 +43,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   'check-square':      <CheckSquare size={16} />,
   'bar-chart-3':       <BarChart3 size={16} />,
   'flask-conical':     <FlaskConical size={16} />,
+  'settings':          <Settings size={16} />,
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -63,9 +65,14 @@ const DEFAULT_ACCENT = 'linear-gradient(135deg, #6b7280, #374151)';
 export function EnclaveNav({ externalLinks = [] }: Props) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const settings = useEnclaveSettings();
 
   const activeMod = findActiveModule(pathname);
   const accent = activeMod?.accent ?? DEFAULT_ACCENT;
+  // Options itself is never hidden — it is where modules get re-enabled.
+  const visibleModules = clientModules.filter(
+    (mod) => mod.id === 'options' || !settings.disabledModules.includes(mod.id),
+  );
 
   return (
     <aside
@@ -105,7 +112,7 @@ export function EnclaveNav({ externalLinks = [] }: Props) {
           />
         </div>
 
-        {clientModules.map((mod, i) => {
+        {visibleModules.map((mod, i) => {
           const isModActive = pathname === mod.basePath || pathname.startsWith(mod.basePath + '/');
           return (
             <div key={mod.id}>
