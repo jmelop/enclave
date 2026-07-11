@@ -244,9 +244,11 @@ export function createBudgetRouter(pool: DbPool): Router {
     try {
       const [y, m] = key.split('-').map(Number)
       const startDate = `${key}-01`
-      // First day of next month (using JS Date: month is 1-indexed here, Date is 0-indexed)
-      const nextMonthDate = new Date(y, m, 1)  // m = month index 0-based for next month ✓
-      const endDate = nextMonthDate.toISOString().slice(0, 10)
+      // First day of next month as plain string math — toISOString() would shift
+      // local midnight back a day in TZs ahead of UTC and drop month-end rows.
+      const endDate = m === 12
+        ? `${y + 1}-01-01`
+        : `${y}-${String(m + 1).padStart(2, '0')}-01`
 
       const [txRows, incomeRows, monthRow, recurringRows, targetRows] = await Promise.all([
         pool.query(
