@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Card } from '@venator-ui/ui';
-import { Zap, TrendingUp, Wallet, Target } from 'lucide-react';
+import { Zap, TrendingUp, Wallet, Target, Banknote } from 'lucide-react';
 import { useBudgetStore, useCurrentMonth } from '@/store/budgetStore';
 import { computeMetrics, fmt, fmt2, fmtSigned, pct } from '@/lib/utils';
 import { CATEGORIES } from '@/lib/seed';
@@ -20,6 +20,7 @@ export function OverviewPage({ onAddExpense }: Props) {
   const budgets      = useBudgetStore(s => s.budgets);
   const recurring    = useBudgetStore(s => s.recurring);
   const transactions = useBudgetStore(s => s.transactions);
+  const incomes      = useBudgetStore(s => s.incomes);
   const loading      = useBudgetStore(s => s.loading);
   const error        = useBudgetStore(s => s.error);
   const hydrated     = useBudgetStore(s => s.hydrated);
@@ -111,13 +112,15 @@ export function OverviewPage({ onAddExpense }: Props) {
       </div>
 
       {/* Stat tiles */}
-      <div className="stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+      <div className="stats" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
         <StatTile icon={<Wallet size={14} />} label="Spent so far" value={fmt(m.spent)} sub={`${pct(m.pctOfBudget)} of ${fmt(m.totalBudget)} budget`} />
         <StatTile icon={<Target size={14} />} label="Projected" value={fmt(m.inProgress ? m.projected : m.spent)} valueColor={over ? 'var(--danger)' : undefined}
           sub={`${over ? 'Over' : 'Under'} budget by ${fmt(Math.abs(m.totalBudget - (m.inProgress ? m.projected : m.spent)))}`}
           trend={prev ? { dir: projDelta, label: pct(Math.abs(projDelta)) } : undefined} />
+        <StatTile icon={<Banknote size={14} />} label="Income this month" value={fmt(m.income)} valueColor="var(--success)"
+          sub={incomes.length > 0 ? `${incomes.length} income ${incomes.length === 1 ? 'entry' : 'entries'}` : 'No income logged yet'} />
         <StatTile icon={<TrendingUp size={14} />} label="Saved this month" value={fmtSigned(m.income - m.spent)} valueColor={m.income - m.spent >= 0 ? 'var(--success)' : 'var(--danger)'}
-          sub={`Income ${fmt(m.income)} · remaining ${fmt(m.remaining)}`} />
+          sub={`Income ${fmt(m.income)} − spent ${fmt(m.spent)}`} />
       </div>
 
       {/* Category list + recent transactions */}
@@ -197,7 +200,7 @@ export function OverviewPage({ onAddExpense }: Props) {
             <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>Spending trend</h3>
             <div style={{ display: 'flex', gap: 12 }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-3)' }}><span style={{ width: 9, height: 9, borderRadius: 3, background: 'var(--accent)', display: 'inline-block' }} />Spent</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-3)' }}><span style={{ width: 12, height: 2, background: 'var(--success)', display: 'inline-block' }} />Income</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-3)' }}><span style={{ width: 9, height: 9, borderRadius: 3, background: 'var(--success)', display: 'inline-block' }} />Income</span>
             </div>
           </div>
           <div style={{ padding: '12px 16px 16px' }}>

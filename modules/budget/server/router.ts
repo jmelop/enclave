@@ -69,6 +69,19 @@ function mapTransaction(row: Row) {
   }
 }
 
+// Income queries select the date as TO_CHAR text, so no Date/timezone handling.
+function mapIncome(row: Row) {
+  const dateStr = String(row['date'])
+  return {
+    id:       row['id']     as string,
+    name:     row['name']   as string,
+    source:   (row['source'] ?? '') as string,
+    amount:   Number(row['amount']),
+    day:      parseInt(dateStr.slice(8, 10)),
+    monthKey: dateStr.slice(0, 7),
+  }
+}
+
 function mapRecurring(row: Row) {
   return {
     id:       row['id']     as string,
@@ -155,10 +168,12 @@ export function createBudgetRouter(pool: DbPool): Router {
   // ── GET /months (history list) ─────────────────────────────────────────────
   router.get('/months', async (_req, res) => {
     try {
-      // Collect all distinct month keys from transactions + budget_months
+      // Collect all distinct month keys from transactions + incomes + budget_months
       const { rows: keyRows } = await pool.query(`
         SELECT DISTINCT TO_CHAR(date, 'YYYY-MM') AS month_key
         FROM budget_transactions
+        UNION
+        SELECT DISTINCT TO_CHAR(date, 'YYYY-MM') FROM budget_incomes
         UNION
         SELECT month_key FROM budget_months
         ORDER BY 1 DESC
@@ -168,7 +183,7 @@ export function createBudgetRouter(pool: DbPool): Router {
 
       const keys = keyRows.map(r => r['month_key'] as string)
 
-      const [monthRows, spentRows] = await Promise.all([
+      const [monthRows, spentRows, incomeRows] = await Promise.all([
         pool.query(
           'SELECT * FROM budget_months WHERE month_key = ANY($1)',
           [keys],
@@ -180,6 +195,13 @@ export function createBudgetRouter(pool: DbPool): Router {
            GROUP BY 1, 2`,
           [keys],
         ),
+        pool.query(
+          `SELECT TO_CHAR(date, 'YYYY-MM') AS month_key, SUM(amount) AS total
+           FROM budget_incomes
+           WHERE TO_CHAR(date, 'YYYY-MM') = ANY($1)
+           GROUP BY 1`,
+          [keys],
+        ),
       ])
 
       const monthMap = new Map(monthRows.rows.map(r => [r['month_key'] as string, r]))
@@ -189,13 +211,16 @@ export function createBudgetRouter(pool: DbPool): Router {
         if (!spentByMonth.has(mk)) spentByMonth.set(mk, {})
         spentByMonth.get(mk)![r['category'] as string] = Number(r['total'])
       }
+      const incomeByMonth = new Map(
+        incomeRows.rows.map(r => [r['month_key'] as string, Number(r['total'])]),
+      )
 
       return res.json(
         keys.map(key => {
           const mr = monthMap.get(key)
           return {
             key,
-            income:  mr ? Number(mr['income']) : 0,
+            income:  incomeByMonth.get(key) ?? 0,
             note:    mr ? String(mr['note'] ?? '') : '',
             asOfDay: asOfDayFor(key),
             spent:   spentByMonth.get(key) ?? {},
@@ -223,9 +248,16 @@ export function createBudgetRouter(pool: DbPool): Router {
       const nextMonthDate = new Date(y, m, 1)  // m = month index 0-based for next month ✓
       const endDate = nextMonthDate.toISOString().slice(0, 10)
 
-      const [txRows, monthRow, recurringRows, targetRows] = await Promise.all([
+      const [txRows, incomeRows, monthRow, recurringRows, targetRows] = await Promise.all([
         pool.query(
           `SELECT * FROM budget_transactions
+           WHERE date >= $1 AND date < $2
+           ORDER BY date DESC, amount DESC`,
+          [startDate, endDate],
+        ),
+        pool.query(
+          `SELECT id, TO_CHAR(date, 'YYYY-MM-DD') AS date, name, source, amount
+           FROM budget_incomes
            WHERE date >= $1 AND date < $2
            ORDER BY date DESC, amount DESC`,
           [startDate, endDate],
@@ -236,13 +268,15 @@ export function createBudgetRouter(pool: DbPool): Router {
       ])
 
       const mr = monthRow.rows[0]
+      const incomes = incomeRows.rows.map(mapIncome)
       const created = Boolean(mr) || txRows.rows.length > 0
       return res.json({
         key,
-        income:       mr ? Number(mr['income']) : 0,
+        income:       incomes.reduce((s, e) => s + e.amount, 0),
         note:         mr ? String(mr['note'] ?? '') : '',
         asOfDay:      asOfDayFor(key),
         transactions: txRows.rows.map(mapTransaction),
+        incomes,
         recurring:    recurringRows.rows.map(mapRecurring),
         targets:      rowsToTargets(targetRows.rows),
         created,
@@ -517,6 +551,70 @@ export function createBudgetRouter(pool: DbPool): Router {
       return res.status(204).end()
     } catch (err) {
       console.warn('[budget] DELETE /transactions/:id db error:', err)
+      return res.status(503).json({ error: 'Database unavailable' })
+    }
+  })
+
+  // ── POST /incomes ──────────────────────────────────────────────────────────
+  router.post('/incomes', async (req, res) => {
+    const b = req.body as { name?: string; source?: string; amount?: number; day?: number; monthKey?: string }
+    if (!b.name?.trim())            return res.status(400).json({ error: 'name is required' })
+    if (!b.amount || b.amount <= 0) return res.status(400).json({ error: 'amount must be > 0' })
+    if (!b.monthKey || !/^\d{4}-\d{2}$/.test(b.monthKey)) {
+      return res.status(400).json({ error: 'invalid monthKey' })
+    }
+
+    const id = randomUUID()
+    const dateStr = makeDateStr(b.monthKey, b.day ?? 1)
+    try {
+      const { rows } = await pool.query(
+        `INSERT INTO budget_incomes (id, date, name, source, amount)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING id, TO_CHAR(date, 'YYYY-MM-DD') AS date, name, source, amount`,
+        [id, dateStr, b.name.trim(), b.source?.trim() ?? '', b.amount],
+      )
+      return res.status(201).json(mapIncome(rows[0]))
+    } catch (err) {
+      console.warn('[budget] POST /incomes db error:', err)
+      return res.status(503).json({ error: 'Database unavailable' })
+    }
+  })
+
+  // ── PUT /incomes/:id ───────────────────────────────────────────────────────
+  router.put('/incomes/:id', async (req, res) => {
+    const { id } = req.params
+    const b = req.body as { name?: string; source?: string; amount?: number; day?: number; monthKey?: string }
+    if (!b.name?.trim())            return res.status(400).json({ error: 'name is required' })
+    if (!b.amount || b.amount <= 0) return res.status(400).json({ error: 'amount must be > 0' })
+    if (!b.monthKey || !/^\d{4}-\d{2}$/.test(b.monthKey)) {
+      return res.status(400).json({ error: 'invalid monthKey' })
+    }
+
+    const dateStr = makeDateStr(b.monthKey, b.day ?? 1)
+    try {
+      const { rows } = await pool.query(
+        `UPDATE budget_incomes
+         SET name=$2, source=$3, amount=$4, date=$5
+         WHERE id=$1
+         RETURNING id, TO_CHAR(date, 'YYYY-MM-DD') AS date, name, source, amount`,
+        [id, b.name.trim(), b.source?.trim() ?? '', b.amount, dateStr],
+      )
+      if (rows.length === 0) return res.status(404).json({ error: 'Income not found' })
+      return res.status(200).json(mapIncome(rows[0]))
+    } catch (err) {
+      console.warn('[budget] PUT /incomes/:id db error:', err)
+      return res.status(503).json({ error: 'Database unavailable' })
+    }
+  })
+
+  // ── DELETE /incomes/:id ────────────────────────────────────────────────────
+  router.delete('/incomes/:id', async (req, res) => {
+    const { id } = req.params
+    try {
+      await pool.query('DELETE FROM budget_incomes WHERE id = $1', [id])
+      return res.status(204).end()
+    } catch (err) {
+      console.warn('[budget] DELETE /incomes/:id db error:', err)
       return res.status(503).json({ error: 'Database unavailable' })
     }
   })

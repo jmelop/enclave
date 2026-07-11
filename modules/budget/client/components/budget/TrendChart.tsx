@@ -28,41 +28,12 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
   const n = data.length;
   const slot = iw / n;
   const bw = Math.min(compact ? 16.8 : 19.2, slot * (compact ? 0.192 : 0.216));
+  const pairGap = compact ? 2 : 2.5;
   const yv = (v: number) => padT + ih - (v / maxV) * ih;
   const xv = (i: number) => plotL + slot * i + slot / 2;
-
-  // Placeholder months (never created) get no line point — no bar to anchor to.
-  const isRealMonth = (d: typeof data[number]) => d.m.created !== false;
-
-  // Without at least two distinct incomes the line would be flat or empty,
-  // so it traces spending instead and still reads as a trend over the bars.
-  const incomeLineValues = (() => {
-    const fallback = data.map(d => Math.max(d.spent, 1));
-    const positiveIncome = data.map(d => d.income).filter(income => income > 0);
-    const hasUsefulIncomeTrend = new Set(positiveIncome).size > 1;
-    if (!hasUsefulIncomeTrend) return fallback;
-
-    const values = data.map(d => d.income > 0 ? d.income : null);
-
-    const filled = [...values];
-    let previous: number | null = null;
-    for (let i = 0; i < filled.length; i += 1) {
-      if (filled[i] !== null) previous = filled[i];
-      else if (previous !== null) filled[i] = previous;
-    }
-
-    let next: number | null = null;
-    for (let i = filled.length - 1; i >= 0; i -= 1) {
-      if (filled[i] !== null) next = filled[i];
-      else if (next !== null) filled[i] = next;
-    }
-
-    return filled.map((v, i) => v ?? fallback[i]);
-  })();
-  const incomePts = incomeLineValues
-    .map((v, i) => (isRealMonth(data[i]) ? `${xv(i)},${yv(v)}` : null))
-    .filter((p): p is string => p !== null)
-    .join(' ');
+  // Spent + income bars sit side by side, centered on the month slot.
+  const spentCx  = (i: number) => xv(i) - pairGap / 2 - bw / 2;
+  const incomeCx = (i: number) => xv(i) + pairGap / 2 + bw / 2;
 
   return (
     <svg
@@ -86,14 +57,21 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
           <g key={i} onClick={() => onSelect(i)} style={{ cursor: 'pointer' }}>
             <rect x={xv(i) - slot / 2} y={padT} width={slot} height={ih} fill="transparent" />
             <rect
-              x={xv(i) - bw / 2} y={barY} width={bw} height={barH} rx="2.1"
+              x={spentCx(i) - bw / 2} y={barY} width={bw} height={barH} rx="2.1"
               fill={active ? 'var(--accent)' : (over ? 'var(--danger)' : 'var(--bg-3)')}
               stroke={active ? 'none' : 'var(--border-subtle)'}
               style={{ transition: 'all .25s ease' }}
             />
+            {d.income > 0 && (
+              <rect
+                x={incomeCx(i) - bw / 2} y={yv(d.income)} width={bw} height={padT + ih - yv(d.income)} rx="2.1"
+                fill="var(--success)" opacity={active ? 0.9 : 0.55}
+                style={{ transition: 'all .25s ease' }}
+              />
+            )}
             {active && (
               <text
-                x={xv(i)} y={labelInside ? barY + (compact ? 7.2 : 8.4) : barY - 4}
+                x={spentCx(i)} y={labelInside ? barY + (compact ? 7.2 : 8.4) : barY - 4}
                 textAnchor="middle"
                 fontSize={compact ? 5.3 : 5.7}
                 fontFamily="JetBrains Mono, monospace"
@@ -115,16 +93,6 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
           </g>
         );
       })}
-
-      {/* income polyline */}
-      <polyline
-        points={incomePts}
-        fill="none" stroke="var(--success)" strokeWidth={compact ? 0.7 : 0.75}
-        strokeLinejoin="round" strokeLinecap="round"
-      />
-      {incomeLineValues.map((v, i) => isRealMonth(data[i]) ? (
-        <circle key={i} cx={xv(i)} cy={yv(v)} r={compact ? 1.1 : 1.25} fill="var(--bg-1)" stroke="var(--success)" strokeWidth={compact ? 0.7 : 0.75} />
-      ) : null)}
     </svg>
   );
 }

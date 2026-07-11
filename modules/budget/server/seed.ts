@@ -35,6 +35,7 @@ export interface SeedMonthSummary {
 
 export interface SeedMonthDetail extends SeedMonthSummary {
   transactions: SeedTransaction[]
+  incomes: never[]
   recurring: SeedRecurring[]
   targets: Record<string, number>
 }
@@ -91,6 +92,7 @@ export function buildSeedMonthDetail(monthKey: string): SeedMonthDetail {
     asOfDay: summary?.asOfDay ?? new Date().getDate(),
     spent: summary?.spent ?? {},
     transactions,
+    incomes: [],
     recurring: SEED_RECURRING,
     targets: SEED_TARGETS,
   }

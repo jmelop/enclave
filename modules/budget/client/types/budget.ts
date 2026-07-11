@@ -26,6 +26,15 @@ export interface Transaction {
   manual?: boolean;
 }
 
+export interface IncomeEntry {
+  id: string;
+  name: string;
+  source: string;
+  amount: number;
+  day: number;
+  monthKey: string;
+}
+
 export interface RecurringBill {
   id: string;
   name: string;

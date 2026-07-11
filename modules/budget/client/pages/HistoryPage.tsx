@@ -77,7 +77,7 @@ export function HistoryPage() {
           <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Spending vs income</h3>
           <div style={{ display: 'flex', gap: 12 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-3)' }}><span style={{ width: 9, height: 9, borderRadius: 3, background: 'var(--accent)', display: 'inline-block' }} />Spent</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-3)' }}><span style={{ width: 12, height: 2, background: 'var(--success)', display: 'inline-block' }} />Income</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-3)' }}><span style={{ width: 9, height: 9, borderRadius: 3, background: 'var(--success)', display: 'inline-block' }} />Income</span>
           </div>
         </div>
         <div style={{ padding: '14px 18px 18px' }}>

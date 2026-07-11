@@ -13,6 +13,7 @@ export const budgetClient: ModuleClientConfig = {
   nav: [
     { label: 'Overview',   path: '',           icon: 'layout-dashboard' },
     { label: 'Expenses',   path: 'expenses',   icon: 'receipt' },
+    { label: 'Income',     path: 'income',     icon: 'banknote' },
     { label: 'Recurring',  path: 'recurring',  icon: 'calendar-days' },
     { label: 'History',    path: 'history',    icon: 'bar-chart-2' },
     { label: 'Categories', path: 'categories', icon: 'pie-chart' },

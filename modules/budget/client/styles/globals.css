@@ -419,6 +419,26 @@ button { font-family: inherit; }
 .expense-row:first-of-type { border-top: 0; }
 
 /* ============================================================
+   INCOME TABLE
+   ============================================================ */
+.income-table { border: 1px solid var(--border-subtle); border-radius: 8px; overflow: hidden; background: var(--bg-1); }
+.income-head, .income-row {
+  display: grid;
+  grid-template-columns: 32px minmax(160px, 2fr) 70px 110px 36px;
+  gap: 14px; align-items: center; padding: 10px 16px;
+}
+.income-head {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--fg-4); letter-spacing: 0.1em;
+  background: var(--bg); border-bottom: 1px solid var(--border-subtle);
+}
+.income-row {
+  border-top: 1px solid var(--border-subtle);
+  font-size: 13px;
+}
+.income-row:first-of-type { border-top: 0; }
+
+/* ============================================================
    RECURRING
    ============================================================ */
 .rec-timeline {

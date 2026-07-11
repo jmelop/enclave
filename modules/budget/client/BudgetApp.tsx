@@ -6,27 +6,31 @@ import { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { OverviewPage } from '@/pages/OverviewPage';
 import { ExpensesPage } from '@/pages/ExpensesPage';
+import { IncomePage } from '@/pages/IncomePage';
 import { RecurringPage } from '@/pages/RecurringPage';
 import { HistoryPage } from '@/pages/HistoryPage';
 import { CategoriesPage } from '@/pages/CategoriesPage';
 import { AddExpenseModal } from '@/components/budget/AddExpenseModal';
+import { AddIncomeModal } from '@/components/budget/AddIncomeModal';
 import { RecurringModal } from '@/components/budget/RecurringModal';
 import { useBudgetStore, useCurrentMonth } from '@/store/budgetStore';
-import type { CategoryId, Transaction, RecurringBill } from '@/types/budget';
+import type { CategoryId, IncomeEntry, Transaction, RecurringBill } from '@/types/budget';
 
 const SECTION_LABELS: Record<string, string> = {
   '': 'overview',
   'expenses': 'expenses',
+  'income': 'income',
   'recurring': 'recurring',
   'history': 'history',
   'categories': 'categories',
 };
 
-type HeroAction = 'expense' | 'recurring'
+type HeroAction = 'expense' | 'income' | 'recurring'
 
 const HERO_BTN: Record<string, { label: string; action: HeroAction }> = {
   'overview':   { label: 'Add expense',   action: 'expense'   },
   'expenses':   { label: 'Add expense',   action: 'expense'   },
+  'income':     { label: 'Add income',    action: 'income'    },
   'recurring':  { label: 'Add recurring', action: 'recurring' },
   'history':    { label: 'Add expense',   action: 'expense'   },
   'categories': { label: 'Add expense',   action: 'expense'   },
@@ -38,16 +42,24 @@ type ExpenseModalState =
   | { mode: 'edit'; tx: Transaction }
   | null
 
+type IncomeModalState =
+  | { mode: 'add' }
+  | { mode: 'edit'; entry: IncomeEntry }
+  | null
+
 export default function BudgetApp() {
   const [theme, setTheme] = useState<string>(
     () => document.documentElement.getAttribute('data-theme') ?? 'dark',
   );
   const [expenseModal, setExpenseModal]         = useState<ExpenseModalState>(null);
+  const [incomeModal, setIncomeModal]           = useState<IncomeModalState>(null);
   const [addRecurringOpen, setAddRecurringOpen] = useState(false);
 
   const hydrate       = useBudgetStore(s => s.hydrate);
   const addExpense    = useBudgetStore(s => s.addExpense);
   const updateExpense = useBudgetStore(s => s.updateExpense);
+  const addIncome     = useBudgetStore(s => s.addIncome);
+  const updateIncome  = useBudgetStore(s => s.updateIncome);
   const addRecurring  = useBudgetStore(s => s.addRecurring);
   const months        = useBudgetStore(s => s.months);
   const monthIndex    = useBudgetStore(s => s.monthIndex);
@@ -74,11 +86,12 @@ export default function BudgetApp() {
   })();
 
   const heroBtnDef = HERO_BTN[sectionLabel] ?? { label: 'Add expense', action: 'expense' as HeroAction };
-  const expenseActionsLocked = heroBtnDef.action === 'expense' && month.created === false;
+  const expenseActionsLocked = heroBtnDef.action !== 'recurring' && month.created === false;
 
   const handleHeroBtn = () => {
     if (expenseActionsLocked) return;
     if (heroBtnDef.action === 'recurring') setAddRecurringOpen(true);
+    else if (heroBtnDef.action === 'income') setIncomeModal({ mode: 'add' });
     else setExpenseModal({ mode: 'add' });
   };
 
@@ -96,6 +109,20 @@ export default function BudgetApp() {
       void addExpense({ name, vendor: name, amount, cat, day, recurring: false });
     }
     setExpenseModal(null);
+  };
+
+  const handleIncomeModalSave = (
+    name: string,
+    source: string,
+    amount: number,
+    day: number,
+  ) => {
+    if (incomeModal?.mode === 'edit') {
+      void updateIncome(incomeModal.entry.id, { name, source, amount, day });
+    } else {
+      void addIncome({ name, source, amount, day });
+    }
+    setIncomeModal(null);
   };
 
   return (
@@ -186,6 +213,15 @@ export default function BudgetApp() {
               />
             }
           />
+          <Route
+            path="income"
+            element={
+              <IncomePage
+                onAddIncome={() => setIncomeModal({ mode: 'add' })}
+                onEditIncome={entry => setIncomeModal({ mode: 'edit', entry })}
+              />
+            }
+          />
           <Route path="recurring" element={<RecurringPage />} />
           <Route path="history" element={<HistoryPage />} />
           <Route path="categories" element={<CategoriesPage />} />
@@ -198,6 +234,15 @@ export default function BudgetApp() {
           initial={expenseModal.mode === 'edit' ? expenseModal.tx : undefined}
           onClose={() => setExpenseModal(null)}
           onSave={handleExpenseModalSave}
+        />
+      )}
+
+      {incomeModal && (
+        <AddIncomeModal
+          month={month}
+          initial={incomeModal.mode === 'edit' ? incomeModal.entry : undefined}
+          onClose={() => setIncomeModal(null)}
+          onSave={handleIncomeModalSave}
         />
       )}
 

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { CategoryId, MonthData, RecurringBill, Transaction } from '@/types/budget'
+import type { CategoryId, IncomeEntry, MonthData, RecurringBill, Transaction } from '@/types/budget'
 import { SEED_MONTHS, SEED_RECURRING, DEFAULT_BUDGETS } from '@/lib/seed'
 
 // ── Client-side date helpers ──────────────────────────────────────────────────
@@ -45,6 +45,7 @@ interface ApiMonthDetail {
   note: string
   asOfDay: number
   transactions: Transaction[]
+  incomes?: IncomeEntry[]
   recurring: RecurringBill[]
   targets: Record<string, number>
   created?: boolean
@@ -158,6 +159,7 @@ interface BudgetState {
   months: MonthData[]
   monthIndex: number
   transactions: Transaction[]
+  incomes: IncomeEntry[]
   recurring: RecurringBill[]
   budgets: Record<CategoryId, number>
 
@@ -172,11 +174,13 @@ interface BudgetState {
   addExpense: (tx: Omit<Transaction, 'id' | 'monthKey'>) => Promise<void>
   updateExpense: (id: string, tx: Omit<Transaction, 'id' | 'monthKey'>) => Promise<void>
   deleteExpense: (id: string) => Promise<void>
+  addIncome: (entry: Omit<IncomeEntry, 'id' | 'monthKey'>) => Promise<void>
+  updateIncome: (id: string, entry: Omit<IncomeEntry, 'id' | 'monthKey'>) => Promise<void>
+  deleteIncome: (id: string) => Promise<void>
   setBudget: (cat: CategoryId, amount: number) => Promise<void>
   addRecurring: (r: Omit<RecurringBill, 'id'>) => Promise<void>
   updateRecurring: (r: RecurringBill) => Promise<void>
   deleteRecurring: (id: string) => Promise<void>
-  setIncome: (monthKey: string, income: number) => Promise<void>
 }
 
 // ── Store ─────────────────────────────────────────────────────────────────────
@@ -185,6 +189,7 @@ export const useBudgetStore = create<BudgetState>()((set, get) => ({
   months:       seedMonths(),
   monthIndex:   SEED_MONTHS.length - 1,
   transactions: [],
+  incomes:      [],
   recurring:    SEED_RECURRING.map(r => ({ ...r })),
   budgets:      { ...DEFAULT_BUDGETS },
 
@@ -222,6 +227,7 @@ export const useBudgetStore = create<BudgetState>()((set, get) => ({
         months,
         monthIndex,
         transactions: detail.transactions,
+        incomes:      detail.incomes ?? [],
         recurring:    detail.recurring,
         budgets:      detail.targets as Record<CategoryId, number>,
         hydrated:     true,
@@ -258,6 +264,7 @@ export const useBudgetStore = create<BudgetState>()((set, get) => ({
         months:       newMonths,
         monthIndex:   nextIndex >= 0 ? nextIndex : Math.min(monthIndex, newMonths.length - 1),
         transactions: detail.transactions,
+        incomes:      detail.incomes ?? [],
         recurring:    detail.recurring,
         budgets:      detail.targets as Record<CategoryId, number>,
         hydrated:     true,
@@ -282,6 +289,7 @@ export const useBudgetStore = create<BudgetState>()((set, get) => ({
       set({
         months:       newMonths,
         transactions: detail.transactions,
+        incomes:      detail.incomes ?? [],
         recurring:    detail.recurring,
         budgets:      detail.targets as Record<CategoryId, number>,
         loading:      false,
@@ -393,12 +401,38 @@ export const useBudgetStore = create<BudgetState>()((set, get) => ({
     await get().refetch()
   },
 
-  setIncome: async (monthKey, income) => {
-    const res = await fetch(`/api/budget/months/${monthKey}`, {
+  addIncome: async (entry) => {
+    const { months, monthIndex } = get()
+    const monthKey = months[monthIndex]?.key ?? currentMonthKey()
+    const res = await fetch('/api/budget/incomes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...entry, monthKey }),
+    })
+    if (!res.ok) {
+      const body = (await res.json()) as { error?: string }
+      throw new Error(body.error ?? `HTTP ${res.status}`)
+    }
+    await get().refetch()
+  },
+
+  updateIncome: async (id, entry) => {
+    const { months, monthIndex } = get()
+    const monthKey = months[monthIndex]?.key ?? currentMonthKey()
+    const res = await fetch(`/api/budget/incomes/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ income, note: get().months.find(m => m.key === monthKey)?.note ?? '' }),
+      body: JSON.stringify({ ...entry, monthKey }),
     })
+    if (!res.ok) {
+      const body = (await res.json()) as { error?: string }
+      throw new Error(body.error ?? `HTTP ${res.status}`)
+    }
+    await get().refetch()
+  },
+
+  deleteIncome: async (id: string) => {
+    const res = await fetch(`/api/budget/incomes/${id}`, { method: 'DELETE' })
     if (!res.ok) {
       const body = (await res.json()) as { error?: string }
       throw new Error(body.error ?? `HTTP ${res.status}`)
