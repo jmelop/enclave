@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { NavGroup, NavItem } from '@venator-ui/ui';
+import { NavItem } from '@venator-ui/ui';
 import { House, LayoutDashboard, Dumbbell, Activity, Wallet, LayoutGrid, Receipt, HandCoins, CalendarDays, BarChart2, PieChart, Lightbulb, Code2, Kanban, Tag, Archive, RefreshCcw, Target, CheckSquare, BarChart3, FlaskConical, Settings } from 'lucide-react';
 import { clientModules } from '../../../enclave.modules.client';
 import type { ModuleClientConfig } from '@enclave/sdk';
@@ -127,7 +127,7 @@ export function EnclaveNav({ externalLinks = [] }: Props) {
                 />
                 <span
                   className="text-[11px] font-semibold tracking-[0.06em] uppercase"
-                  style={{ color: isModActive ? 'var(--fg-2)' : 'var(--fg-4)' }}
+                  style={{ color: isModActive ? 'var(--fg)' : 'var(--fg-2)' }}
                 >
                   {mod.navLabel}
                 </span>
@@ -157,17 +157,35 @@ export function EnclaveNav({ externalLinks = [] }: Props) {
         })}
 
         {externalLinks.length > 0 && (
-          <NavGroup label="External">
-            {externalLinks.map((link) => (
-              <NavItem
-                key={link.id}
-                label={link.label}
-                onClick={() =>
-                  window.open(link.url, '_blank', 'noopener,noreferrer')
-                }
+          <div>
+            {/* Same separator treatment as the module groups above */}
+            <div
+              className="flex items-center gap-2 px-3 py-2 mt-1"
+              style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '14px', marginTop: '6px' }}
+            >
+              <span
+                className="w-1.5 h-1.5 rounded-full shrink-0"
+                style={{ background: 'var(--border-default)' }}
               />
-            ))}
-          </NavGroup>
+              <span
+                className="text-[11px] font-semibold tracking-[0.06em] uppercase"
+                style={{ color: 'var(--fg-2)' }}
+              >
+                External
+              </span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              {externalLinks.map((link) => (
+                <NavItem
+                  key={link.id}
+                  label={link.label}
+                  onClick={() =>
+                    window.open(link.url, '_blank', 'noopener,noreferrer')
+                  }
+                />
+              ))}
+            </div>
+          </div>
         )}
       </div>
 
