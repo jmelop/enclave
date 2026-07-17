@@ -64,6 +64,7 @@ export default function BudgetApp() {
   const months        = useBudgetStore(s => s.months);
   const monthIndex    = useBudgetStore(s => s.monthIndex);
   const setMonthIndex = useBudgetStore(s => s.setMonthIndex);
+  const setYear       = useBudgetStore(s => s.setYear);
   const month         = useCurrentMonth();
   const location      = useLocation();
 
@@ -146,9 +147,9 @@ export default function BudgetApp() {
           >
             ‹
           </button>
-          <span className="pill" style={{ minWidth: 112, justifyContent: 'center', display: 'inline-flex', gap: 4 }}>
+          <span className="pill" style={{ minWidth: 92, justifyContent: 'center', display: 'inline-flex', gap: 4 }}>
             <span style={{ color: 'var(--fg-3)' }}>📅</span>
-            <span style={{ color: 'var(--fg)', fontWeight: 600 }}>{month.label} {month.year}</span>
+            <span style={{ color: 'var(--fg)', fontWeight: 600 }}>{month.label}</span>
           </span>
           <button
             className="icon-btn"
@@ -158,6 +159,26 @@ export default function BudgetApp() {
             title="Next month"
           >
             ›
+          </button>
+          <button
+            className="icon-btn"
+            style={{ border: 'none' }}
+            onClick={() => void setYear(month.year - 1)}
+            title="Previous year"
+          >
+            «
+          </button>
+          <span className="pill" style={{ minWidth: 48, justifyContent: 'center', display: 'inline-flex' }}>
+            <span style={{ color: 'var(--fg)', fontWeight: 600 }}>{month.year}</span>
+          </span>
+          <button
+            className="icon-btn"
+            style={{ border: 'none' }}
+            disabled={month.year >= new Date().getFullYear()}
+            onClick={() => void setYear(month.year + 1)}
+            title="Next year"
+          >
+            »
           </button>
           <span style={{ color: 'var(--fg-5)' }}>·</span>
           <span className="pill"><span className="dot" />synced</span>
