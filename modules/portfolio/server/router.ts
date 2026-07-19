@@ -168,9 +168,12 @@ export function createPortfolioRouter(pool: DbPool): Router {
     let holdings: AssetRow[];
     try {
       settings = await getPriceApiSettings(pool);
+      // Stalest first: with the per-minute credit cap, consecutive refreshes
+      // rotate through the whole portfolio instead of re-quoting the same rows.
       const { rows } = await pool.query(
         `SELECT id, type, symbol, currency FROM assets
-         WHERE symbol IS NOT NULL AND type IN ('stock', 'fund', 'crypto')`,
+         WHERE symbol IS NOT NULL AND type IN ('stock', 'fund', 'crypto')
+         ORDER BY updated_at ASC NULLS FIRST`,
       );
       holdings = rows;
     } catch (err) {
@@ -185,7 +188,7 @@ export function createPortfolioRouter(pool: DbPool): Router {
       return res.status(409).json({ error: 'No price API key configured — add one in Options' });
     }
     if (holdings.length === 0) {
-      return res.json({ updated: 0, failed: [] });
+      return res.json({ updated: 0, failed: [], skipped: [] });
     }
 
     const bySymbol = new Map<string, AssetRow[]>();
@@ -195,18 +198,32 @@ export function createPortfolioRouter(pool: DbPool): Router {
       if (group) group.push(row); else bySymbol.set(key, [row]);
     }
 
+    // Twelve Data free tier allows 8 credits/minute and a batch costs 1 credit
+    // per symbol; an oversized batch is rejected whole (and still billed).
+    const MAX_SYMBOLS_PER_REFRESH = 8;
+    const allSymbols = [...bySymbol.keys()];
+    const batch = allSymbols.slice(0, MAX_SYMBOLS_PER_REFRESH);
+    const skipped = allSymbols.slice(MAX_SYMBOLS_PER_REFRESH);
+
     try {
-      const quotes = await fetchQuotes([...bySymbol.keys()], settings.apiKey);
+      const quotes = await fetchQuotes(batch, settings.apiKey);
 
       let updated = 0;
       const failed: string[] = [];
-      for (const [symbol, rows] of bySymbol) {
+      for (const symbol of batch) {
         const quote = quotes[symbol];
         if (!quote) {
           failed.push(symbol);
           continue;
         }
-        for (const row of rows) {
+        for (const row of bySymbol.get(symbol) ?? []) {
+          // The provider resolves bare tickers to their primary (usually US)
+          // listing — never write a quote denominated in another currency.
+          const assetCurrency = String(row['currency'] ?? '');
+          if (quote.currency && assetCurrency && quote.currency !== assetCurrency) {
+            failed.push(`${symbol} (${quote.currency} quote, asset in ${assetCurrency})`);
+            continue;
+          }
           await pool.query(
             `UPDATE assets SET price = $2, change_pct_24h = $3, updated_at = NOW() WHERE id = $1`,
             [row['id'], quote.price, quote.changePercent],
@@ -214,7 +231,7 @@ export function createPortfolioRouter(pool: DbPool): Router {
           updated += 1;
         }
       }
-      return res.json({ updated, failed });
+      return res.json({ updated, failed, skipped });
     } catch (err) {
       if (err instanceof PriceApiError) {
         return res.status(err.status).json({ error: err.message });

@@ -327,15 +327,16 @@ export function Portfolio() {
 
   const handleLivePrices = async () => {
     try {
-      const { updated, failed } = await refreshPrices()
-      if (updated === 0 && failed.length === 0) {
+      const { updated, failed, skipped } = await refreshPrices()
+      if (updated === 0 && failed.length === 0 && skipped.length === 0) {
         toast({ title: 'No symbol-based assets to update', variant: 'default' })
       } else {
+        const parts = [`Prices updated: ${updated} asset${updated === 1 ? '' : 's'}`]
+        if (failed.length > 0) parts.push(`no quote for ${failed.join(', ')}`)
+        if (skipped.length > 0) parts.push(`${skipped.length} pending (rate limit) — run Live again in a minute`)
         toast({
-          title: failed.length > 0
-            ? `Prices updated: ${updated} asset${updated === 1 ? '' : 's'} · no quote for ${failed.join(', ')}`
-            : `Prices updated: ${updated} asset${updated === 1 ? '' : 's'}`,
-          variant: failed.length > 0 ? 'warning' : 'success',
+          title: parts.join(' · '),
+          variant: failed.length > 0 || skipped.length > 0 ? 'warning' : 'success',
         })
       }
     } catch (err) {

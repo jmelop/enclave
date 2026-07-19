@@ -7,6 +7,8 @@ const REQUEST_TIMEOUT_MS = 10_000;
 export interface Quote {
   price: number;
   changePercent: number | null;
+  // Quote currency when the provider reports one (crypto pairs omit it).
+  currency: string | null;
 }
 
 export class PriceApiError extends Error {
@@ -28,13 +30,18 @@ interface RawQuote {
   symbol?: string;
   close?: string;
   percent_change?: string;
+  currency?: string;
 }
 
 function parseQuote(raw: RawQuote): Quote | null {
   const price = Number(raw.close);
   if (!Number.isFinite(price) || price <= 0) return null;
   const change = Number(raw.percent_change);
-  return { price, changePercent: Number.isFinite(change) ? change : null };
+  return {
+    price,
+    changePercent: Number.isFinite(change) ? change : null,
+    currency: typeof raw.currency === 'string' ? raw.currency : null,
+  };
 }
 
 // Returns quotes keyed by provider symbol; symbols the provider could not

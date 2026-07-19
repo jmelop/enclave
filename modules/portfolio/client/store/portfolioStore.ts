@@ -28,6 +28,7 @@ async function fetchSnapshots(): Promise<PortfolioSnapshot[]> {
 export interface PriceRefreshResult {
   updated: number
   failed: string[]
+  skipped: string[]
 }
 
 async function postPriceRefresh(): Promise<PriceRefreshResult> {
