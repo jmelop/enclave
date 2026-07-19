@@ -270,7 +270,7 @@ function useTheme() {
 }
 
 export function Portfolio() {
-  const { assets, loading, error, hydrated, hydrate, refetch, createAsset, updateAsset, deleteAsset } = usePortfolioStore()
+  const { assets, loading, pricesLoading, error, hydrated, hydrate, refetch, refreshPrices, createAsset, updateAsset, deleteAsset } = usePortfolioStore()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [activeTab, setActiveTab] = useState<AssetCategory>('stock')
   const [hideValues, setHideValues] = useState(false)
@@ -323,6 +323,27 @@ export function Portfolio() {
       title: `Exported ${assets.length} asset${assets.length === 1 ? '' : 's'}`,
       variant: 'success',
     })
+  }
+
+  const handleLivePrices = async () => {
+    try {
+      const { updated, failed } = await refreshPrices()
+      if (updated === 0 && failed.length === 0) {
+        toast({ title: 'No symbol-based assets to update', variant: 'default' })
+      } else {
+        toast({
+          title: failed.length > 0
+            ? `Prices updated: ${updated} asset${updated === 1 ? '' : 's'} · no quote for ${failed.join(', ')}`
+            : `Prices updated: ${updated} asset${updated === 1 ? '' : 's'}`,
+          variant: failed.length > 0 ? 'warning' : 'success',
+        })
+      }
+    } catch (err) {
+      toast({
+        title: err instanceof Error ? err.message : 'Could not refresh prices',
+        variant: 'error',
+      })
+    }
   }
 
   const handleImportAssets = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -429,6 +450,16 @@ export function Portfolio() {
           <Button variant="secondary" size="sm" onClick={refetch}>
             <span className="p-action-icon"><Icon name="refresh" /></span>
             <span>Refresh</span>
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            title="Fetch live prices for stocks, funds and crypto"
+            onClick={handleLivePrices}
+            disabled={pricesLoading}
+          >
+            <span className="p-action-icon"><Icon name="bolt" /></span>
+            <span>{pricesLoading ? 'Updating' : 'Live'}</span>
           </Button>
           <Button variant="secondary" size="sm" onClick={handleExportAssets}>
             <span className="p-action-icon"><Icon name="download" /></span>

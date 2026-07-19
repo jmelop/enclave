@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { randomUUID } from 'crypto';
 import type { DbPool, AssetInput } from '@enclave/sdk';
 import { INITIAL_ASSETS, INITIAL_SNAPSHOTS } from './seed';
+import { fetchQuotes, providerSymbol, PriceApiError } from './services/priceService';
 
 const VALID_TYPES = new Set([
   'stock', 'fund', 'crypto', 'savings', 'realestate', 'collectible', 'investment',
@@ -112,6 +113,17 @@ async function upsertCurrentSnapshot(pool: DbPool): Promise<AssetRow> {
   return rows[0];
 }
 
+async function getPriceApiSettings(pool: DbPool): Promise<{ enabled: boolean; apiKey: string }> {
+  const { rows } = await pool.query(
+    `SELECT key, value FROM options_settings WHERE key IN ('priceApiEnabled', 'priceApiKey')`,
+  );
+  const stored = Object.fromEntries(rows.map(r => [r['key'] as string, r['value']]));
+  return {
+    enabled: stored['priceApiEnabled'] === true,
+    apiKey: typeof stored['priceApiKey'] === 'string' ? stored['priceApiKey'] : '',
+  };
+}
+
 async function ensureCurrentMonthSnapshot(pool: DbPool): Promise<void> {
   const monthKey = currentMonthKey();
   const { rows } = await pool.query(
@@ -148,6 +160,67 @@ export function createPortfolioRouter(pool: DbPool): Router {
     } catch (err) {
       console.warn('[portfolio] /history db unavailable, using seed:', err);
       return res.json(INITIAL_SNAPSHOTS);
+    }
+  });
+
+  router.post('/prices/refresh', async (_req, res) => {
+    let settings: { enabled: boolean; apiKey: string };
+    let holdings: AssetRow[];
+    try {
+      settings = await getPriceApiSettings(pool);
+      const { rows } = await pool.query(
+        `SELECT id, type, symbol, currency FROM assets
+         WHERE symbol IS NOT NULL AND type IN ('stock', 'fund', 'crypto')`,
+      );
+      holdings = rows;
+    } catch (err) {
+      console.warn('[portfolio] POST /prices/refresh db error:', err);
+      return res.status(503).json({ error: 'Database unavailable, cannot refresh prices' });
+    }
+
+    if (!settings.enabled) {
+      return res.status(409).json({ error: 'Live prices are disabled — enable them in Options' });
+    }
+    if (!settings.apiKey) {
+      return res.status(409).json({ error: 'No price API key configured — add one in Options' });
+    }
+    if (holdings.length === 0) {
+      return res.json({ updated: 0, failed: [] });
+    }
+
+    const bySymbol = new Map<string, AssetRow[]>();
+    for (const row of holdings) {
+      const key = providerSymbol(String(row['type']), String(row['symbol']), String(row['currency'] ?? ''));
+      const group = bySymbol.get(key);
+      if (group) group.push(row); else bySymbol.set(key, [row]);
+    }
+
+    try {
+      const quotes = await fetchQuotes([...bySymbol.keys()], settings.apiKey);
+
+      let updated = 0;
+      const failed: string[] = [];
+      for (const [symbol, rows] of bySymbol) {
+        const quote = quotes[symbol];
+        if (!quote) {
+          failed.push(symbol);
+          continue;
+        }
+        for (const row of rows) {
+          await pool.query(
+            `UPDATE assets SET price = $2, change_pct_24h = $3, updated_at = NOW() WHERE id = $1`,
+            [row['id'], quote.price, quote.changePercent],
+          );
+          updated += 1;
+        }
+      }
+      return res.json({ updated, failed });
+    } catch (err) {
+      if (err instanceof PriceApiError) {
+        return res.status(err.status).json({ error: err.message });
+      }
+      console.warn('[portfolio] POST /prices/refresh error:', err);
+      return res.status(503).json({ error: 'Could not refresh prices' });
     }
   });
 

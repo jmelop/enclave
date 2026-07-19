@@ -25,6 +25,20 @@ async function fetchSnapshots(): Promise<PortfolioSnapshot[]> {
   return (await res.json()) as PortfolioSnapshot[]
 }
 
+export interface PriceRefreshResult {
+  updated: number
+  failed: string[]
+}
+
+async function postPriceRefresh(): Promise<PriceRefreshResult> {
+  const res = await fetch('/api/portfolio/prices/refresh', { method: 'POST' })
+  if (!res.ok) {
+    const body = await res.json() as { error?: string }
+    throw new Error(body.error ?? `HTTP ${res.status}`)
+  }
+  return (await res.json()) as PriceRefreshResult
+}
+
 async function postSnapshot(): Promise<PortfolioSnapshot> {
   const res = await fetch('/api/portfolio/history/snapshot', { method: 'POST' })
   if (!res.ok) {
@@ -40,11 +54,13 @@ interface Store extends PortfolioState {
   setLastSync: (ts: string) => void
   loading: boolean
   historyLoading: boolean
+  pricesLoading: boolean
   error: string | null
   historyError: string | null
   hydrated: boolean
   hydrate: () => Promise<void>
   refetch: () => Promise<void>
+  refreshPrices: () => Promise<PriceRefreshResult>
   fetchHistory: () => Promise<void>
   captureSnapshot: () => Promise<void>
   createAsset: (input: AssetInput) => Promise<void>
@@ -60,6 +76,7 @@ export const usePortfolioStore = create<Store>()((set, get) => ({
   lastSync: '2026-05-18T23:15:00Z',
   loading: false,
   historyLoading: false,
+  pricesLoading: false,
   error: null,
   historyError: null,
   hydrated: false,
@@ -89,6 +106,18 @@ export const usePortfolioStore = create<Store>()((set, get) => ({
         error: err instanceof Error ? err.message : 'Network error',
         loading: false,
       })
+    }
+  },
+  refreshPrices: async () => {
+    set({ pricesLoading: true })
+    try {
+      const result = await postPriceRefresh()
+      const assets = await fetchHoldings()
+      set({ assets, lastSync: new Date().toISOString(), pricesLoading: false })
+      return result
+    } catch (err) {
+      set({ pricesLoading: false })
+      throw err
     }
   },
   fetchHistory: async () => {

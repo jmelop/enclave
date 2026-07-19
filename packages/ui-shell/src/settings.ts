@@ -7,12 +7,16 @@ export interface EnclaveSettings {
   theme: 'dark' | 'light';
   currency: 'EUR' | 'USD' | 'GBP';
   disabledModules: string[];
+  priceApiEnabled: boolean;
+  priceApiKey: string;
 }
 
 export const DEFAULT_SETTINGS: EnclaveSettings = {
   theme: 'dark',
   currency: 'EUR',
   disabledModules: [],
+  priceApiEnabled: false,
+  priceApiKey: '',
 };
 
 export const CURRENCY_SYMBOLS: Record<EnclaveSettings['currency'], string> = {

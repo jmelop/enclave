@@ -107,3 +107,34 @@
   left: 18px;
   background: #0b0d10;
 }
+
+/* ── Market data (price API) ───────────────────────────────────────────────── */
+
+.options-app .opt-api-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.options-app .opt-input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-2);
+  color: var(--fg);
+  font-size: 12.5px;
+  font-family: var(--font-mono, monospace);
+  transition: 120ms;
+}
+.options-app .opt-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.options-app .opt-input::placeholder { color: var(--fg-4); }
+.options-app .opt-api-hint {
+  margin-top: 10px;
+  font-size: 10.5px;
+  color: var(--fg-4);
+}
+.options-app .opt-api-hint a { color: var(--fg-3); }

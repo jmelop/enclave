@@ -6,6 +6,8 @@ export const DEFAULT_SETTINGS = {
   theme: 'dark',
   currency: 'EUR',
   disabledModules: [] as string[],
+  priceApiEnabled: false,
+  priceApiKey: '',
 }
 
 type SettingKey = keyof typeof DEFAULT_SETTINGS
@@ -16,6 +18,8 @@ const VALIDATORS: Record<SettingKey, (value: unknown) => boolean> = {
   // 'options' can never be disabled — it is the way back.
   disabledModules: v =>
     Array.isArray(v) && v.every(x => typeof x === 'string') && !v.includes('options'),
+  priceApiEnabled: v => typeof v === 'boolean',
+  priceApiKey: v => typeof v === 'string' && v.length <= 128 && !/\s/.test(v),
 }
 
 function isSettingKey(key: string): key is SettingKey {
