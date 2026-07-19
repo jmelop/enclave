@@ -1,3 +1,4 @@
+import { useEffect, useState, type CSSProperties } from 'react';
 import { Card } from '@venator-ui/ui';
 import { TrendingUp, Wallet, Star } from 'lucide-react';
 import { useBudgetStore } from '@/store/budgetStore';
@@ -13,6 +14,12 @@ export function HistoryPage() {
   const hydrated    = useBudgetStore(s => s.hydrated);
   const refetch     = useBudgetStore(s => s.refetch);
   const setMonthIndex = useBudgetStore(s => s.setMonthIndex);
+  // Follow the year selected in the topbar; 'all' is an explicit opt-in.
+  const selectedYear = months[monthIndex]?.year;
+  const [yearFilter, setYearFilter] = useState<number | 'all'>(() => selectedYear ?? 'all');
+  useEffect(() => {
+    if (selectedYear != null) setYearFilter(selectedYear);
+  }, [selectedYear]);
 
   // ── 4 UI states ────────────────────────────────────────────────────────────
 
@@ -37,33 +44,80 @@ export function HistoryPage() {
 
   // ── Normal state ───────────────────────────────────────────────────────────
 
-  const rows = historyMonths.map(m => {
+  // Chips cover every year with data plus the topbar-selected year (which may
+  // have none yet — that renders as an explicit empty state, not stale data).
+  const years = [...new Set([
+    ...historyMonths.map(m => m.year),
+    ...(selectedYear != null ? [selectedYear] : []),
+  ])].sort((a, b) => b - a);
+  const activeYear = yearFilter === 'all' || years.includes(yearFilter) ? yearFilter : 'all';
+  const visibleMonths = activeYear === 'all'
+    ? historyMonths
+    : historyMonths.filter(m => m.year === activeYear);
+
+  const rows = visibleMonths.map(m => {
     const mm = computeMetrics(m, budgets);
     return { m, ...mm, saved: m.income - mm.spent };
   });
-  const activeHistoryIdx = historyMonths.findIndex(m => m.key === months[monthIndex]?.key);
+  const activeHistoryIdx = visibleMonths.findIndex(m => m.key === months[monthIndex]?.key);
   const selectHistoryMonth = (i: number) => {
-    const key = historyMonths[i]?.key;
+    const key = visibleMonths[i]?.key;
     const nextIndex = months.findIndex(m => m.key === key);
     if (nextIndex >= 0) void setMonthIndex(nextIndex);
   };
 
-  const avgSpent   = Math.round(rows.reduce((s, r) => s + r.spent, 0) / rows.length);
+  const avgSpent   = rows.length ? Math.round(rows.reduce((s, r) => s + r.spent, 0) / rows.length) : 0;
   const totalSaved = rows.reduce((s, r) => s + r.saved, 0);
   const bestMonth  = rows.slice().sort((a, b) => b.saved - a.saved)[0];
 
+  const yearChipStyle = (active: boolean): CSSProperties => ({
+    appearance: 'none',
+    cursor: 'pointer',
+    fontSize: 11,
+    fontFamily: "'JetBrains Mono', monospace",
+    padding: '4px 10px',
+    borderRadius: 999,
+    border: `1px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`,
+    background: active ? 'color-mix(in oklab, var(--accent) 14%, transparent)' : 'var(--bg-3)',
+    color: active ? 'var(--accent)' : 'var(--fg-3)',
+    transition: '0.15s ease',
+  });
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {years.length > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span className="mono" style={{ fontSize: 11, color: 'var(--fg-4)' }}>YEAR</span>
+          <button type="button" style={yearChipStyle(activeYear === 'all')} onClick={() => setYearFilter('all')}>
+            All
+          </button>
+          {years.map(y => (
+            <button key={y} type="button" style={yearChipStyle(activeYear === y)} onClick={() => setYearFilter(y)}>
+              {y}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {visibleMonths.length === 0 ? (
+        <Card padding="none">
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '56px 0', color: 'var(--fg-3)' }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg-2)' }}>No data for {activeYear}</span>
+            <span style={{ fontSize: 12 }}>No months have been created in this year yet.</span>
+          </div>
+        </Card>
+      ) : (
+      <>
       <div className="stats">
         <div className="stat-card">
           <div className="stat-head"><div className="stat-icon"><TrendingUp size={14} /></div><span className="stat-label">AVG. MONTHLY SPEND</span></div>
           <div className="stat-value mono">{fmt(avgSpent)}</div>
-          <div className="stat-sub">Across the last {historyMonths.length} months</div>
+          <div className="stat-sub">Across {visibleMonths.length} month{visibleMonths.length === 1 ? '' : 's'}{activeYear !== 'all' ? ` in ${activeYear}` : ''}</div>
         </div>
         <div className="stat-card">
           <div className="stat-head"><div className="stat-icon"><Wallet size={14} /></div><span className="stat-label">TOTAL SAVED</span></div>
           <div className="stat-value mono" style={{ color: totalSaved >= 0 ? 'var(--success)' : 'var(--danger)' }}>{fmtSigned(totalSaved)}</div>
-          <div className="stat-sub">Income minus spending, {historyMonths.length} mo</div>
+          <div className="stat-sub">Income minus spending, {visibleMonths.length} mo{activeYear !== 'all' ? ` · ${activeYear}` : ''}</div>
         </div>
         <div className="stat-card">
           <div className="stat-head"><div className="stat-icon"><Star size={14} /></div><span className="stat-label">BEST MONTH</span></div>
@@ -74,14 +128,19 @@ export function HistoryPage() {
 
       <Card padding="none">
         <div style={{ padding: '16px 18px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)' }}>
-          <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Spending vs income</h3>
+          <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>
+            Spending vs income
+            <span className="mono" style={{ fontSize: 11, fontWeight: 400, color: 'var(--fg-3)', marginLeft: 8 }}>
+              · {activeYear === 'all' ? 'all years' : activeYear}
+            </span>
+          </h3>
           <div style={{ display: 'flex', gap: 12 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-3)' }}><span style={{ width: 9, height: 9, borderRadius: 3, background: 'var(--accent)', display: 'inline-block' }} />Spent</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-3)' }}><span style={{ width: 9, height: 9, borderRadius: 3, background: 'var(--success)', display: 'inline-block' }} />Income</span>
           </div>
         </div>
         <div style={{ padding: '14px 18px 18px' }}>
-          <TrendChart months={historyMonths} budgets={budgets} activeIdx={activeHistoryIdx} onSelect={selectHistoryMonth} />
+          <TrendChart months={visibleMonths} budgets={budgets} activeIdx={activeHistoryIdx} onSelect={selectHistoryMonth} />
         </div>
       </Card>
 
@@ -118,9 +177,11 @@ export function HistoryPage() {
       </Card>
 
       <footer className="page-foot mono">
-        <span>END · {historyMonths.length} months tracked</span>
+        <span>END · {visibleMonths.length} months tracked{activeYear !== 'all' ? ` · ${activeYear}` : ''}</span>
         <span className="dim">enclave/budget · build 2026.05</span>
       </footer>
+      </>
+      )}
     </div>
   );
 }

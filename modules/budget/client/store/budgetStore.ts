@@ -64,8 +64,8 @@ function emptySpent(): Record<CategoryId, number> {
   return {} as Record<CategoryId, number>
 }
 
-function januaryCurrentYearKey(): string {
-  return `${new Date().getFullYear()}-01`
+function januaryKey(year: number): string {
+  return `${year}-01`
 }
 
 function addMonth(key: string): string {
@@ -88,15 +88,16 @@ function monthFromKey(key: string): MonthData {
   }
 }
 
-function buildMonthTimeline(summaries: ApiMonthSummary[]): MonthData[] {
+function buildMonthTimeline(summaries: ApiMonthSummary[], floorYear: number): MonthData[] {
   const byKey = new Map(summaries.map(summary => [summary.key, summaryToMonthData(summary)]))
   const earliestExisting = summaries.reduce<string | null>(
     (earliest, summary) => (!earliest || summary.key < earliest ? summary.key : earliest),
     null,
   )
-  const startKey = earliestExisting && earliestExisting < januaryCurrentYearKey()
+  const floorKey = januaryKey(Math.min(floorYear, new Date().getFullYear()))
+  const startKey = earliestExisting && earliestExisting < floorKey
     ? earliestExisting
-    : januaryCurrentYearKey()
+    : floorKey
   const endKey = currentMonthKey()
   const months: MonthData[] = []
 
@@ -158,6 +159,8 @@ function summaryToMonthData(s: ApiMonthSummary): MonthData {
 interface BudgetState {
   months: MonthData[]
   monthIndex: number
+  // Floor year for the navigable timeline — extends backward via setYear().
+  earliestYear: number
   transactions: Transaction[]
   incomes: IncomeEntry[]
   recurring: RecurringBill[]
@@ -170,6 +173,7 @@ interface BudgetState {
   hydrate: () => Promise<void>
   refetch: () => Promise<void>
   setMonthIndex: (i: number) => Promise<void>
+  setYear: (year: number) => Promise<void>
   createMonth: (monthKey: string) => Promise<void>
   addExpense: (tx: Omit<Transaction, 'id' | 'monthKey'>) => Promise<void>
   updateExpense: (id: string, tx: Omit<Transaction, 'id' | 'monthKey'>) => Promise<void>
@@ -188,6 +192,7 @@ interface BudgetState {
 export const useBudgetStore = create<BudgetState>()((set, get) => ({
   months:       seedMonths(),
   monthIndex:   SEED_MONTHS.length - 1,
+  earliestYear: new Date().getFullYear(),
   transactions: [],
   incomes:      [],
   recurring:    SEED_RECURRING.map(r => ({ ...r })),
@@ -209,7 +214,7 @@ export const useBudgetStore = create<BudgetState>()((set, get) => ({
       ])
 
       // Build a navigable month timeline (oldest first to match nav convention).
-      const months = buildMonthTimeline(summaries)
+      const months = buildMonthTimeline(summaries, get().earliestYear)
 
       // Find or append current month in the list
       const curKey = detail.key
@@ -253,7 +258,7 @@ export const useBudgetStore = create<BudgetState>()((set, get) => ({
         fetchMonthDetail(key),
       ])
 
-      const newMonths = buildMonthTimeline(summaries)
+      const newMonths = buildMonthTimeline(summaries, get().earliestYear)
       const curIdx = newMonths.findIndex(m => m.key === detail.key)
       const curMonthData = detailToMonthData(detail)
       if (curIdx >= 0) newMonths[curIdx] = curMonthData
@@ -297,6 +302,35 @@ export const useBudgetStore = create<BudgetState>()((set, get) => ({
     } catch (err) {
       set({ error: err instanceof Error ? err.message : 'Network error', loading: false })
     }
+  },
+
+  setYear: async (year: number) => {
+    const { months, monthIndex, earliestYear } = get()
+    if (year > new Date().getFullYear() || months.length === 0) return
+
+    // Extend the timeline backward with empty months so the target year is
+    // fully navigable from January.
+    let newMonths = months
+    if (januaryKey(year) < months[0].key) {
+      const prefix: MonthData[] = []
+      for (let key = januaryKey(year); key < months[0].key; key = addMonth(key)) {
+        prefix.push(monthFromKey(key))
+      }
+      newMonths = [...prefix, ...months]
+    }
+    if (newMonths !== months || year < earliestYear) {
+      set({ months: newMonths, earliestYear: Math.min(earliestYear, year) })
+    }
+
+    // Land on the same month number in the target year, clamped to the timeline.
+    const monthPart = months[monthIndex]?.key.slice(5, 7) ?? '01'
+    let targetKey = `${year}-${monthPart}`
+    const firstKey = newMonths[0].key
+    const lastKey = newMonths[newMonths.length - 1].key
+    if (targetKey < firstKey) targetKey = firstKey
+    if (targetKey > lastKey) targetKey = lastKey
+    const idx = newMonths.findIndex(m => m.key === targetKey)
+    if (idx >= 0) await get().setMonthIndex(idx)
   },
 
   // ── mutations ──────────────────────────────────────────────────────────────
