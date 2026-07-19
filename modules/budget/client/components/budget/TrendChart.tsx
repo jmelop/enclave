@@ -35,6 +35,8 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
   const spentCx  = (i: number) => xv(i) - pairGap / 2 - bw / 2;
   const incomeCx = (i: number) => xv(i) + pairGap / 2 + bw / 2;
   const labelSize = compact ? 5.1 : 5.7;
+  // Disambiguate month labels with the year when the series spans several.
+  const multiYear = new Set(months.map(m => m.year)).size > 1;
   // Compact slots are too narrow for two full €-figures side by side.
   const fmtBar = (v: number) => (compact && v >= 1000 ? `€${(v / 1000).toFixed(1)}k` : fmt(v));
 
@@ -106,7 +108,7 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
               fill={active ? 'var(--fg)' : 'var(--fg-4)'}
               fontWeight={active ? '600' : '400'}
             >
-              {d.m.label.slice(0, 3).toUpperCase()}
+              {d.m.label.slice(0, 3).toUpperCase()}{multiYear ? ` ’${String(d.m.year).slice(2)}` : ''}
             </text>
           </g>
         );

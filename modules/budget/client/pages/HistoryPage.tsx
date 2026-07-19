@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { Card } from '@venator-ui/ui';
 import { TrendingUp, Wallet, Star } from 'lucide-react';
 import { useBudgetStore } from '@/store/budgetStore';
@@ -14,7 +14,12 @@ export function HistoryPage() {
   const hydrated    = useBudgetStore(s => s.hydrated);
   const refetch     = useBudgetStore(s => s.refetch);
   const setMonthIndex = useBudgetStore(s => s.setMonthIndex);
-  const [yearFilter, setYearFilter] = useState<number | 'all'>('all');
+  // Follow the year selected in the topbar; 'all' is an explicit opt-in.
+  const selectedYear = months[monthIndex]?.year;
+  const [yearFilter, setYearFilter] = useState<number | 'all'>(() => selectedYear ?? 'all');
+  useEffect(() => {
+    if (selectedYear != null) setYearFilter(selectedYear);
+  }, [selectedYear]);
 
   // ── 4 UI states ────────────────────────────────────────────────────────────
 
@@ -39,9 +44,13 @@ export function HistoryPage() {
 
   // ── Normal state ───────────────────────────────────────────────────────────
 
-  const years = [...new Set(historyMonths.map(m => m.year))].sort((a, b) => b - a);
-  // Fall back to 'all' if the selected year no longer has data after a refetch.
-  const activeYear = yearFilter !== 'all' && years.includes(yearFilter) ? yearFilter : 'all';
+  // Chips cover every year with data plus the topbar-selected year (which may
+  // have none yet — that renders as an explicit empty state, not stale data).
+  const years = [...new Set([
+    ...historyMonths.map(m => m.year),
+    ...(selectedYear != null ? [selectedYear] : []),
+  ])].sort((a, b) => b - a);
+  const activeYear = yearFilter === 'all' || years.includes(yearFilter) ? yearFilter : 'all';
   const visibleMonths = activeYear === 'all'
     ? historyMonths
     : historyMonths.filter(m => m.year === activeYear);
@@ -90,6 +99,15 @@ export function HistoryPage() {
         </div>
       )}
 
+      {visibleMonths.length === 0 ? (
+        <Card padding="none">
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '56px 0', color: 'var(--fg-3)' }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg-2)' }}>No data for {activeYear}</span>
+            <span style={{ fontSize: 12 }}>No months have been created in this year yet.</span>
+          </div>
+        </Card>
+      ) : (
+      <>
       <div className="stats">
         <div className="stat-card">
           <div className="stat-head"><div className="stat-icon"><TrendingUp size={14} /></div><span className="stat-label">AVG. MONTHLY SPEND</span></div>
@@ -110,7 +128,12 @@ export function HistoryPage() {
 
       <Card padding="none">
         <div style={{ padding: '16px 18px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)' }}>
-          <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Spending vs income</h3>
+          <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>
+            Spending vs income
+            <span className="mono" style={{ fontSize: 11, fontWeight: 400, color: 'var(--fg-3)', marginLeft: 8 }}>
+              · {activeYear === 'all' ? 'all years' : activeYear}
+            </span>
+          </h3>
           <div style={{ display: 'flex', gap: 12 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-3)' }}><span style={{ width: 9, height: 9, borderRadius: 3, background: 'var(--accent)', display: 'inline-block' }} />Spent</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-3)' }}><span style={{ width: 9, height: 9, borderRadius: 3, background: 'var(--success)', display: 'inline-block' }} />Income</span>
@@ -157,6 +180,8 @@ export function HistoryPage() {
         <span>END · {visibleMonths.length} months tracked{activeYear !== 'all' ? ` · ${activeYear}` : ''}</span>
         <span className="dim">enclave/budget · build 2026.05</span>
       </footer>
+      </>
+      )}
     </div>
   );
 }
