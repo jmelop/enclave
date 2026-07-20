@@ -27,6 +27,7 @@ export interface Asset {
   apy?: number
   subtype?: string
   valuationDate?: string
+  updatedAt?: string | null
 }
 
 export interface DbClient {

@@ -31,6 +31,10 @@ export interface PriceRefreshResult {
   skipped: string[]
 }
 
+// Auto-refresh: opening the app triggers one silent background refresh —
+// navigation within the SPA never re-fires it.
+let autoRefreshAttempted = false
+
 async function postPriceRefresh(): Promise<PriceRefreshResult> {
   const res = await fetch('/api/portfolio/prices/refresh', { method: 'POST' })
   if (!res.ok) {
@@ -89,6 +93,12 @@ export const usePortfolioStore = create<Store>()((set, get) => ({
     try {
       const assets = await fetchHoldings()
       set({ assets, hydrated: true, error: null, loading: false })
+      if (!autoRefreshAttempted) {
+        autoRefreshAttempted = true
+        // Silent: errors (disabled feature, provider down) only surface when
+        // the user refreshes manually via the Live button.
+        void get().refreshPrices().catch(() => {})
+      }
     } catch (err) {
       set({
         error: err instanceof Error ? err.message : 'Network error',
