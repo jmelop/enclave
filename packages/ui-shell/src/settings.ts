@@ -8,7 +8,9 @@ export interface EnclaveSettings {
   currency: 'EUR' | 'USD' | 'GBP';
   disabledModules: string[];
   priceApiEnabled: boolean;
+  // Write-only: sent via PUT, but GET always returns '' — check priceApiKeySet.
   priceApiKey: string;
+  priceApiKeySet: boolean;
 }
 
 export const DEFAULT_SETTINGS: EnclaveSettings = {
@@ -17,6 +19,7 @@ export const DEFAULT_SETTINGS: EnclaveSettings = {
   disabledModules: [],
   priceApiEnabled: false,
   priceApiKey: '',
+  priceApiKeySet: false,
 };
 
 export const CURRENCY_SYMBOLS: Record<EnclaveSettings['currency'], string> = {

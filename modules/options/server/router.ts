@@ -30,14 +30,18 @@ export function createOptionsRouter(pool: DbPool): Router {
   const router = Router()
 
   // ── GET /settings ──────────────────────────────────────────────────────────
+  // priceApiKey is write-only: clients only learn whether one is set. The raw
+  // value never leaves the server (the portfolio module reads it from the DB).
   router.get('/settings', async (_req, res) => {
     try {
       const { rows } = await pool.query('SELECT key, value FROM options_settings')
       const stored = Object.fromEntries(rows.map(r => [r['key'] as string, r['value']]))
-      return res.json({ ...DEFAULT_SETTINGS, ...stored })
+      const merged = { ...DEFAULT_SETTINGS, ...stored }
+      const priceApiKeySet = typeof merged.priceApiKey === 'string' && merged.priceApiKey.length > 0
+      return res.json({ ...merged, priceApiKey: '', priceApiKeySet })
     } catch (err) {
       console.warn('[options] GET /settings db error, using defaults:', err)
-      return res.json(DEFAULT_SETTINGS)
+      return res.json({ ...DEFAULT_SETTINGS, priceApiKeySet: false })
     }
   })
 

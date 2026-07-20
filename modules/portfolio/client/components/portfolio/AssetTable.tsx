@@ -13,10 +13,14 @@ interface AssetRowProps {
 
 function AssetRow({ asset, hideValues, onDelete, onEdit }: AssetRowProps) {
   const cat = CATEGORIES[asset.type]
-  const isMarket = asset.price != null && asset.quantity != null
+  // Symbol-based holdings render symbol-first; spot metals (gold/silver with a
+  // weight, priced live) have price+quantity but no symbol.
+  const isMarket = asset.price != null && asset.quantity != null && asset.symbol != null
+  const isSpotMetal = asset.type === 'collectible' && asset.price != null && asset.quantity != null
+  const hasChange = (isMarket || isSpotMetal) && asset.changePercent24h != null
   const value = assetValue(asset)
   const valueEUR = assetValueEUR(asset)
-  const isUp = isMarket && (asset.changePercent24h ?? 0) >= 0
+  const isUp = hasChange && (asset.changePercent24h ?? 0) >= 0
 
   const primary = isMarket ? asset.symbol! : asset.name
   const secondary = isMarket ? asset.name : (asset.institution ?? '')
@@ -28,10 +32,12 @@ function AssetRow({ asset, hideValues, onDelete, onEdit }: AssetRowProps) {
     if (asset.currency !== 'EUR') detail += ` ${asset.currency}`
   } else if (asset.type === 'savings') {
     detail = asset.apy != null ? `${num(asset.apy, 2)}% APY` : 'remunerated'
+  } else if (asset.type === 'collectible') {
+    detail = isSpotMetal
+      ? `${num(asset.quantity!, 2)} oz × ${eur(asset.price!)}${asset.currency !== 'EUR' ? ` ${asset.currency}` : ''} spot`
+      : `${asset.subtype ?? 'physical'} · manual val.`
   } else if (asset.type === 'realestate') {
     detail = `valued ${asset.valuationDate ?? 'manually'}`
-  } else if (asset.type === 'collectible') {
-    detail = `${asset.subtype ?? 'physical'} · manual val.`
   } else if (asset.type === 'investment') {
     detail = asset.subtype ?? 'alternative'
   }
@@ -128,9 +134,9 @@ function AssetRow({ asset, hideValues, onDelete, onEdit }: AssetRowProps) {
         </div>
       </div>
 
-      <div className={`p-asset-chg ${isMarket ? (isUp ? 'up' : 'down') : 'flat'}`}>
-        {isMarket && <Icon name={isUp ? 'trendUp' : 'trendDown'} size={12} />}
-        {isMarket ? pct(asset.changePercent24h!) : '—'}
+      <div className={`p-asset-chg ${hasChange ? (isUp ? 'up' : 'down') : 'flat'}`}>
+        {hasChange && <Icon name={isUp ? 'trendUp' : 'trendDown'} size={12} />}
+        {hasChange ? pct(asset.changePercent24h!) : '—'}
       </div>
 
       <div className="p-asset-actions">
