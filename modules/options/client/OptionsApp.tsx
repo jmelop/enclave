@@ -179,7 +179,7 @@ export default function OptionsApp() {
                 <TrendingUp size={14} />
                 <div>
                   <h3>Market data</h3>
-                  <p className="mono">Live prices for portfolio symbols · Twelve Data</p>
+                  <p className="mono">Live prices via Yahoo Finance · optional Twelve Data fallback</p>
                 </div>
               </div>
               <div className="opt-card-body">
@@ -232,7 +232,7 @@ export default function OptionsApp() {
                   )}
                 </div>
                 <div className="opt-api-hint mono">
-                  Free key at <a href="https://twelvedata.com" target="_blank" rel="noreferrer">twelvedata.com</a> · stored locally in your Enclave database
+                  Optional fallback: free key at <a href="https://twelvedata.com" target="_blank" rel="noreferrer">twelvedata.com</a> · stored locally in your Enclave database
                 </div>
               </div>
             </Card>

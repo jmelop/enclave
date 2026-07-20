@@ -1,5 +1,5 @@
-// Yahoo Finance chart API — keyless fallback used when the primary provider
-// cannot quote a symbol (e.g. non-US listings behind Twelve Data's paid plans).
+// Yahoo Finance chart API — keyless primary price provider (equities by
+// ISIN/exchange suffix, crypto dash pairs, metal futures, FX crosses).
 // Unofficial endpoint: keep traffic low and cache symbol resolution.
 
 import type { Quote } from './priceService';
@@ -76,6 +76,13 @@ async function searchSymbolsByIsin(isin: string): Promise<string[]> {
   } catch {
     return [];
   }
+}
+
+// Quote a known Yahoo symbol as-is (GC=F, SI=F, USDEUR=X…): no candidate
+// probing, no currency filtering — the caller knows what it asked for.
+export async function fetchYahooDirect(symbol: string): Promise<Quote | null> {
+  const meta = await fetchMeta(symbol);
+  return meta && toQuote(meta, '');
 }
 
 export async function fetchYahooQuote(
