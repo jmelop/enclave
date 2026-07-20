@@ -20,12 +20,7 @@ export default function OptionsApp() {
   const [apiKeyDraft, setApiKeyDraft] = useState('');
   const { toast } = useToast();
 
-  useEffect(() => {
-    void fetchEnclaveSettings().then(s => {
-      setSettings(s);
-      setApiKeyDraft(s.priceApiKey);
-    });
-  }, []);
+  useEffect(() => { void fetchEnclaveSettings().then(setSettings); }, []);
 
   const putSetting = async <K extends keyof EnclaveSettings>(key: K, value: EnclaveSettings[K]): Promise<boolean> => {
     const prev = settingsRef.current;
@@ -67,16 +62,25 @@ export default function OptionsApp() {
     void putSetting('disabledModules', disabled);
   };
 
+  // The key is write-only: the draft never mirrors the stored value, so after
+  // a successful PUT we clear it and flip the local priceApiKeySet flag.
+  const putApiKey = (key: string) => {
+    void putSetting('priceApiKey', key).then(saved => {
+      if (!saved) return;
+      setApiKeyDraft('');
+      const current = settingsRef.current;
+      if (current) {
+        const next = { ...current, priceApiKey: '', priceApiKeySet: key.length > 0 };
+        settingsRef.current = next;
+        setSettings(next);
+      }
+      toast({ title: key ? 'Price API key saved' : 'Price API key removed', variant: 'success' });
+    });
+  };
+
   const saveApiKey = () => {
     const key = apiKeyDraft.trim();
-    setApiKeyDraft(key);
-    void putSetting('priceApiKey', key).then(saved => {
-      if (saved) {
-        toast({ title: key ? 'Price API key saved' : 'Price API key removed', variant: 'success' });
-      } else {
-        setApiKeyDraft(settingsRef.current?.priceApiKey ?? '');
-      }
-    });
+    if (key) putApiKey(key);
   };
 
   const togglableModules = clientModules.filter(m => m.id !== 'options');
@@ -205,7 +209,7 @@ export default function OptionsApp() {
                   <input
                     type="password"
                     className="opt-input"
-                    placeholder="API key"
+                    placeholder={settings.priceApiKeySet ? '•••••••• key saved — type to replace' : 'API key'}
                     aria-label="Price API key"
                     autoComplete="off"
                     value={apiKeyDraft}
@@ -215,12 +219,17 @@ export default function OptionsApp() {
                   <button
                     type="button"
                     className="opt-seg"
-                    disabled={apiKeyDraft.trim() === settings.priceApiKey}
-                    style={apiKeyDraft.trim() === settings.priceApiKey ? { opacity: 0.5, cursor: 'default' } : undefined}
+                    disabled={!apiKeyDraft.trim()}
+                    style={!apiKeyDraft.trim() ? { opacity: 0.5, cursor: 'default' } : undefined}
                     onClick={saveApiKey}
                   >
                     Save
                   </button>
+                  {settings.priceApiKeySet && (
+                    <button type="button" className="opt-seg" onClick={() => putApiKey('')}>
+                      Remove
+                    </button>
+                  )}
                 </div>
                 <div className="opt-api-hint mono">
                   Free key at <a href="https://twelvedata.com" target="_blank" rel="noreferrer">twelvedata.com</a> · stored locally in your Enclave database

@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { randomUUID } from 'crypto';
 import type { DbPool, AssetInput } from '@enclave/sdk';
 import { INITIAL_ASSETS, INITIAL_SNAPSHOTS } from './seed';
-import { fetchQuotes, providerSymbol, PriceApiError } from './services/priceService';
+import { fetchQuotes, providerSymbol, PriceApiError, type Quote } from './services/priceService';
+import { fetchYahooQuote } from './services/yahooService';
 
 const VALID_TYPES = new Set([
   'stock', 'fund', 'crypto', 'savings', 'realestate', 'collectible', 'investment',
@@ -170,9 +171,12 @@ export function createPortfolioRouter(pool: DbPool): Router {
       settings = await getPriceApiSettings(pool);
       // Stalest first: with the per-minute credit cap, consecutive refreshes
       // rotate through the whole portfolio instead of re-quoting the same rows.
+      // Gold/silver collectibles with a weight are valued at spot.
       const { rows } = await pool.query(
-        `SELECT id, type, symbol, currency FROM assets
-         WHERE symbol IS NOT NULL AND type IN ('stock', 'fund', 'crypto')
+        `SELECT id, type, subtype, symbol, currency, quantity, isin FROM assets
+         WHERE (symbol IS NOT NULL AND type IN ('stock', 'fund', 'crypto'))
+            OR (type = 'collectible' AND subtype IN ('gold', 'silver')
+                AND quantity IS NOT NULL AND quantity > 0)
          ORDER BY updated_at ASC NULLS FIRST`,
       );
       holdings = rows;
@@ -191,47 +195,107 @@ export function createPortfolioRouter(pool: DbPool): Router {
       return res.json({ updated: 0, failed: [], skipped: [] });
     }
 
+    const METAL_PAIRS: Record<string, string> = { gold: 'XAU/USD', silver: 'XAG/USD' };
+    const symbolFor = (row: AssetRow): string =>
+      row['type'] === 'collectible'
+        ? METAL_PAIRS[String(row['subtype'])]
+        : providerSymbol(String(row['type']), String(row['symbol']), String(row['currency'] ?? ''));
+
     const bySymbol = new Map<string, AssetRow[]>();
     for (const row of holdings) {
-      const key = providerSymbol(String(row['type']), String(row['symbol']), String(row['currency'] ?? ''));
+      const key = symbolFor(row);
       const group = bySymbol.get(key);
       if (group) group.push(row); else bySymbol.set(key, [row]);
     }
 
     // Twelve Data free tier allows 8 credits/minute and a batch costs 1 credit
     // per symbol; an oversized batch is rejected whole (and still billed).
-    const MAX_SYMBOLS_PER_REFRESH = 8;
-    const allSymbols = [...bySymbol.keys()];
-    const batch = allSymbols.slice(0, MAX_SYMBOLS_PER_REFRESH);
-    const skipped = allSymbols.slice(MAX_SYMBOLS_PER_REFRESH);
+    // Metals priced in another currency also need a USD/{cur} forex quote,
+    // which counts toward the same cap.
+    const MAX_CREDITS_PER_REFRESH = 8;
+    const batch: string[] = [];
+    const skipped: string[] = [];
+    const fxPairs = new Set<string>();
+    for (const [symbol, rows] of bySymbol) {
+      const newFx = new Set<string>();
+      if (rows[0]['type'] === 'collectible') {
+        for (const row of rows) {
+          const cur = String(row['currency'] ?? 'USD');
+          if (cur !== 'USD' && !fxPairs.has(`USD/${cur}`)) newFx.add(`USD/${cur}`);
+        }
+      }
+      if (batch.length + fxPairs.size + newFx.size + 1 <= MAX_CREDITS_PER_REFRESH) {
+        batch.push(symbol);
+        newFx.forEach(fx => fxPairs.add(fx));
+      } else {
+        skipped.push(symbol);
+      }
+    }
 
     try {
-      const quotes = await fetchQuotes(batch, settings.apiKey);
+      const quotes = await fetchQuotes([...batch, ...fxPairs], settings.apiKey);
 
       let updated = 0;
-      const failed: string[] = [];
+      const failed = new Set<string>();
+
       for (const symbol of batch) {
         const quote = quotes[symbol];
-        if (!quote) {
-          failed.push(symbol);
+        const rows = bySymbol.get(symbol) ?? [];
+        const isMetal = rows[0]['type'] === 'collectible';
+
+        if (isMetal && !quote) {
+          failed.add(symbol);
           continue;
         }
-        for (const row of bySymbol.get(symbol) ?? []) {
-          // The provider resolves bare tickers to their primary (usually US)
-          // listing — never write a quote denominated in another currency.
+
+        for (const row of rows) {
           const assetCurrency = String(row['currency'] ?? '');
-          if (quote.currency && assetCurrency && quote.currency !== assetCurrency) {
-            failed.push(`${symbol} (${quote.currency} quote, asset in ${assetCurrency})`);
+
+          if (isMetal && quote) {
+            let price = quote.price;
+            if (assetCurrency && assetCurrency !== 'USD') {
+              const fx = quotes[`USD/${assetCurrency}`];
+              if (!fx) {
+                failed.add(`${symbol} (no USD/${assetCurrency} rate)`);
+                continue;
+              }
+              price = price * fx.price;
+            }
+            // Spot value drives both the per-oz price and the total amount.
+            const amount = Math.round(price * Number(row['quantity']) * 100) / 100;
+            await pool.query(
+              `UPDATE assets SET price = $2, change_pct_24h = $3, amount = $4, updated_at = NOW() WHERE id = $1`,
+              [row['id'], price, quote.changePercent, amount],
+            );
+            updated += 1;
+            continue;
+          }
+
+          // The primary provider resolves bare tickers to their primary
+          // (usually US) listing — never write a quote in another currency.
+          let effective: Quote | null =
+            quote && (!quote.currency || !assetCurrency || quote.currency === assetCurrency)
+              ? quote
+              : null;
+          // Yahoo fallback resolves the exchange listing matching the asset's
+          // currency — covers non-US ETFs outside Twelve Data's free plan.
+          if (!effective && (row['type'] === 'stock' || row['type'] === 'fund')) {
+            effective = await fetchYahooQuote(String(row['symbol']), assetCurrency, row['isin'] as string | null);
+          }
+          if (!effective) {
+            failed.add(quote?.currency && assetCurrency && quote.currency !== assetCurrency
+              ? `${symbol} (${quote.currency} quote, asset in ${assetCurrency})`
+              : symbol);
             continue;
           }
           await pool.query(
             `UPDATE assets SET price = $2, change_pct_24h = $3, updated_at = NOW() WHERE id = $1`,
-            [row['id'], quote.price, quote.changePercent],
+            [row['id'], effective.price, effective.changePercent],
           );
           updated += 1;
         }
       }
-      return res.json({ updated, failed, skipped });
+      return res.json({ updated, failed: [...failed], skipped });
     } catch (err) {
       if (err instanceof PriceApiError) {
         return res.status(err.status).json({ error: err.message });

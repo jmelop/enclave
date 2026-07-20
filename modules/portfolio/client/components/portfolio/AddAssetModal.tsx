@@ -247,6 +247,12 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
     } else if (type === 'collectible') {
       base.amount = parseFloat(form.amount ?? '') || 0
       base.subtype = form.subtype || 'gold'
+      // Weight (troy oz) lets the live-price refresh value metals at spot.
+      const subtype = form.subtype || 'gold'
+      if (subtype === 'gold' || subtype === 'silver') {
+        const oz = parseFloat(form.quantity ?? '')
+        if (oz > 0) base.quantity = oz
+      }
     } else if (type === 'investment') {
       base.amount = parseFloat(form.amount ?? '') || 0
       base.subtype = form.subtype || 'other'
@@ -369,6 +375,18 @@ export default function AddAssetModal({ onClose, onAdd, onSave, defaultCategory,
                 <CurrencyPicker value={form.currency ?? 'EUR'} onChange={v => set('currency', v)} />
               </div>
             </div>
+            {((form.subtype ?? 'gold') === 'gold' || form.subtype === 'silver') && (
+              <div className="v-field">
+                <label className="v-label">Weight (troy oz)</label>
+                <div className="v-input-wrap">
+                  <input className="v-input p-mono" type="number" step="any" min="0"
+                         placeholder="0.25 (= 7.78 g)"
+                         value={form.quantity ?? ''}
+                         onChange={e => set('quantity', e.target.value)} />
+                </div>
+                <span className="v-hint">Optional · lets Live prices value it at spot (1 oz = 31.1035 g)</span>
+              </div>
+            )}
           </>}
 
           {/* Crypto / Stock */}
