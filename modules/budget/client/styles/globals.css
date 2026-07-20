@@ -404,7 +404,9 @@ button { font-family: inherit; }
 /* ============================================================
    EXPENSE TABLE
    ============================================================ */
-.expense-table { border: 1px solid var(--border-subtle); border-radius: 8px; overflow: hidden; background: var(--bg-1); }
+/* No overflow:hidden — it would clip the row action dropdowns; the head
+   carries its own top radius instead. */
+.expense-table { border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-1); }
 .expense-head, .expense-row {
   display: grid;
   grid-template-columns: 32px minmax(160px, 2fr) minmax(120px, 1fr) 70px 100px 36px;
@@ -414,6 +416,7 @@ button { font-family: inherit; }
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px; color: var(--fg-4); letter-spacing: 0.1em;
   background: var(--bg); border-bottom: 1px solid var(--border-subtle);
+  border-radius: 8px 8px 0 0;
 }
 .expense-row {
   appearance: none; background: transparent; border: 0;
@@ -425,7 +428,7 @@ button { font-family: inherit; }
 /* ============================================================
    INCOME TABLE
    ============================================================ */
-.income-table { border: 1px solid var(--border-subtle); border-radius: 8px; overflow: hidden; background: var(--bg-1); }
+.income-table { border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-1); }
 .income-head, .income-row {
   display: grid;
   grid-template-columns: 32px minmax(160px, 2fr) 70px 110px 36px;
@@ -435,6 +438,7 @@ button { font-family: inherit; }
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px; color: var(--fg-4); letter-spacing: 0.1em;
   background: var(--bg); border-bottom: 1px solid var(--border-subtle);
+  border-radius: 8px 8px 0 0;
 }
 .income-row {
   border-top: 1px solid var(--border-subtle);
@@ -458,7 +462,7 @@ button { font-family: inherit; }
   border: 3px solid var(--bg-1);
   box-shadow: 0 0 0 1px var(--border-subtle);
 }
-.rec-table { border: 1px solid var(--border-subtle); border-radius: 8px; overflow: hidden; background: var(--bg-1); }
+.rec-table { border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-1); }
 .rec-head, .rec-row {
   display: grid;
   grid-template-columns: minmax(160px, 2fr) minmax(100px, 1fr) 80px 100px auto;
@@ -468,6 +472,7 @@ button { font-family: inherit; }
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px; color: var(--fg-4); letter-spacing: 0.1em;
   background: var(--bg); border-bottom: 1px solid var(--border-subtle);
+  border-radius: 8px 8px 0 0;
 }
 .rec-row {
   border-top: 1px solid var(--border-subtle);
