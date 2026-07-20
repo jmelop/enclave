@@ -278,9 +278,12 @@ export function createPortfolioRouter(pool: DbPool): Router {
               ? quote
               : null;
           // Yahoo fallback resolves the exchange listing matching the asset's
-          // currency — covers non-US ETFs outside Twelve Data's free plan.
-          if (!effective && (row['type'] === 'stock' || row['type'] === 'fund')) {
-            effective = await fetchYahooQuote(String(row['symbol']), assetCurrency, row['isin'] as string | null);
+          // currency — covers non-US ETFs outside Twelve Data's free plan and
+          // crypto pairs it lacks (e.g. USDC/EUR).
+          if (!effective && (row['type'] === 'stock' || row['type'] === 'fund' || row['type'] === 'crypto')) {
+            effective = await fetchYahooQuote(
+              String(row['symbol']), assetCurrency, row['isin'] as string | null, row['type'] === 'crypto',
+            );
           }
           if (!effective) {
             failed.add(quote?.currency && assetCurrency && quote.currency !== assetCurrency

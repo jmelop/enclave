@@ -82,6 +82,7 @@ export async function fetchYahooQuote(
   bareSymbol: string,
   wantCurrency: string,
   isin?: string | null,
+  isCrypto = false,
 ): Promise<Quote | null> {
   const cacheKey = `${isin || bareSymbol}:${wantCurrency}`;
   const cached = resolvedCache.get(cacheKey);
@@ -92,11 +93,17 @@ export async function fetchYahooQuote(
     resolvedCache.delete(cacheKey); // listing gone — fall through and re-resolve
   }
 
-  // ISIN listings first (exact instrument); suffix probing as backup — it can
-  // hit same-ticker lookalikes, but the currency check filters most of them.
-  const suffixCandidates = (SUFFIXES_BY_CURRENCY[wantCurrency] ?? ['']).map(s => `${bareSymbol}${s}`);
-  const isinCandidates = isin ? await searchSymbolsByIsin(isin) : [];
-  const candidates = [...new Set([...isinCandidates, ...suffixCandidates])];
+  // Crypto quotes as dash pairs (USDC-EUR). For equities: ISIN listings first
+  // (exact instrument), then suffix probing as backup — it can hit same-ticker
+  // lookalikes, but the currency check filters most of them.
+  let candidates: string[];
+  if (isCrypto) {
+    candidates = [`${bareSymbol}-${wantCurrency}`];
+  } else {
+    const suffixCandidates = (SUFFIXES_BY_CURRENCY[wantCurrency] ?? ['']).map(s => `${bareSymbol}${s}`);
+    const isinCandidates = isin ? await searchSymbolsByIsin(isin) : [];
+    candidates = [...new Set([...isinCandidates, ...suffixCandidates])];
+  }
 
   for (const candidate of candidates) {
     if (candidate === cached) continue;
