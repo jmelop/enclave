@@ -219,6 +219,11 @@ function assetInputFromCsvRow(row: AssetCsvRow, rowNumber: number): AssetInput {
   } else if (rawType === 'collectible') {
     input.amount = positiveNumberFromCsv(row.amount, 'amount', rowNumber)
     input.subtype = clean(row.subtype) ?? 'gold'
+    // Metal weight (troy oz) — keeps spot pricing working across export/import.
+    if (input.subtype === 'gold' || input.subtype === 'silver') {
+      const oz = numberFromCsv(row.quantity, 'quantity', rowNumber)
+      if (oz != null && oz > 0) input.quantity = oz
+    }
   } else if (rawType === 'investment') {
     input.amount = positiveNumberFromCsv(row.amount, 'amount', rowNumber)
     input.subtype = clean(row.subtype) ?? 'other'
@@ -364,8 +369,16 @@ export function Portfolio() {
       for (const asset of importedAssets) {
         try {
           if (asset.id) {
-            await updateAsset(asset.id, asset.input)
-            updated += 1
+            try {
+              await updateAsset(asset.id, asset.input)
+              updated += 1
+            } catch (err) {
+              // Unknown id (CSV exported from another Enclave instance):
+              // create it from scratch with a fresh server-generated id.
+              if (!(err instanceof Error && err.message === 'Asset not found')) throw err
+              await createAsset(asset.input)
+              created += 1
+            }
           } else {
             await createAsset(asset.input)
             created += 1
