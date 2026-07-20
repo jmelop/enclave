@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Card, useToast } from '@venator-ui/ui';
-import { Moon, Sun, Coins, LayoutGrid, Palette } from 'lucide-react';
+import { Moon, Sun, Coins, LayoutGrid, Palette, TrendingUp } from 'lucide-react';
 import {
   applyEnclaveSettings,
   fetchEnclaveSettings,
@@ -17,13 +17,19 @@ export default function OptionsApp() {
   // a stale render closure (the second change would revert the first one).
   const settingsRef = useRef<EnclaveSettings | null>(null);
   settingsRef.current = settings;
+  const [apiKeyDraft, setApiKeyDraft] = useState('');
   const { toast } = useToast();
 
-  useEffect(() => { void fetchEnclaveSettings().then(setSettings); }, []);
+  useEffect(() => {
+    void fetchEnclaveSettings().then(s => {
+      setSettings(s);
+      setApiKeyDraft(s.priceApiKey);
+    });
+  }, []);
 
-  const putSetting = async <K extends keyof EnclaveSettings>(key: K, value: EnclaveSettings[K]) => {
+  const putSetting = async <K extends keyof EnclaveSettings>(key: K, value: EnclaveSettings[K]): Promise<boolean> => {
     const prev = settingsRef.current;
-    if (!prev) return;
+    if (!prev) return false;
     const next = { ...prev, [key]: value };
     settingsRef.current = next;
     setSettings(next);
@@ -38,6 +44,7 @@ export default function OptionsApp() {
         const body = (await res.json()) as { error?: string };
         throw new Error(body.error ?? `HTTP ${res.status}`);
       }
+      return true;
     } catch (err) {
       const reverted = { ...(settingsRef.current ?? next), [key]: prev[key] };
       settingsRef.current = reverted;
@@ -47,6 +54,7 @@ export default function OptionsApp() {
         title: err instanceof Error ? err.message : 'Error saving setting',
         variant: 'error',
       });
+      return false;
     }
   };
 
@@ -57,6 +65,18 @@ export default function OptionsApp() {
       ? current.disabledModules.filter(m => m !== id)
       : [...current.disabledModules, id];
     void putSetting('disabledModules', disabled);
+  };
+
+  const saveApiKey = () => {
+    const key = apiKeyDraft.trim();
+    setApiKeyDraft(key);
+    void putSetting('priceApiKey', key).then(saved => {
+      if (saved) {
+        toast({ title: key ? 'Price API key saved' : 'Price API key removed', variant: 'success' });
+      } else {
+        setApiKeyDraft(settingsRef.current?.priceApiKey ?? '');
+      }
+    });
   };
 
   const togglableModules = clientModules.filter(m => m.id !== 'options');
@@ -148,6 +168,65 @@ export default function OptionsApp() {
                 </div>
               </Card>
             </div>
+
+            {/* Market data */}
+            <Card padding="none">
+              <div className="opt-card-head">
+                <TrendingUp size={14} />
+                <div>
+                  <h3>Market data</h3>
+                  <p className="mono">Live prices for portfolio symbols · Twelve Data</p>
+                </div>
+              </div>
+              <div className="opt-card-body">
+                <div className="opt-module-row" style={{ border: 'none', padding: '0 0 14px' }}>
+                  <span className="opt-module-dot" style={{ background: settings.priceApiEnabled ? 'var(--success)' : 'var(--fg-5)' }} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600 }}>Live prices</div>
+                    <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-4)' }}>
+                      Refresh stock, fund and crypto prices from the portfolio module
+                    </div>
+                  </div>
+                  <span className="mono" style={{ fontSize: 10.5, color: settings.priceApiEnabled ? 'var(--success)' : 'var(--fg-4)' }}>
+                    {settings.priceApiEnabled ? 'ENABLED' : 'OFF'}
+                  </span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={settings.priceApiEnabled}
+                    aria-label="Toggle live prices"
+                    className={`opt-switch ${settings.priceApiEnabled ? 'on' : ''}`}
+                    onClick={() => void putSetting('priceApiEnabled', !settings.priceApiEnabled)}
+                  >
+                    <span className="opt-switch-knob" />
+                  </button>
+                </div>
+                <div className="opt-api-row">
+                  <input
+                    type="password"
+                    className="opt-input"
+                    placeholder="API key"
+                    aria-label="Price API key"
+                    autoComplete="off"
+                    value={apiKeyDraft}
+                    onChange={e => setApiKeyDraft(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') saveApiKey(); }}
+                  />
+                  <button
+                    type="button"
+                    className="opt-seg"
+                    disabled={apiKeyDraft.trim() === settings.priceApiKey}
+                    style={apiKeyDraft.trim() === settings.priceApiKey ? { opacity: 0.5, cursor: 'default' } : undefined}
+                    onClick={saveApiKey}
+                  >
+                    Save
+                  </button>
+                </div>
+                <div className="opt-api-hint mono">
+                  Free key at <a href="https://twelvedata.com" target="_blank" rel="noreferrer">twelvedata.com</a> · stored locally in your Enclave database
+                </div>
+              </div>
+            </Card>
 
             {/* Modules */}
             <Card padding="none">
