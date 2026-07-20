@@ -210,6 +210,9 @@ interface ExpenseRowProps {
 function ExpenseRow({ t, monthLabel, onEdit, onDelete }: ExpenseRowProps) {
   const cat = CATEGORIES.find(c => c.id === t.cat)!;
   const [dropOpen, setDropOpen]       = useState(false);
+  // Fixed-position coords: the menu must escape the rows' overflow:auto
+  // scroll wrapper, which clips any absolutely-positioned descendant.
+  const [menuPos, setMenuPos]         = useState({ top: 0, right: 0 });
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting]       = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
@@ -222,8 +225,17 @@ function ExpenseRow({ t, monthLabel, onEdit, onDelete }: ExpenseRowProps) {
         setDropOpen(false);
       }
     };
+    // Close on any scroll (capture reaches the inner scroll wrapper) so the
+    // fixed menu never drifts away from its row.
+    const close = () => setDropOpen(false);
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
   }, [dropOpen]);
 
   const handleConfirmDelete = async () => {
@@ -264,7 +276,11 @@ function ExpenseRow({ t, monthLabel, onEdit, onDelete }: ExpenseRowProps) {
           <button
             className="icon-btn"
             title="More options"
-            onClick={() => setDropOpen(o => !o)}
+            onClick={e => {
+              const r = e.currentTarget.getBoundingClientRect();
+              setMenuPos({ top: r.bottom + 4, right: window.innerWidth - r.right });
+              setDropOpen(o => !o);
+            }}
             style={{ width: 28, padding: 0, fontWeight: 700, fontSize: 15, letterSpacing: 1 }}
           >
             ···
@@ -272,8 +288,8 @@ function ExpenseRow({ t, monthLabel, onEdit, onDelete }: ExpenseRowProps) {
 
           {dropOpen && (
             <div style={{
-              position: 'absolute', right: 0, top: '100%', marginTop: 4,
-              minWidth: 110, zIndex: 10,
+              position: 'fixed', top: menuPos.top, right: menuPos.right,
+              minWidth: 110, zIndex: 40,
               background: 'var(--bg-2)',
               border: '1px solid var(--border-default)',
               borderRadius: 8,
