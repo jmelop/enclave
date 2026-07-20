@@ -31,6 +31,22 @@ export interface PriceRefreshResult {
   skipped: string[]
 }
 
+// Auto-refresh: hydrating with prices older than this triggers a silent
+// background refresh, so opening the app is enough to get fresh prices.
+const AUTO_REFRESH_STALENESS_MS = 15 * 60 * 1000
+
+// Once per app load — a failed attempt (e.g. live prices disabled in
+// Options) must not retry on every navigation back to the page.
+let autoRefreshAttempted = false
+
+function hasStalePrices(assets: Asset[]): boolean {
+  const priceable = assets.filter(a =>
+    ((a.type === 'stock' || a.type === 'fund' || a.type === 'crypto') && a.symbol != null) ||
+    (a.type === 'collectible' && (a.subtype === 'gold' || a.subtype === 'silver') && a.quantity != null))
+  return priceable.some(a =>
+    !a.updatedAt || Date.now() - new Date(a.updatedAt).getTime() > AUTO_REFRESH_STALENESS_MS)
+}
+
 async function postPriceRefresh(): Promise<PriceRefreshResult> {
   const res = await fetch('/api/portfolio/prices/refresh', { method: 'POST' })
   if (!res.ok) {
@@ -89,6 +105,12 @@ export const usePortfolioStore = create<Store>()((set, get) => ({
     try {
       const assets = await fetchHoldings()
       set({ assets, hydrated: true, error: null, loading: false })
+      if (!autoRefreshAttempted && hasStalePrices(assets)) {
+        autoRefreshAttempted = true
+        // Silent: errors (disabled feature, provider down) only surface when
+        // the user refreshes manually via the Live button.
+        void get().refreshPrices().catch(() => {})
+      }
     } catch (err) {
       set({
         error: err instanceof Error ? err.message : 'Network error',
