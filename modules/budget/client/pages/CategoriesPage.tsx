@@ -11,11 +11,12 @@ export function CategoriesPage() {
   const month    = useCurrentMonth();
   const budgets  = useBudgetStore(s => s.budgets);
   const setBudget = useBudgetStore(s => s.setBudget);
+  const categories = useBudgetStore(s => s.categories);
   const loading  = useBudgetStore(s => s.loading);
   const error    = useBudgetStore(s => s.error);
   const hydrated = useBudgetStore(s => s.hydrated);
   const refetch  = useBudgetStore(s => s.refetch);
-  const metrics  = computeMetrics(month, budgets);
+  const metrics  = computeMetrics(month, budgets, categories);
 
   const [editing, setEditing] = useState<CategoryId | null>(null);
   const [draft, setDraft]     = useState('');

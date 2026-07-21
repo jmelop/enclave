@@ -4,12 +4,11 @@ import { Card } from '@venator-ui/ui';
 import { Download, List, Zap, Plus, Upload } from 'lucide-react';
 import { useBudgetStore, useCurrentMonth } from '@/store/budgetStore';
 import { useToast } from '@venator-ui/ui';
-import { fmt, fmt2 } from '@/lib/utils';
-import { CATEGORIES } from '@/lib/seed';
+import { catOf, fmt, fmt2 } from '@/lib/utils';
 import { CategoryGlyph } from '@/components/budget/CategoryGlyph';
 import { ConfirmDeleteModal } from '@/components/budget/ConfirmDeleteModal';
 import { CreateMonthGate } from '@/components/budget/CreateMonthGate';
-import type { CategoryId, IncomeEntry, Transaction } from '@/types/budget';
+import type { Category, CategoryId, IncomeEntry, Transaction } from '@/types/budget';
 
 interface ExpenseCsvImport {
   name: string
@@ -158,7 +157,7 @@ function parseCsvDay(value: string | undefined, selectedMonthKey: string, rowNum
   return parsedDay
 }
 
-function parseExpenseCsv(text: string, selectedMonthKey: string): ExpenseCsvImport[] {
+function parseExpenseCsv(text: string, selectedMonthKey: string, validCats: Set<string>): ExpenseCsvImport[] {
   const rows = parseCsvRows(text.replace(/^\ufeff/, ''))
   if (rows.length < 2) return []
 
@@ -181,7 +180,7 @@ function parseExpenseCsv(text: string, selectedMonthKey: string): ExpenseCsvImpo
     if (type !== 'expense' && type !== 'income') {
       throw new Error(`Row ${rowNumber}: type must be "expense" or "income"`)
     }
-    if (type === 'expense' && !CATEGORIES.some((cat) => cat.id === category)) {
+    if (type === 'expense' && !validCats.has(category)) {
       throw new Error(`Row ${rowNumber}: invalid category "${category}"`)
     }
 
@@ -203,12 +202,13 @@ function parseExpenseCsv(text: string, selectedMonthKey: string): ExpenseCsvImpo
 interface ExpenseRowProps {
   t: Transaction
   monthLabel: string
+  categories: Category[]
   onEdit: (tx: Transaction) => void
   onDelete: (id: string) => Promise<void>
 }
 
-function ExpenseRow({ t, monthLabel, onEdit, onDelete }: ExpenseRowProps) {
-  const cat = CATEGORIES.find(c => c.id === t.cat)!;
+function ExpenseRow({ t, monthLabel, categories, onEdit, onDelete }: ExpenseRowProps) {
+  const cat = catOf(categories, t.cat);
   const [dropOpen, setDropOpen]       = useState(false);
   // Fixed-position coords: the menu must escape the rows' overflow:auto
   // scroll wrapper, which clips any absolutely-positioned descendant.
@@ -354,6 +354,7 @@ export function ExpensesPage({ onAddExpense, onEditExpense }: Props) {
   const deleteExpense = useBudgetStore(s => s.deleteExpense);
   const addExpense    = useBudgetStore(s => s.addExpense);
   const addIncome     = useBudgetStore(s => s.addIncome);
+  const categories    = useBudgetStore(s => s.categories);
   const loading       = useBudgetStore(s => s.loading);
   const error         = useBudgetStore(s => s.error);
   const hydrated      = useBudgetStore(s => s.hydrated);
@@ -391,7 +392,7 @@ export function ExpensesPage({ onAddExpense, onEditExpense }: Props) {
 
     setImporting(true);
     try {
-      const imported = parseExpenseCsv(await file.text(), month.key);
+      const imported = parseExpenseCsv(await file.text(), month.key, new Set(categories.map(c => c.id)));
       if (imported.length === 0) throw new Error('CSV has no expenses to import');
 
       let createdExpenses = 0;
@@ -548,7 +549,7 @@ export function ExpensesPage({ onAddExpense, onEditExpense }: Props) {
         <div style={{ padding: '12px 18px 0' }}>
           <div className="chip-row">
             <button className={`filter-chip ${!catFilter ? 'active' : ''}`} style={!catFilter ? { borderColor: 'var(--accent)', background: 'var(--accent-soft)', color: 'var(--fg)' } : undefined} onClick={() => setCatFilter(null)}>All</button>
-            {CATEGORIES.map(c => (
+            {categories.map(c => (
               <button key={c.id} className={`filter-chip ${catFilter === c.id ? 'active' : ''}`} style={catFilter === c.id ? { borderColor: c.color, background: c.color + '18', color: 'var(--fg)' } : undefined} onClick={() => setCatFilter(catFilter === c.id ? null : c.id)}>
                 <span className="filter-dot" style={{ background: c.color }} />{c.name}
               </button>
@@ -565,6 +566,7 @@ export function ExpensesPage({ onAddExpense, onEditExpense }: Props) {
                   key={t.id}
                   t={t}
                   monthLabel={month.label}
+                  categories={categories}
                   onEdit={onEditExpense}
                   onDelete={deleteExpense}
                 />

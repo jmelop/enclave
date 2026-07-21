@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
-import { CATEGORIES } from '@/lib/seed';
 import { currentMonthKey } from '@/store/budgetStore';
-import type { CategoryId, MonthData, Transaction } from '@/types/budget';
+import type { Category, CategoryId, MonthData, Transaction } from '@/types/budget';
 
 interface Props {
   month: MonthData;
+  categories: Category[];
   initial?: Transaction;
   onClose: () => void;
   onSave: (name: string, amount: number, cat: CategoryId, day: number) => void;
@@ -16,12 +16,12 @@ function daysInMonth(monthKey: string): number {
   return new Date(y, m, 0).getDate();
 }
 
-export function AddExpenseModal({ month, initial, onClose, onSave }: Props) {
+export function AddExpenseModal({ month, categories, initial, onClose, onSave }: Props) {
   const isEdit = !!initial;
 
   const [name, setName]     = useState(initial?.name ?? '');
   const [amount, setAmount] = useState(initial ? String(initial.amount) : '');
-  const [cat, setCat]       = useState<CategoryId>(initial?.cat ?? 'food');
+  const [cat, setCat]       = useState<CategoryId>(initial?.cat ?? categories[0]?.id ?? 'other');
   const [day, setDay]       = useState(initial ? String(initial.day) : String(month.asOfDay));
 
   const valid = name.trim().length > 0 && Number(amount) > 0;
@@ -101,7 +101,7 @@ export function AddExpenseModal({ month, initial, onClose, onSave }: Props) {
           <div className="field">
             <label>Category</label>
             <div className="cat-picker">
-              {CATEGORIES.map(c => (
+              {categories.map(c => (
                 <button
                   key={c.id}
                   type="button"

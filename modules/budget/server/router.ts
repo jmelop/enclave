@@ -2,13 +2,32 @@ import { Router } from 'express'
 import { randomUUID } from 'crypto'
 import type { DbPool, DbClient } from '@enclave/sdk'
 import {
-  SEED_RECURRING, SEED_TARGETS, SEED_MONTH_SUMMARIES,
+  SEED_RECURRING, SEED_TARGETS, SEED_MONTH_SUMMARIES, SEED_CATEGORIES,
   buildSeedMonthDetail,
 } from './seed'
 
-const VALID_CATS = new Set([
-  'food','transport','housing','health','entertainment','subscriptions','other',
-])
+// Fallback category set used only when budget_categories can't be queried.
+const DEFAULT_CATS = new Set(SEED_CATEGORIES.map(c => c.id))
+
+// Categories are user-defined rows in budget_categories.
+async function isValidCat(pool: DbPool, cat: string | undefined): Promise<boolean> {
+  if (!cat) return false
+  try {
+    const { rows } = await pool.query('SELECT 1 FROM budget_categories WHERE id = $1', [cat])
+    return rows.length > 0
+  } catch {
+    return DEFAULT_CATS.has(cat)
+  }
+}
+
+// 'Food & Dining' → 'food-dining' (id slug for a new category)
+function slugify(name: string): string {
+  return name
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
 
 type Row = Record<string, unknown>
 
@@ -97,6 +116,15 @@ function mapRecurring(row: Row) {
     cat:      row['category'] as string,
     day:      Number(row['day']),
     ...(row['variable'] ? { variable: true } : {}),
+  }
+}
+
+function mapCategory(row: Row) {
+  return {
+    id:    row['id']    as string,
+    name:  row['name']  as string,
+    color: row['color'] as string,
+    icon:  row['icon']  as string,
   }
 }
 
@@ -256,7 +284,7 @@ export function createBudgetRouter(pool: DbPool): Router {
         ? `${y + 1}-01-01`
         : `${y}-${String(m + 1).padStart(2, '0')}-01`
 
-      const [txRows, incomeRows, monthRow, recurringRows, targetRows] = await Promise.all([
+      const [txRows, incomeRows, monthRow, recurringRows, targetRows, categoryRows] = await Promise.all([
         pool.query(
           `SELECT * FROM budget_transactions
            WHERE date >= $1 AND date < $2
@@ -273,6 +301,7 @@ export function createBudgetRouter(pool: DbPool): Router {
         pool.query('SELECT * FROM budget_months WHERE month_key = $1', [key]),
         pool.query('SELECT * FROM budget_recurring ORDER BY day'),
         pool.query('SELECT * FROM budget_category_targets'),
+        pool.query('SELECT * FROM budget_categories ORDER BY sort, id'),
       ])
 
       const mr = monthRow.rows[0]
@@ -287,6 +316,7 @@ export function createBudgetRouter(pool: DbPool): Router {
         incomes,
         recurring:    recurringRows.rows.map(mapRecurring),
         targets:      rowsToTargets(targetRows.rows),
+        categories:   categoryRows.rows.length > 0 ? categoryRows.rows.map(mapCategory) : SEED_CATEGORIES,
         created,
       })
     } catch (err) {
@@ -369,9 +399,9 @@ export function createBudgetRouter(pool: DbPool): Router {
   // the current month. Historical months pick it up when the user creates them.
   router.post('/recurring', async (req, res) => {
     const b = req.body as { name?: string; vendor?: string; amount?: number; cat?: string; day?: number; variable?: boolean }
-    if (!b.name?.trim())              return res.status(400).json({ error: 'name is required' })
-    if (!VALID_CATS.has(b.cat ?? '')) return res.status(400).json({ error: 'invalid category' })
-    if (!b.amount || b.amount <= 0)   return res.status(400).json({ error: 'amount must be > 0' })
+    if (!b.name?.trim())                     return res.status(400).json({ error: 'name is required' })
+    if (!(await isValidCat(pool, b.cat)))    return res.status(400).json({ error: 'invalid category' })
+    if (!b.amount || b.amount <= 0)          return res.status(400).json({ error: 'amount must be > 0' })
 
     const id = randomUUID()
     const clampedDay = Math.min(31, Math.max(1, b.day ?? 1))
@@ -428,9 +458,9 @@ export function createBudgetRouter(pool: DbPool): Router {
   router.put('/recurring/:id', async (req, res) => {
     const { id } = req.params
     const b = req.body as { name?: string; vendor?: string; amount?: number; cat?: string; day?: number; variable?: boolean }
-    if (!b.name?.trim())              return res.status(400).json({ error: 'name is required' })
-    if (!VALID_CATS.has(b.cat ?? '')) return res.status(400).json({ error: 'invalid category' })
-    if (!b.amount || b.amount <= 0)   return res.status(400).json({ error: 'amount must be > 0' })
+    if (!b.name?.trim())                  return res.status(400).json({ error: 'name is required' })
+    if (!(await isValidCat(pool, b.cat))) return res.status(400).json({ error: 'invalid category' })
+    if (!b.amount || b.amount <= 0)       return res.status(400).json({ error: 'amount must be > 0' })
 
     try {
       const { rows } = await pool.query(
@@ -462,6 +492,67 @@ export function createBudgetRouter(pool: DbPool): Router {
     }
   })
 
+  // ── GET /categories ────────────────────────────────────────────────────────
+  router.get('/categories', async (_req, res) => {
+    try {
+      const { rows } = await pool.query('SELECT * FROM budget_categories ORDER BY sort, id')
+      return res.json(rows.length > 0 ? rows.map(mapCategory) : SEED_CATEGORIES)
+    } catch (err) {
+      console.warn('[budget] GET /categories db error:', err)
+      return res.json(SEED_CATEGORIES)
+    }
+  })
+
+  // ── POST /categories ───────────────────────────────────────────────────────
+  // Creates a category and (optionally) its monthly budget target in one go.
+  router.post('/categories', async (req, res) => {
+    const b = req.body as { name?: string; color?: string; icon?: string; budget?: number }
+    const name = b.name?.trim() ?? ''
+    if (!name)                                        return res.status(400).json({ error: 'name is required' })
+    if (b.color && !/^#[0-9a-fA-F]{6}$/.test(b.color)) return res.status(400).json({ error: 'invalid color' })
+    if (b.budget != null && (typeof b.budget !== 'number' || b.budget < 0)) {
+      return res.status(400).json({ error: 'budget must be >= 0' })
+    }
+
+    const id = slugify(name)
+    if (!id) return res.status(400).json({ error: 'name must contain letters or digits' })
+
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+
+      const { rows: exists } = await client.query('SELECT 1 FROM budget_categories WHERE id = $1', [id])
+      if (exists.length > 0) {
+        await client.query('ROLLBACK')
+        return res.status(409).json({ error: `category "${id}" already exists` })
+      }
+
+      const { rows } = await client.query(
+        `INSERT INTO budget_categories (id, name, color, icon, sort)
+         VALUES ($1, $2, $3, $4, (SELECT COALESCE(MAX(sort), 0) + 1 FROM budget_categories))
+         RETURNING *`,
+        [id, name, b.color ?? '#6b7280', b.icon?.trim() || 'package'],
+      )
+      if (b.budget != null && b.budget > 0) {
+        await client.query(
+          `INSERT INTO budget_category_targets (category, amount)
+           VALUES ($1, $2)
+           ON CONFLICT (category) DO UPDATE SET amount = EXCLUDED.amount`,
+          [id, b.budget],
+        )
+      }
+
+      await client.query('COMMIT')
+      return res.status(201).json(mapCategory(rows[0]))
+    } catch (err) {
+      try { await client.query('ROLLBACK') } catch { /* swallow */ }
+      console.warn('[budget] POST /categories db error:', err)
+      return res.status(503).json({ error: 'Database unavailable' })
+    } finally {
+      client.release()
+    }
+  })
+
   // ── GET /targets ───────────────────────────────────────────────────────────
   router.get('/targets', async (_req, res) => {
     try {
@@ -476,7 +567,7 @@ export function createBudgetRouter(pool: DbPool): Router {
   // ── PUT /targets/:category ─────────────────────────────────────────────────
   router.put('/targets/:category', async (req, res) => {
     const { category } = req.params
-    if (!VALID_CATS.has(category)) return res.status(400).json({ error: 'invalid category' })
+    if (!(await isValidCat(pool, category))) return res.status(400).json({ error: 'invalid category' })
     const { amount } = req.body as { amount?: number }
     if (typeof amount !== 'number' || amount < 0) {
       return res.status(400).json({ error: 'amount must be >= 0' })
@@ -499,7 +590,7 @@ export function createBudgetRouter(pool: DbPool): Router {
   router.post('/transactions', async (req, res) => {
     const b = req.body as { name?: string; vendor?: string; amount?: number; cat?: string; day?: number; monthKey?: string }
     if (!b.name?.trim())                   return res.status(400).json({ error: 'name is required' })
-    if (!VALID_CATS.has(b.cat ?? ''))      return res.status(400).json({ error: 'invalid category' })
+    if (!(await isValidCat(pool, b.cat)))  return res.status(400).json({ error: 'invalid category' })
     if (!b.amount || b.amount <= 0)        return res.status(400).json({ error: 'amount must be > 0' })
     if (!b.monthKey || !/^\d{4}-\d{2}$/.test(b.monthKey)) {
       return res.status(400).json({ error: 'invalid monthKey' })
@@ -527,9 +618,9 @@ export function createBudgetRouter(pool: DbPool): Router {
   router.put('/transactions/:id', async (req, res) => {
     const { id } = req.params
     const b = req.body as { name?: string; vendor?: string; amount?: number; cat?: string; day?: number; monthKey?: string }
-    if (!b.name?.trim())              return res.status(400).json({ error: 'name is required' })
-    if (!VALID_CATS.has(b.cat ?? '')) return res.status(400).json({ error: 'invalid category' })
-    if (!b.amount || b.amount <= 0)   return res.status(400).json({ error: 'amount must be > 0' })
+    if (!b.name?.trim())                  return res.status(400).json({ error: 'name is required' })
+    if (!(await isValidCat(pool, b.cat))) return res.status(400).json({ error: 'invalid category' })
+    if (!b.amount || b.amount <= 0)       return res.status(400).json({ error: 'amount must be > 0' })
     if (!b.monthKey || !/^\d{4}-\d{2}$/.test(b.monthKey)) {
       return res.status(400).json({ error: 'invalid monthKey' })
     }

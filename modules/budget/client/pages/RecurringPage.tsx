@@ -3,23 +3,23 @@ import { Card } from '@venator-ui/ui';
 import { useToast } from '@venator-ui/ui';
 import { CalendarDays, Shield } from 'lucide-react';
 import { useBudgetStore } from '@/store/budgetStore';
-import { fmt, fmt2 } from '@/lib/utils';
-import { CATEGORIES } from '@/lib/seed';
+import { catOf, fmt, fmt2 } from '@/lib/utils';
 import { CategoryGlyph } from '@/components/budget/CategoryGlyph';
 import { RecurringModal } from '@/components/budget/RecurringModal';
 import { ConfirmDeleteModal } from '@/components/budget/ConfirmDeleteModal';
-import type { RecurringBill } from '@/types/budget';
+import type { Category, RecurringBill } from '@/types/budget';
 
 // ── RecurringRow ──────────────────────────────────────────────────────────────
 
 interface RecurringRowProps {
   r: RecurringBill
+  categories: Category[]
   onEdit: (r: RecurringBill) => void
   onDelete: (id: string) => Promise<void>
 }
 
-function RecurringRow({ r, onEdit, onDelete }: RecurringRowProps) {
-  const cat = CATEGORIES.find(c => c.id === r.cat)!;
+function RecurringRow({ r, categories, onEdit, onDelete }: RecurringRowProps) {
+  const cat = catOf(categories, r.cat);
   const [dropOpen, setDropOpen]       = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting]       = useState(false);
@@ -138,6 +138,7 @@ function RecurringRow({ r, onEdit, onDelete }: RecurringRowProps) {
 
 export function RecurringPage() {
   const recurring       = useBudgetStore(s => s.recurring);
+  const categories      = useBudgetStore(s => s.categories);
   const updateRecurring = useBudgetStore(s => s.updateRecurring);
   const deleteRecurring = useBudgetStore(s => s.deleteRecurring);
   const loading         = useBudgetStore(s => s.loading);
@@ -203,7 +204,7 @@ export function RecurringPage() {
             <div className="rec-timeline">
               <div className="rec-timeline-track" />
               {sorted.map(r => {
-                const cat = CATEGORIES.find(c => c.id === r.cat)!;
+                const cat = catOf(categories, r.cat);
                 return <div key={r.id} className="rec-dot" style={{ left: `calc(${(r.day / 31) * 100}% - 9px)`, background: cat.color }} title={`${r.name} · day ${r.day}`} />;
               })}
               <span className="mono" style={{ position: 'absolute', bottom: 0, left: 0, fontSize: 9, color: 'var(--fg-4)' }}>1</span>
@@ -224,6 +225,7 @@ export function RecurringPage() {
                 <RecurringRow
                   key={r.id}
                   r={r}
+                  categories={categories}
                   onEdit={r => setModal({ initial: r })}
                   onDelete={deleteRecurring}
                 />
@@ -242,6 +244,7 @@ export function RecurringPage() {
       {modal && (
         <RecurringModal
           initial={modal.initial}
+          categories={categories}
           onClose={() => setModal(null)}
           onSave={handleSave}
         />

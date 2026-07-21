@@ -1,5 +1,12 @@
 import { CATEGORIES } from '@/lib/seed';
-import type { CategoryId, MonthData, MonthMetrics } from '@/types/budget';
+import type { Category, CategoryId, MonthData, MonthMetrics } from '@/types/budget';
+
+// Lookup with a safe fallback so transactions whose category was created
+// elsewhere (or is unknown to a stale client) still render.
+export function catOf(categories: Category[], id: CategoryId): Category {
+  return categories.find(c => c.id === id)
+    ?? { id, name: id, color: '#6b7280', icon: 'package' };
+}
 
 // Currency symbol chosen in the options module (mirrored to localStorage by
 // the shell's applyEnclaveSettings); euro when unset or outside the browser.
@@ -25,6 +32,7 @@ export function daysInMonth(year: number, month: number): number {
 export function computeMetrics(
   month: MonthData,
   budgets: Record<CategoryId, number>,
+  categories: Category[] = CATEGORIES,
 ): MonthMetrics {
   const [yearStr, monthStr] = month.key.split('-');
   const year = parseInt(yearStr);
@@ -46,7 +54,7 @@ export function computeMetrics(
   const safeToSpend = inProgress && daysRemaining > 0 ? remaining / daysRemaining : 0;
   const pctOfBudget = totalBudget > 0 ? totalSpent / totalBudget : 0;
 
-  const cats = CATEGORIES.map(cat => ({
+  const cats = categories.map(cat => ({
     ...cat,
     spent: month.spent[cat.id] || 0,
     budget: budgets[cat.id] || 0,

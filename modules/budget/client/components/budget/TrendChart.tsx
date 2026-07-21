@@ -34,7 +34,10 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
   // Spent + income bars sit side by side, centered on the month slot.
   const spentCx  = (i: number) => xv(i) - pairGap / 2 - bw / 2;
   const incomeCx = (i: number) => xv(i) + pairGap / 2 + bw / 2;
-  const labelSize = compact ? 5.1 : 5.7;
+  // Smaller + tighter so two centred 4-digit figures still clear each other
+  // (a 5-digit value would be too wide, but budgets never reach that range).
+  const labelSize = compact ? 4.7 : 5.3;
+  const labelSpacing = -0.15;
   // Disambiguate month labels with the year when the series spans several.
   const multiYear = new Set(months.map(m => m.year)).size > 1;
   // Compact slots are too narrow for two full €-figures side by side.
@@ -70,6 +73,7 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
                   x={spentCx(i)} y={yv(d.spent) - 4}
                   textAnchor="middle"
                   fontSize={labelSize}
+                  letterSpacing={labelSpacing}
                   fontFamily="JetBrains Mono, monospace"
                   fontWeight="600"
                   fill={active ? 'var(--fg)' : 'var(--fg-4)'}
@@ -91,6 +95,7 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
                   x={incomeCx(i)} y={yv(d.income) - 4}
                   textAnchor="middle"
                   fontSize={labelSize}
+                  letterSpacing={labelSpacing}
                   fontFamily="JetBrains Mono, monospace"
                   fontWeight="600"
                   fill="var(--success)"
