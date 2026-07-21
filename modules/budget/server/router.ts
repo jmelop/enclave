@@ -553,6 +553,53 @@ export function createBudgetRouter(pool: DbPool): Router {
     }
   })
 
+  // ── PUT /categories/:id ────────────────────────────────────────────────────
+  // Updates a category's display fields (the id stays stable so existing
+  // transactions/recurring keep referencing it) plus its monthly budget target.
+  router.put('/categories/:id', async (req, res) => {
+    const { id } = req.params
+    const b = req.body as { name?: string; color?: string; icon?: string; budget?: number }
+    const name = b.name?.trim() ?? ''
+    if (!name)                                        return res.status(400).json({ error: 'name is required' })
+    if (b.color && !/^#[0-9a-fA-F]{6}$/.test(b.color)) return res.status(400).json({ error: 'invalid color' })
+    if (b.budget != null && (typeof b.budget !== 'number' || b.budget < 0)) {
+      return res.status(400).json({ error: 'budget must be >= 0' })
+    }
+
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+
+      const { rows } = await client.query(
+        `UPDATE budget_categories SET name = $2, color = $3, icon = $4
+         WHERE id = $1
+         RETURNING *`,
+        [id, name, b.color ?? '#6b7280', b.icon?.trim() || 'package'],
+      )
+      if (rows.length === 0) {
+        await client.query('ROLLBACK')
+        return res.status(404).json({ error: 'category not found' })
+      }
+      if (b.budget != null) {
+        await client.query(
+          `INSERT INTO budget_category_targets (category, amount)
+           VALUES ($1, $2)
+           ON CONFLICT (category) DO UPDATE SET amount = EXCLUDED.amount`,
+          [id, b.budget],
+        )
+      }
+
+      await client.query('COMMIT')
+      return res.status(200).json(mapCategory(rows[0]))
+    } catch (err) {
+      try { await client.query('ROLLBACK') } catch { /* swallow */ }
+      console.warn('[budget] PUT /categories/:id db error:', err)
+      return res.status(503).json({ error: 'Database unavailable' })
+    } finally {
+      client.release()
+    }
+  })
+
   // ── GET /targets ───────────────────────────────────────────────────────────
   router.get('/targets', async (_req, res) => {
     try {

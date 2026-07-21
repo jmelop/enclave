@@ -9,16 +9,19 @@ const COLOR_SWATCHES = [
 ];
 
 interface Props {
+  initial?: { name: string; color: string; icon: string; budget: number };
   onClose: () => void;
   onSave: (cat: { name: string; color: string; icon: string; budget: number }) => void;
   error?: string | null;
 }
 
-export function AddCategoryModal({ onClose, onSave, error }: Props) {
-  const [name, setName]     = useState('');
-  const [color, setColor]   = useState(COLOR_SWATCHES[0]);
-  const [icon, setIcon]     = useState('package');
-  const [budget, setBudget] = useState('');
+export function AddCategoryModal({ initial, onClose, onSave, error }: Props) {
+  const isEdit = !!initial;
+
+  const [name, setName]     = useState(initial?.name ?? '');
+  const [color, setColor]   = useState(initial?.color ?? COLOR_SWATCHES[0]);
+  const [icon, setIcon]     = useState(initial?.icon ?? 'package');
+  const [budget, setBudget] = useState(initial ? String(initial.budget) : '');
 
   const valid = name.trim().length > 0;
 
@@ -32,8 +35,8 @@ export function AddCategoryModal({ onClose, onSave, error }: Props) {
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div className="modal-head">
           <div>
-            <div className="modal-tag">BUDGET · NEW CATEGORY</div>
-            <h3>Add category</h3>
+            <div className="modal-tag">BUDGET · {isEdit ? 'EDIT' : 'NEW'} CATEGORY</div>
+            <h3>{isEdit ? 'Edit category' : 'Add category'}</h3>
           </div>
           <button className="icon-btn" onClick={onClose}><X size={16} /></button>
         </div>
@@ -110,7 +113,7 @@ export function AddCategoryModal({ onClose, onSave, error }: Props) {
         <div className="modal-foot">
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
           <button className="btn btn-primary" disabled={!valid} onClick={handleSave}>
-            Add category
+            {isEdit ? 'Save changes' : 'Add category'}
           </button>
         </div>
       </div>

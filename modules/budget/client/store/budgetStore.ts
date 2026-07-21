@@ -185,6 +185,7 @@ interface BudgetState {
   deleteIncome: (id: string) => Promise<void>
   setBudget: (cat: CategoryId, amount: number) => Promise<void>
   addCategory: (cat: { name: string; color: string; icon: string; budget: number }) => Promise<void>
+  updateCategory: (id: CategoryId, cat: { name: string; color: string; icon: string; budget: number }) => Promise<void>
   addRecurring: (r: Omit<RecurringBill, 'id'>) => Promise<void>
   updateRecurring: (r: RecurringBill) => Promise<void>
   deleteRecurring: (id: string) => Promise<void>
@@ -410,6 +411,19 @@ export const useBudgetStore = create<BudgetState>()((set, get) => ({
   addCategory: async (cat) => {
     const res = await fetch('/api/budget/categories', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cat),
+    })
+    if (!res.ok) {
+      const body = (await res.json()) as { error?: string }
+      throw new Error(body.error ?? `HTTP ${res.status}`)
+    }
+    await get().refetch()
+  },
+
+  updateCategory: async (id, cat) => {
+    const res = await fetch(`/api/budget/categories/${id}`, {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(cat),
     })
