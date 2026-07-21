@@ -35,13 +35,17 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
   const spentCx  = (i: number) => xv(i) - pairGap / 2 - bw / 2;
   const incomeCx = (i: number) => xv(i) + pairGap / 2 + bw / 2;
   const labelSize = compact ? 5.1 : 5.7;
-  // Value labels grow outward from each bar's centre (spent → left, income →
-  // right) so a spent/income pair at similar heights never overlaps.
-  const labelGap = 1.4;
+  // Value labels sit outboard of each bar's centre (spent → left, income →
+  // right) so a spent/income pair at similar heights never overlaps, but are
+  // pulled ~25% back toward the bar so they still read as belonging to it.
+  const centerPull = 0.25;
   // Disambiguate month labels with the year when the series spans several.
   const multiYear = new Set(months.map(m => m.year)).size > 1;
   // Compact slots are too narrow for two full €-figures side by side.
   const fmtBar = (v: number) => (compact && v >= 1000 ? `€${(v / 1000).toFixed(1)}k` : fmt(v));
+  // Estimated half-width of a value label (JetBrains Mono advance ≈ 0.6em),
+  // used to pull the label back toward its bar without risking overlap.
+  const halfLabel = (v: number) => (fmtBar(v).length * labelSize * 0.6) / 2;
 
   return (
     <svg
@@ -70,7 +74,7 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
                   style={{ transition: 'all .25s ease' }}
                 />
                 <text
-                  x={spentCx(i) - labelGap} y={yv(d.spent) - 4}
+                  x={spentCx(i) + halfLabel(d.spent) * centerPull} y={yv(d.spent) - 4}
                   textAnchor="end"
                   fontSize={labelSize}
                   fontFamily="JetBrains Mono, monospace"
@@ -91,7 +95,7 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
                   style={{ transition: 'all .25s ease' }}
                 />
                 <text
-                  x={incomeCx(i) + labelGap} y={yv(d.income) - 4}
+                  x={incomeCx(i) - halfLabel(d.income) * centerPull} y={yv(d.income) - 4}
                   textAnchor="start"
                   fontSize={labelSize}
                   fontFamily="JetBrains Mono, monospace"
