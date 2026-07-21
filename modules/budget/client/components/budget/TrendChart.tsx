@@ -34,14 +34,10 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
   // Spent + income bars sit side by side, centered on the month slot.
   const spentCx  = (i: number) => xv(i) - pairGap / 2 - bw / 2;
   const incomeCx = (i: number) => xv(i) + pairGap / 2 + bw / 2;
-  // Slightly smaller + tighter than before so both figures fit over their bars.
+  // Smaller + tighter so two centred 4-digit figures still clear each other
+  // (a 5-digit value would be too wide, but budgets never reach that range).
   const labelSize = compact ? 4.7 : 5.3;
   const labelSpacing = -0.15;
-  // "Outward anchoring": each label pins its OUTER edge to its bar's outer edge
-  // and grows inward, so a spent/income pair sits over its bars and their inner
-  // edges stay apart even at near-equal heights (spent → left, income → right).
-  const spentLabelX  = (i: number) => spentCx(i) - bw / 2;
-  const incomeLabelX = (i: number) => incomeCx(i) + bw / 2;
   // Disambiguate month labels with the year when the series spans several.
   const multiYear = new Set(months.map(m => m.year)).size > 1;
   // Compact slots are too narrow for two full €-figures side by side.
@@ -74,8 +70,8 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
                   style={{ transition: 'all .25s ease' }}
                 />
                 <text
-                  x={spentLabelX(i)} y={yv(d.spent) - 4}
-                  textAnchor="start"
+                  x={spentCx(i)} y={yv(d.spent) - 4}
+                  textAnchor="middle"
                   fontSize={labelSize}
                   letterSpacing={labelSpacing}
                   fontFamily="JetBrains Mono, monospace"
@@ -96,8 +92,8 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
                   style={{ transition: 'all .25s ease' }}
                 />
                 <text
-                  x={incomeLabelX(i)} y={yv(d.income) - 4}
-                  textAnchor="end"
+                  x={incomeCx(i)} y={yv(d.income) - 4}
+                  textAnchor="middle"
                   fontSize={labelSize}
                   letterSpacing={labelSpacing}
                   fontFamily="JetBrains Mono, monospace"
