@@ -1,11 +1,5 @@
-export type CategoryId =
-  | 'food'
-  | 'transport'
-  | 'housing'
-  | 'health'
-  | 'entertainment'
-  | 'subscriptions'
-  | 'other';
+// Categories are user-defined (budget_categories table), so ids are open-ended.
+export type CategoryId = string;
 
 export interface Category {
   id: CategoryId;

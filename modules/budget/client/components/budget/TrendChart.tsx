@@ -35,6 +35,9 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
   const spentCx  = (i: number) => xv(i) - pairGap / 2 - bw / 2;
   const incomeCx = (i: number) => xv(i) + pairGap / 2 + bw / 2;
   const labelSize = compact ? 5.1 : 5.7;
+  // Value labels grow outward from each bar's centre (spent → left, income →
+  // right) so a spent/income pair at similar heights never overlaps.
+  const labelGap = 1.4;
   // Disambiguate month labels with the year when the series spans several.
   const multiYear = new Set(months.map(m => m.year)).size > 1;
   // Compact slots are too narrow for two full €-figures side by side.
@@ -67,8 +70,8 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
                   style={{ transition: 'all .25s ease' }}
                 />
                 <text
-                  x={spentCx(i)} y={yv(d.spent) - 4}
-                  textAnchor="middle"
+                  x={spentCx(i) - labelGap} y={yv(d.spent) - 4}
+                  textAnchor="end"
                   fontSize={labelSize}
                   fontFamily="JetBrains Mono, monospace"
                   fontWeight="600"
@@ -88,8 +91,8 @@ export function TrendChart({ months, budgets, activeIdx, onSelect, compact }: Pr
                   style={{ transition: 'all .25s ease' }}
                 />
                 <text
-                  x={incomeCx(i)} y={yv(d.income) - 4}
-                  textAnchor="middle"
+                  x={incomeCx(i) + labelGap} y={yv(d.income) - 4}
+                  textAnchor="start"
                   fontSize={labelSize}
                   fontFamily="JetBrains Mono, monospace"
                   fontWeight="600"

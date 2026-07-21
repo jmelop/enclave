@@ -1,19 +1,19 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
-import { CATEGORIES } from '@/lib/seed';
-import type { CategoryId, RecurringBill } from '@/types/budget';
+import type { Category, CategoryId, RecurringBill } from '@/types/budget';
 
 interface Props {
   initial?: RecurringBill;
+  categories: Category[];
   onClose: () => void;
   onSave: (r: Omit<RecurringBill, 'id'> & { id?: string }) => void;
 }
 
-export function RecurringModal({ initial, onClose, onSave }: Props) {
+export function RecurringModal({ initial, categories, onClose, onSave }: Props) {
   const [name, setName] = useState(initial?.name ?? '');
   const [vendor, setVendor] = useState(initial?.vendor ?? '');
   const [amount, setAmount] = useState(initial ? String(initial.amount) : '');
-  const [cat, setCat] = useState<CategoryId>(initial?.cat ?? 'subscriptions');
+  const [cat, setCat] = useState<CategoryId>(initial?.cat ?? categories[0]?.id ?? 'other');
   const [day, setDay] = useState(initial ? String(initial.day) : '1');
 
   const valid = name.trim().length > 0 && Number(amount) > 0;
@@ -91,7 +91,7 @@ export function RecurringModal({ initial, onClose, onSave }: Props) {
           <div className="field">
             <label>Category</label>
             <div className="cat-picker">
-              {CATEGORIES.map(c => (
+              {categories.map(c => (
                 <button
                   key={c.id}
                   type="button"

@@ -33,12 +33,30 @@ export interface SeedMonthSummary {
   spent: Record<string, number>
 }
 
+export interface SeedCategory {
+  id: string
+  name: string
+  color: string
+  icon: string
+}
+
 export interface SeedMonthDetail extends SeedMonthSummary {
   transactions: SeedTransaction[]
   incomes: never[]
   recurring: SeedRecurring[]
   targets: Record<string, number>
+  categories: SeedCategory[]
 }
+
+export const SEED_CATEGORIES: SeedCategory[] = [
+  { id: 'food',          name: 'Food & Dining', color: '#f59e0b', icon: 'utensils' },
+  { id: 'transport',     name: 'Transport',     color: '#3b82f6', icon: 'car' },
+  { id: 'housing',       name: 'Housing',       color: '#8b5cf6', icon: 'home' },
+  { id: 'health',        name: 'Health',        color: '#10b981', icon: 'heart' },
+  { id: 'entertainment', name: 'Entertainment', color: '#f43f5e', icon: 'film' },
+  { id: 'subscriptions', name: 'Subscriptions', color: '#14b8a6', icon: 'repeat' },
+  { id: 'other',         name: 'Other',         color: '#6b7280', icon: 'package' },
+]
 
 export const SEED_RECURRING: SeedRecurring[] = [
   { id: 'r1', name: 'Rent',          vendor: 'Property Mgmt',  amount: 1200,  cat: 'housing',       day: 1  },
@@ -95,5 +113,6 @@ export function buildSeedMonthDetail(monthKey: string): SeedMonthDetail {
     incomes: [],
     recurring: SEED_RECURRING,
     targets: SEED_TARGETS,
+    categories: SEED_CATEGORIES,
   }
 }

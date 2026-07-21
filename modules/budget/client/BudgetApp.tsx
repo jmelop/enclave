@@ -61,6 +61,7 @@ export default function BudgetApp() {
   const addIncome     = useBudgetStore(s => s.addIncome);
   const updateIncome  = useBudgetStore(s => s.updateIncome);
   const addRecurring  = useBudgetStore(s => s.addRecurring);
+  const categories    = useBudgetStore(s => s.categories);
   const months        = useBudgetStore(s => s.months);
   const monthIndex    = useBudgetStore(s => s.monthIndex);
   const setMonthIndex = useBudgetStore(s => s.setMonthIndex);
@@ -252,6 +253,7 @@ export default function BudgetApp() {
       {expenseModal && (
         <AddExpenseModal
           month={month}
+          categories={categories}
           initial={expenseModal.mode === 'edit' ? expenseModal.tx : undefined}
           onClose={() => setExpenseModal(null)}
           onSave={handleExpenseModalSave}
@@ -269,6 +271,7 @@ export default function BudgetApp() {
 
       {addRecurringOpen && (
         <RecurringModal
+          categories={categories}
           onClose={() => setAddRecurringOpen(false)}
           onSave={(r: Omit<RecurringBill, 'id'> & { id?: string }) => {
             const { id: _id, ...rest } = r;

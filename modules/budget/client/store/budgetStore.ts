@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import type { CategoryId, IncomeEntry, MonthData, RecurringBill, Transaction } from '@/types/budget'
-import { SEED_MONTHS, SEED_RECURRING, DEFAULT_BUDGETS } from '@/lib/seed'
+import type { Category, CategoryId, IncomeEntry, MonthData, RecurringBill, Transaction } from '@/types/budget'
+import { SEED_MONTHS, SEED_RECURRING, DEFAULT_BUDGETS, CATEGORIES } from '@/lib/seed'
 
 // ── Client-side date helpers ──────────────────────────────────────────────────
 
@@ -48,6 +48,7 @@ interface ApiMonthDetail {
   incomes?: IncomeEntry[]
   recurring: RecurringBill[]
   targets: Record<string, number>
+  categories?: Category[]
   created?: boolean
 }
 
@@ -165,6 +166,7 @@ interface BudgetState {
   incomes: IncomeEntry[]
   recurring: RecurringBill[]
   budgets: Record<CategoryId, number>
+  categories: Category[]
 
   loading: boolean
   error: string | null
@@ -182,6 +184,7 @@ interface BudgetState {
   updateIncome: (id: string, entry: Omit<IncomeEntry, 'id' | 'monthKey'>) => Promise<void>
   deleteIncome: (id: string) => Promise<void>
   setBudget: (cat: CategoryId, amount: number) => Promise<void>
+  addCategory: (cat: { name: string; color: string; icon: string; budget: number }) => Promise<void>
   addRecurring: (r: Omit<RecurringBill, 'id'>) => Promise<void>
   updateRecurring: (r: RecurringBill) => Promise<void>
   deleteRecurring: (id: string) => Promise<void>
@@ -197,6 +200,7 @@ export const useBudgetStore = create<BudgetState>()((set, get) => ({
   incomes:      [],
   recurring:    SEED_RECURRING.map(r => ({ ...r })),
   budgets:      { ...DEFAULT_BUDGETS },
+  categories:   CATEGORIES.map(c => ({ ...c })),
 
   loading:  false,
   error:    null,
@@ -235,6 +239,7 @@ export const useBudgetStore = create<BudgetState>()((set, get) => ({
         incomes:      detail.incomes ?? [],
         recurring:    detail.recurring,
         budgets:      detail.targets as Record<CategoryId, number>,
+        categories:   detail.categories ?? get().categories,
         hydrated:     true,
         loading:      false,
         error:        null,
@@ -272,6 +277,7 @@ export const useBudgetStore = create<BudgetState>()((set, get) => ({
         incomes:      detail.incomes ?? [],
         recurring:    detail.recurring,
         budgets:      detail.targets as Record<CategoryId, number>,
+        categories:   detail.categories ?? get().categories,
         hydrated:     true,
         loading:      false,
         error:        null,
@@ -297,6 +303,7 @@ export const useBudgetStore = create<BudgetState>()((set, get) => ({
         incomes:      detail.incomes ?? [],
         recurring:    detail.recurring,
         budgets:      detail.targets as Record<CategoryId, number>,
+        categories:   detail.categories ?? get().categories,
         loading:      false,
       })
     } catch (err) {
@@ -392,6 +399,19 @@ export const useBudgetStore = create<BudgetState>()((set, get) => ({
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount }),
+    })
+    if (!res.ok) {
+      const body = (await res.json()) as { error?: string }
+      throw new Error(body.error ?? `HTTP ${res.status}`)
+    }
+    await get().refetch()
+  },
+
+  addCategory: async (cat) => {
+    const res = await fetch('/api/budget/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cat),
     })
     if (!res.ok) {
       const body = (await res.json()) as { error?: string }

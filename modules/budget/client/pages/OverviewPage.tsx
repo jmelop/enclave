@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { Card } from '@venator-ui/ui';
 import { Zap, TrendingUp, Wallet, Target, HandCoins } from 'lucide-react';
 import { useBudgetStore, useCurrentMonth } from '@/store/budgetStore';
-import { computeMetrics, fmt, fmt2, fmtSigned, pct } from '@/lib/utils';
-import { CATEGORIES } from '@/lib/seed';
+import { catOf, computeMetrics, fmt, fmt2, fmtSigned, pct } from '@/lib/utils';
 import { SpendingGauge } from '@/components/budget/SpendingGauge';
 import { TrendChart } from '@/components/budget/TrendChart';
 import { CategoryGlyph } from '@/components/budget/CategoryGlyph';
@@ -21,6 +20,7 @@ export function OverviewPage({ onAddExpense }: Props) {
   const recurring    = useBudgetStore(s => s.recurring);
   const transactions = useBudgetStore(s => s.transactions);
   const incomes      = useBudgetStore(s => s.incomes);
+  const categories   = useBudgetStore(s => s.categories);
   const loading      = useBudgetStore(s => s.loading);
   const error        = useBudgetStore(s => s.error);
   const hydrated     = useBudgetStore(s => s.hydrated);
@@ -62,8 +62,8 @@ export function OverviewPage({ onAddExpense }: Props) {
 
   const allTx    = catFilter ? transactions.filter(t => t.cat === catFilter) : transactions;
   const shownTx  = allTx;
-  const metrics  = computeMetrics(month, budgets);
-  const prev     = monthIndex > 0 ? computeMetrics(months[monthIndex - 1], budgets) : null;
+  const metrics  = computeMetrics(month, budgets, categories);
+  const prev     = monthIndex > 0 ? computeMetrics(months[monthIndex - 1], budgets, categories) : null;
   const upcoming = recurring.filter(r => r.day > month.asOfDay).sort((a, b) => a.day - b.day);
   const m        = metrics;
   const over     = (m.inProgress ? m.projected : m.spent) > m.totalBudget;
@@ -162,13 +162,13 @@ export function OverviewPage({ onAddExpense }: Props) {
           <div style={{ padding: '16px 18px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
             <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>Recent activity</h3>
             {catFilter
-              ? <button className="mono" style={{ fontSize: 10, color: 'var(--accent)', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }} onClick={() => setCatFilter(null)}>✕ {CATEGORIES.find(c => c.id === catFilter)?.name}</button>
+              ? <button className="mono" style={{ fontSize: 10, color: 'var(--accent)', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }} onClick={() => setCatFilter(null)}>✕ {catOf(categories, catFilter).name}</button>
               : <span className="mono" style={{ fontSize: 10, color: 'var(--fg-4)' }}>{transactions.length} txns</span>}
           </div>
           <div style={{ padding: '0 14px 12px', maxHeight: 380, overflow: 'auto' }}>
             <div className="tx-list">
               {shownTx.slice(0, 20).map(t => {
-                const cat = CATEGORIES.find(c => c.id === t.cat)!;
+                const cat = catOf(categories, t.cat);
                 return (
                   <div key={t.id} className="tx-row">
                     <CategoryGlyph cat={cat} size={30} />
@@ -215,7 +215,7 @@ export function OverviewPage({ onAddExpense }: Props) {
           </div>
           <div style={{ padding: '0 14px 12px' }}>
             {upcoming.length > 0 ? upcoming.map((r, i) => {
-              const cat = CATEGORIES.find(c => c.id === r.cat)!;
+              const cat = catOf(categories, r.cat);
               return (
                 <div key={r.id} style={{ display: 'grid', gridTemplateColumns: '30px 1fr auto', gap: 10, alignItems: 'center', padding: '10px 0', borderBottom: i < upcoming.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
                   <CategoryGlyph cat={cat} size={30} />
