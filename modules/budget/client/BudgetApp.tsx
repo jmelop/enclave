@@ -13,6 +13,7 @@ import { CategoriesPage } from '@/pages/CategoriesPage';
 import { AddExpenseModal } from '@/components/budget/AddExpenseModal';
 import { AddIncomeModal } from '@/components/budget/AddIncomeModal';
 import { RecurringModal } from '@/components/budget/RecurringModal';
+import { AddCategoryModal } from '@/components/budget/AddCategoryModal';
 import { useBudgetStore, useCurrentMonth } from '@/store/budgetStore';
 import type { CategoryId, IncomeEntry, Transaction, RecurringBill } from '@/types/budget';
 
@@ -25,7 +26,7 @@ const SECTION_LABELS: Record<string, string> = {
   'categories': 'categories',
 };
 
-type HeroAction = 'expense' | 'income' | 'recurring'
+type HeroAction = 'expense' | 'income' | 'recurring' | 'category'
 
 const HERO_BTN: Record<string, { label: string; action: HeroAction }> = {
   'overview':   { label: 'Add expense',   action: 'expense'   },
@@ -33,7 +34,7 @@ const HERO_BTN: Record<string, { label: string; action: HeroAction }> = {
   'income':     { label: 'Add income',    action: 'income'    },
   'recurring':  { label: 'Add recurring', action: 'recurring' },
   'history':    { label: 'Add expense',   action: 'expense'   },
-  'categories': { label: 'Add expense',   action: 'expense'   },
+  'categories': { label: 'Add category',  action: 'category'  },
 }
 
 // Discriminated state for add vs edit modal — edit carries the source transaction.
@@ -54,6 +55,8 @@ export default function BudgetApp() {
   const [expenseModal, setExpenseModal]         = useState<ExpenseModalState>(null);
   const [incomeModal, setIncomeModal]           = useState<IncomeModalState>(null);
   const [addRecurringOpen, setAddRecurringOpen] = useState(false);
+  const [addCategoryOpen, setAddCategoryOpen]   = useState(false);
+  const [categoryError, setCategoryError]       = useState<string | null>(null);
 
   const hydrate       = useBudgetStore(s => s.hydrate);
   const addExpense    = useBudgetStore(s => s.addExpense);
@@ -61,6 +64,7 @@ export default function BudgetApp() {
   const addIncome     = useBudgetStore(s => s.addIncome);
   const updateIncome  = useBudgetStore(s => s.updateIncome);
   const addRecurring  = useBudgetStore(s => s.addRecurring);
+  const addCategory   = useBudgetStore(s => s.addCategory);
   const categories    = useBudgetStore(s => s.categories);
   const months        = useBudgetStore(s => s.months);
   const monthIndex    = useBudgetStore(s => s.monthIndex);
@@ -88,13 +92,26 @@ export default function BudgetApp() {
   })();
 
   const heroBtnDef = HERO_BTN[sectionLabel] ?? { label: 'Add expense', action: 'expense' as HeroAction };
-  const expenseActionsLocked = heroBtnDef.action !== 'recurring' && month.created === false;
+  // Recurring bills and categories exist independently of a created month.
+  const expenseActionsLocked =
+    heroBtnDef.action !== 'recurring' && heroBtnDef.action !== 'category' && month.created === false;
 
   const handleHeroBtn = () => {
     if (expenseActionsLocked) return;
     if (heroBtnDef.action === 'recurring') setAddRecurringOpen(true);
+    else if (heroBtnDef.action === 'category') { setCategoryError(null); setAddCategoryOpen(true); }
     else if (heroBtnDef.action === 'income') setIncomeModal({ mode: 'add' });
     else setExpenseModal({ mode: 'add' });
+  };
+
+  const handleAddCategory = async (cat: { name: string; color: string; icon: string; budget: number }) => {
+    setCategoryError(null);
+    try {
+      await addCategory(cat);
+      setAddCategoryOpen(false);
+    } catch (err) {
+      setCategoryError(err instanceof Error ? err.message : 'Failed to add category');
+    }
   };
 
   const handleExpenseModalSave = (
@@ -278,6 +295,14 @@ export default function BudgetApp() {
             void addRecurring(rest);
             setAddRecurringOpen(false);
           }}
+        />
+      )}
+
+      {addCategoryOpen && (
+        <AddCategoryModal
+          onClose={() => setAddCategoryOpen(false)}
+          onSave={cat => void handleAddCategory(cat)}
+          error={categoryError}
         />
       )}
     </>

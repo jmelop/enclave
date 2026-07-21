@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { Card } from '@venator-ui/ui';
-import { Check, Pencil, Plus } from 'lucide-react';
+import { Check, Pencil } from 'lucide-react';
 import { useBudgetStore, useCurrentMonth } from '@/store/budgetStore';
 import { computeMetrics, fmt, pct } from '@/lib/utils';
 import { DonutChart } from '@/components/budget/DonutChart';
 import { CategoryGlyph } from '@/components/budget/CategoryGlyph';
-import { AddCategoryModal } from '@/components/budget/AddCategoryModal';
 import type { CategoryId } from '@/types/budget';
 
 export function CategoriesPage() {
@@ -13,7 +12,6 @@ export function CategoriesPage() {
   const budgets  = useBudgetStore(s => s.budgets);
   const setBudget = useBudgetStore(s => s.setBudget);
   const categories = useBudgetStore(s => s.categories);
-  const addCategory = useBudgetStore(s => s.addCategory);
   const loading  = useBudgetStore(s => s.loading);
   const error    = useBudgetStore(s => s.error);
   const hydrated = useBudgetStore(s => s.hydrated);
@@ -22,8 +20,6 @@ export function CategoriesPage() {
 
   const [editing, setEditing] = useState<CategoryId | null>(null);
   const [draft, setDraft]     = useState('');
-  const [adding, setAdding]   = useState(false);
-  const [addError, setAddError] = useState<string | null>(null);
 
   // ── 4 UI states ────────────────────────────────────────────────────────────
 
@@ -50,15 +46,6 @@ export function CategoriesPage() {
     if (!editing) return;
     void setBudget(editing, Math.max(0, parseInt(draft) || 0));
     setEditing(null);
-  };
-  const commitAdd = async (cat: { name: string; color: string; icon: string; budget: number }) => {
-    setAddError(null);
-    try {
-      await addCategory(cat);
-      setAdding(false);
-    } catch (err) {
-      setAddError(err instanceof Error ? err.message : 'Failed to add category');
-    }
   };
 
   return (
@@ -95,12 +82,7 @@ export function CategoriesPage() {
         <Card padding="none">
           <div style={{ padding: '16px 18px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)' }}>
             <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>Budgets by category</h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span className="mono" style={{ fontSize: 10, color: 'var(--fg-4)' }}>click to edit</span>
-              <button className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }} onClick={() => { setAddError(null); setAdding(true); }}>
-                <Plus size={13} /> Add category
-              </button>
-            </div>
+            <span className="mono" style={{ fontSize: 10, color: 'var(--fg-4)' }}>click to edit</span>
           </div>
           <div style={{ padding: '8px 18px 16px' }}>
             {cats.map(c => {
@@ -148,14 +130,6 @@ export function CategoriesPage() {
         <span>END · {cats.length} categories</span>
         <span className="dim">enclave/budget · build 2026.05</span>
       </footer>
-
-      {adding && (
-        <AddCategoryModal
-          onClose={() => setAdding(false)}
-          onSave={cat => void commitAdd(cat)}
-          error={addError}
-        />
-      )}
     </div>
   );
 }
