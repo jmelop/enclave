@@ -1,25 +1,26 @@
 import { useState } from 'react';
 import { Card } from '@venator-ui/ui';
-import { Check, Pencil } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import { useBudgetStore, useCurrentMonth } from '@/store/budgetStore';
 import { computeMetrics, fmt, pct } from '@/lib/utils';
 import { DonutChart } from '@/components/budget/DonutChart';
 import { CategoryGlyph } from '@/components/budget/CategoryGlyph';
-import type { CategoryId } from '@/types/budget';
+import { AddCategoryModal } from '@/components/budget/AddCategoryModal';
+import type { CategoryMetrics } from '@/types/budget';
 
 export function CategoriesPage() {
   const month    = useCurrentMonth();
   const budgets  = useBudgetStore(s => s.budgets);
-  const setBudget = useBudgetStore(s => s.setBudget);
   const categories = useBudgetStore(s => s.categories);
+  const updateCategory = useBudgetStore(s => s.updateCategory);
   const loading  = useBudgetStore(s => s.loading);
   const error    = useBudgetStore(s => s.error);
   const hydrated = useBudgetStore(s => s.hydrated);
   const refetch  = useBudgetStore(s => s.refetch);
   const metrics  = computeMetrics(month, budgets, categories);
 
-  const [editing, setEditing] = useState<CategoryId | null>(null);
-  const [draft, setDraft]     = useState('');
+  const [editCat, setEditCat]     = useState<CategoryMetrics | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
 
   // ── 4 UI states ────────────────────────────────────────────────────────────
 
@@ -41,11 +42,16 @@ export function CategoriesPage() {
   const cats      = [...metrics.cats].sort((a, b) => b.spent - a.spent);
   const allocated = cats.reduce((s, c) => s + c.budget, 0);
 
-  const startEdit  = (id: CategoryId, current: number) => { setEditing(id); setDraft(String(current)); };
-  const commitEdit = () => {
-    if (!editing) return;
-    void setBudget(editing, Math.max(0, parseInt(draft) || 0));
-    setEditing(null);
+  const openEdit   = (c: CategoryMetrics) => { setEditError(null); setEditCat(c); };
+  const commitEdit = async (cat: { name: string; color: string; icon: string; budget: number }) => {
+    if (!editCat) return;
+    setEditError(null);
+    try {
+      await updateCategory(editCat.id, cat);
+      setEditCat(null);
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : 'Failed to update category');
+    }
   };
 
   return (
@@ -85,43 +91,29 @@ export function CategoriesPage() {
             <span className="mono" style={{ fontSize: 10, color: 'var(--fg-4)' }}>click to edit</span>
           </div>
           <div style={{ padding: '8px 18px 16px' }}>
-            {cats.map(c => {
-              const isEd = editing === c.id;
-              return (
-                <div key={c.id} className="cat-editor-row">
-                  <CategoryGlyph cat={c} size={34} />
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>{c.name}</div>
-                    <div className="mono" style={{ fontSize: 11, color: c.ratio > 1 ? 'var(--danger)' : 'var(--fg-4)', marginTop: 2 }}>
-                      {fmt(c.spent)} spent · {fmt(Math.abs(c.budget - c.spent))} {c.budget - c.spent >= 0 ? 'left' : 'over'}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div className="prog-track" style={{ flex: 1 }}>
-                      <div className="prog-fill" style={{ width: `${Math.min(100, c.ratio * 100)}%`, background: c.ratio > 1 ? 'var(--danger)' : c.color }} />
-                    </div>
-                    <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)', width: 34, textAlign: 'right' }}>{pct(c.ratio)}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
-                    {isEd ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <div className="budget-input-wrap">
-                          <span style={{ color: 'var(--fg-4)', fontSize: 13 }}>€</span>
-                          <input autoFocus type="number" className="budget-input" value={draft} onChange={e => setDraft(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditing(null); }} />
-                        </div>
-                        <button className="icon-btn" style={{ color: 'var(--accent)', borderColor: 'var(--accent)' }} onClick={commitEdit}><Check size={13} /></button>
-                      </div>
-                    ) : (
-                      <button className="budget-display" onClick={() => startEdit(c.id, c.budget)}>
-                        <span className="mono" style={{ fontSize: 13.5, fontWeight: 600 }}>{fmt(c.budget)}</span>
-                        <Pencil size={12} style={{ color: 'var(--fg-4)' }} />
-                      </button>
-                    )}
+            {cats.map(c => (
+              <div key={c.id} className="cat-editor-row">
+                <CategoryGlyph cat={c} size={34} />
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>{c.name}</div>
+                  <div className="mono" style={{ fontSize: 11, color: c.ratio > 1 ? 'var(--danger)' : 'var(--fg-4)', marginTop: 2 }}>
+                    {fmt(c.spent)} spent · {fmt(Math.abs(c.budget - c.spent))} {c.budget - c.spent >= 0 ? 'left' : 'over'}
                   </div>
                 </div>
-              );
-            })}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div className="prog-track" style={{ flex: 1 }}>
+                    <div className="prog-fill" style={{ width: `${Math.min(100, c.ratio * 100)}%`, background: c.ratio > 1 ? 'var(--danger)' : c.color }} />
+                  </div>
+                  <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)', width: 34, textAlign: 'right' }}>{pct(c.ratio)}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+                  <button className="budget-display" onClick={() => openEdit(c)} title="Edit category">
+                    <span className="mono" style={{ fontSize: 13.5, fontWeight: 600 }}>{fmt(c.budget)}</span>
+                    <Pencil size={12} style={{ color: 'var(--fg-4)' }} />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </Card>
       </div>
@@ -130,6 +122,15 @@ export function CategoriesPage() {
         <span>END · {cats.length} categories</span>
         <span className="dim">enclave/budget · build 2026.05</span>
       </footer>
+
+      {editCat && (
+        <AddCategoryModal
+          initial={{ name: editCat.name, color: editCat.color, icon: editCat.icon, budget: editCat.budget }}
+          onClose={() => setEditCat(null)}
+          onSave={cat => void commitEdit(cat)}
+          error={editError}
+        />
+      )}
     </div>
   );
 }
