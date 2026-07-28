@@ -31,8 +31,15 @@ interface BodyEntryBody {
   notes?: string
 }
 
+// pg returns DATE columns as a JS Date at LOCAL midnight — toISOString() (UTC)
+// would shift it back a day in timezones ahead of UTC, so read local parts.
+// Duplicated in budget/strategy/portfolio — extract to @enclave/sdk when there are more helpers.
+function localDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 function dateStrOf(raw: unknown): string {
-  return raw instanceof Date ? raw.toISOString().slice(0, 10) : String(raw).slice(0, 10)
+  return raw instanceof Date ? localDateStr(raw) : String(raw).slice(0, 10)
 }
 
 function numOrUndef(v: unknown): number | undefined {
