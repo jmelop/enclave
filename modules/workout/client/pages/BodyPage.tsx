@@ -8,7 +8,7 @@ import LogMeasurementModal from '../modals/LogMeasurementModal';
 import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
 import { HeroActions } from '../components/HeroActions';
 import { useWorkoutStore } from '../store/workoutStore';
-import { formatDate } from '../lib/workoutUtils';
+import { formatDate, todayIso } from '../lib/workoutUtils';
 import type { BodyEntry } from '../types/workout';
 
 type MeasKey = 'chest' | 'waist' | 'hip' | 'bicepL' | 'bicepR' | 'thighL' | 'thighR'
@@ -166,16 +166,22 @@ export default function BodyPage() {
             onClose={() => setModal(null)}
             editId={modal.editId}
             initial={modal.initial}
-            defaultDate="2026-05-24"
+            defaultDate={todayIso()}
           />
         )}
       </>
     );
   }
 
-  const minW = Math.min(...bodyLog.map(b => b.weight));
-  const maxW = Math.max(...bodyLog.map(b => b.weight));
-  const delta = (latest.weight - bodyLog[0].weight).toFixed(1);
+  // bodyLog is non-empty here (the !latest branch returned above), but a delta
+  // needs two distinct points — with a single entry there is no trend to show.
+  const weights = bodyLog.map(b => b.weight);
+  const minW = Math.min(...weights);
+  const maxW = Math.max(...weights);
+  const first = bodyLog[0];
+  const delta = bodyLog.length > 1 && first
+    ? (latest.weight - first.weight).toFixed(1)
+    : null;
 
   return (
     <>
@@ -187,7 +193,10 @@ export default function BodyPage() {
       </HeroActions>
 
       <div className="flex items-center justify-between gap-4 mb-5">
-        <p className="text-sm text-fg-3">{bodyLog.length} entries · {formatDate(bodyLog[0].date, { short: true })} → {formatDate(latest.date, { short: true })}</p>
+        <p className="text-sm text-fg-3">
+          {bodyLog.length} {bodyLog.length === 1 ? 'entry' : 'entries'}
+          {first && bodyLog.length > 1 && ` · ${formatDate(first.date, { short: true })} → ${formatDate(latest.date, { short: true })}`}
+        </p>
       </div>
 
       {/* Weight chart */}
@@ -198,13 +207,17 @@ export default function BodyPage() {
           <div>
             <h3 className="text-[13px] font-semibold text-fg-2 m-0">Body weight</h3>
             <span className="text-[11px] text-fg-4">
-              {formatDate(bodyLog[0].date, { short: true })} → {formatDate(latest.date, { short: true })} · {bodyLog.length} measurements
+              {first && bodyLog.length > 1
+                ? `${formatDate(first.date, { short: true })} → ${formatDate(latest.date, { short: true })} · ${bodyLog.length} measurements`
+                : `${formatDate(latest.date, { short: true })} · 1 measurement`}
             </span>
           </div>
           <div className="flex items-center gap-3">
             <span className="font-mono text-[11px] text-fg-4">min {minW}</span>
             <span className="font-mono text-[11px] text-fg-4">max {maxW}</span>
-            <Badge variant="success" className="font-mono">{delta} kg</Badge>
+            {delta != null && (
+              <Badge variant="success" className="font-mono">{delta} kg</Badge>
+            )}
           </div>
         </div>
         <div className="p-[18px]">
@@ -294,7 +307,7 @@ export default function BodyPage() {
           onClose={() => setModal(null)}
           editId={modal.editId}
           initial={modal.initial}
-          defaultDate="2026-05-24"
+          defaultDate={todayIso()}
           lastEntry={latest}
         />
       )}

@@ -7,6 +7,7 @@ import {
 import { Check, ChevronRight, X } from 'lucide-react';
 import type { BodyEntry } from '../types/workout';
 import { useWorkoutStore } from '../store/workoutStore';
+import { todayIso } from '../lib/workoutUtils';
 
 interface Props {
   onClose: () => void;
@@ -29,7 +30,7 @@ export default function LogMeasurementModal({ onClose, defaultDate, lastEntry, e
   const isEdit = !!editId;
   const base = initial ?? lastEntry;
 
-  const [date, setDate]     = useState(initial?.date ?? defaultDate ?? '2026-05-24');
+  const [date, setDate]     = useState(initial?.date ?? defaultDate ?? todayIso());
   const [weight, setWeight] = useState(initial ? String(initial.weight) : '80.0');
   const [waist, setWaist]   = useState(base?.waist != null ? String(base.waist) : '');
   const [notes, setNotes]   = useState(initial?.notes ?? '');

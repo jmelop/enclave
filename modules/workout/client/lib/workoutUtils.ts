@@ -7,6 +7,13 @@ export function workoutVolume(w: WorkoutSession): number {
   return Math.round(total)
 }
 
+// Today as YYYY-MM-DD from local parts. Never toISOString(): that converts to
+// UTC and returns yesterday between 00:00 and 02:00 in timezones ahead of UTC.
+export function todayIso(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export function formatDate(iso: string, opts: { short?: boolean } = {}): string {
   const d = new Date(iso + 'T00:00:00')
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -39,7 +46,7 @@ export function sessionsThisMonth(sessions: WorkoutSession[]): number {
 }
 
 export function volumeThisWeek(sessions: WorkoutSession[]): number {
-  const now = new Date('2026-05-24')
+  const now = new Date()
   const weekStart = new Date(now)
   const dow = now.getDay() === 0 ? 7 : now.getDay()
   weekStart.setDate(now.getDate() - dow + 1)

@@ -9,23 +9,148 @@ import {
   workoutVolume, formatDate, dayOfWeek,
   currentStreak, sessionsThisMonth, volumeThisWeek,
 } from '../lib/workoutUtils';
+import type { WorkoutSession } from '../types/workout';
+
+const NO_DATA = 'no data yet';
+
+// Signed count/percentage helpers — a comparison against an empty prior period
+// is meaningless, so these return null rather than a misleading 0 or Infinity.
+function signedCount(current: number, previous: number | null): string | null {
+  if (previous == null) return null;
+  const diff = current - previous;
+  return `${diff > 0 ? '+' : ''}${diff} vs last month`;
+}
+
+function signedPct(current: number, previous: number | null): string | null {
+  if (previous == null || previous === 0) return null;
+  const diff = Math.round(((current - previous) / previous) * 100);
+  return `${diff > 0 ? '+' : ''}${diff}% vs last week`;
+}
+
+// ── Derived metrics ───────────────────────────────────────────────────────────
+// PR 3 migration candidates: these derive from raw store data on the client.
+// They move to workout/server/service.ts when the derived-metrics layer lands.
+
+function monthOffsetKey(offset: number): string {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + offset);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function sessionsInMonthKey(sessions: WorkoutSession[], key: string): WorkoutSession[] {
+  return sessions.filter(w => w.date.slice(0, 7) === key);
+}
+
+function weekStartOffset(offset: number): Date {
+  const now = new Date();
+  const dow = now.getDay() === 0 ? 7 : now.getDay();
+  const start = new Date(now);
+  start.setDate(now.getDate() - dow + 1 + offset * 7);
+  start.setHours(0, 0, 0, 0);
+  return start;
+}
+
+function volumeLastWeek(sessions: WorkoutSession[]): number {
+  const start = weekStartOffset(-1);
+  const end = weekStartOffset(0);
+  return sessions
+    .filter(w => {
+      const d = new Date(w.date + 'T00:00:00');
+      return d >= start && d < end;
+    })
+    .reduce((sum, w) => sum + workoutVolume(w), 0);
+}
+
+interface TopSet { kg: number; reps: number; exercise: string }
+
+function topSetThisWeek(sessions: WorkoutSession[]): TopSet | null {
+  const start = weekStartOffset(0);
+  let best: TopSet | null = null;
+  for (const w of sessions) {
+    if (new Date(w.date + 'T00:00:00') < start) continue;
+    for (const ex of w.exercises) {
+      for (const s of ex.sets) {
+        if (!best || s.kg > best.kg) best = { kg: s.kg, reps: s.reps, exercise: ex.name };
+      }
+    }
+  }
+  return best;
+}
+
+function mostFrequentExercise(sessions: WorkoutSession[]): { name: string; count: number } | null {
+  const counts = new Map<string, number>();
+  for (const w of sessions)
+    for (const ex of w.exercises)
+      counts.set(ex.name, (counts.get(ex.name) ?? 0) + 1);
+
+  let best: { name: string; count: number } | null = null;
+  for (const [name, count] of counts)
+    if (!best || count > best.count) best = { name, count };
+  return best;
+}
+
+function daysSince(iso: string): number {
+  const then = new Date(iso + 'T00:00:00');
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  return Math.round((now.getTime() - then.getTime()) / 86400000);
+}
 
 export default function OverviewPage() {
   const navigate = useNavigate();
   const { sessions, bodyLog } = useWorkoutStore();
 
-  const sessionsMonth = sessionsThisMonth(sessions);
-  const latestWeight  = bodyLog[bodyLog.length - 1]?.weight ?? 0;
-  const firstWeight   = bodyLog[0]?.weight ?? 0;
-  const weightDelta   = (latestWeight - firstWeight).toFixed(1);
-  const streak        = currentStreak(sessions);
-  const volWeek       = volumeThisWeek(sessions);
+  const m = useMemo(() => {
+    const thisMonthKey = monthOffsetKey(0);
+    const lastMonthKey = monthOffsetKey(-1);
+    const lastMonthSessions = sessionsInMonthKey(sessions, lastMonthKey);
+
+    const first = bodyLog[0];
+    const latest = bodyLog[bodyLog.length - 1];
+    // A delta needs two distinct points; one entry is not a trend.
+    const weightDelta = first && latest && bodyLog.length > 1
+      ? latest.weight - first.weight
+      : null;
+    const spanDays = first && latest && bodyLog.length > 1
+      ? Math.round(
+          (new Date(latest.date + 'T00:00:00').getTime() -
+           new Date(first.date + 'T00:00:00').getTime()) / 86400000,
+        )
+      : null;
+
+    const volWeek = volumeThisWeek(sessions);
+    const volPrev = sessions.length > 0 ? volumeLastWeek(sessions) : null;
+
+    return {
+      sessionsMonth: sessionsThisMonth(sessions),
+      sessionsLastMonth: sessions.length > 0 ? lastMonthSessions.length : null,
+      thisMonthKey,
+      latestWeight: latest?.weight ?? null,
+      weightDelta,
+      spanDays,
+      streak: currentStreak(sessions),
+      volWeek,
+      volPrev,
+      topSet: topSetThisWeek(sessions),
+      frequent: mostFrequentExercise(sessionsInMonthKey(sessions, thisMonthKey)),
+      daysSinceLast: sessions[0] ? daysSince(sessions[0].date) : null,
+    };
+  }, [sessions, bodyLog]);
 
   const chartData = useMemo(() => (
     bodyLog.slice(-8).map(b => ({ label: formatDate(b.date, { short: true }), y: b.weight }))
   ), [bodyLog]);
 
   const recentSessions = sessions.slice(0, 4);
+
+  const weightDeltaLabel = m.weightDelta == null
+    ? null
+    : `${m.weightDelta > 0 ? '+' : ''}${m.weightDelta.toFixed(1)} kg`;
+
+  const spanLabel = m.spanDays == null
+    ? NO_DATA
+    : `${weightDeltaLabel} over ${Math.max(1, Math.round(m.spanDays / 7))} weeks`;
 
   return (
     <>
@@ -34,31 +159,30 @@ export default function OverviewPage() {
         <StatCard
           title="Sessions this month"
           icon={<Dumbbell size={14} />}
-          value={
-            <span className="font-mono">
-              {sessionsMonth}
-              <span className="text-lg text-fg-4 font-medium ml-1">/ 12</span>
-            </span>
-          }
-          description="+2 vs last month"
+          value={<span className="font-mono">{m.sessionsMonth}</span>}
+          description={signedCount(m.sessionsMonth, m.sessionsLastMonth) ?? NO_DATA}
         />
         <StatCard
           title="Current weight"
           icon={<Scale size={14} />}
-          value={<span className="font-mono">{latestWeight.toFixed(1)} <span className="text-lg text-fg-4 font-medium">kg</span></span>}
-          description={`${weightDelta} kg over 10 weeks`}
+          value={
+            m.latestWeight == null
+              ? <span className="text-fg-4">—</span>
+              : <span className="font-mono">{m.latestWeight.toFixed(1)} <span className="text-lg text-fg-4 font-medium">kg</span></span>
+          }
+          description={spanLabel}
         />
         <StatCard
           title="Current streak"
           icon={<Flame size={14} />}
-          value={<span className="font-mono">{streak} <span className="text-lg text-fg-4 font-medium">wk</span></span>}
-          description="goal: 12 weeks"
+          value={<span className="font-mono">{m.streak} <span className="text-lg text-fg-4 font-medium">wk</span></span>}
+          description={m.streak > 0 ? `${m.streak} weeks with a session` : NO_DATA}
         />
         <StatCard
           title="Volume this week"
           icon={<TrendingUp size={14} />}
-          value={<span className="font-mono">{volWeek.toLocaleString()} <span className="text-lg text-fg-4 font-medium">kg</span></span>}
-          description="+8% vs last week"
+          value={<span className="font-mono">{m.volWeek.toLocaleString()} <span className="text-lg text-fg-4 font-medium">kg</span></span>}
+          description={signedPct(m.volWeek, m.volPrev) ?? NO_DATA}
         />
       </div>
 
@@ -96,6 +220,11 @@ export default function OverviewPage() {
             </button>
           </div>
           <div>
+            {recentSessions.length === 0 && (
+              <div className="px-[18px] py-6 text-center text-fg-4 text-[12px]">
+                No sessions logged yet
+              </div>
+            )}
             {recentSessions.map(w => {
               const vol = workoutVolume(w);
               return (
@@ -129,33 +258,39 @@ export default function OverviewPage() {
       <div className="grid grid-cols-3 gap-3">
         <MiniInfoCard
           title="Top weight this week"
-          value="125"
-          unit="kg"
-          label="Squat · 1 rep"
+          value={m.topSet ? String(m.topSet.kg) : '—'}
+          unit={m.topSet ? 'kg' : undefined}
+          label={m.topSet ? `${m.topSet.exercise} · ${m.topSet.reps} reps` : NO_DATA}
           mono
         />
         <MiniInfoCard
           title="Most frequent exercise"
-          value="Bench Press"
-          label="3 sessions this month"
+          value={m.frequent ? m.frequent.name : '—'}
+          label={m.frequent ? `${m.frequent.count} sessions this month` : NO_DATA}
         />
         <MiniInfoCard
-          title="Suggested next session"
-          value="Pull A"
-          label="2 days since last session"
+          title="Days since last session"
+          value={m.daysSinceLast == null ? '—' : String(m.daysSinceLast)}
+          unit={m.daysSinceLast == null ? undefined : 'd'}
+          label={sessions[0] ? sessions[0].name : NO_DATA}
+          mono
         />
       </div>
 
       {/* Delta indicators row */}
       <div className="grid grid-cols-4 gap-3 mt-3">
-        <div className="flex items-center gap-1.5 text-[11px] text-success">
-          <TrendingUp size={12} />
-          <span className="font-mono">+2 sessions vs last month</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-[11px] text-danger">
-          <TrendingDown size={12} />
-          <span className="font-mono">{weightDelta} kg total</span>
-        </div>
+        {m.sessionsLastMonth != null && (
+          <div className={`flex items-center gap-1.5 text-[11px] ${m.sessionsMonth >= m.sessionsLastMonth ? 'text-success' : 'text-danger'}`}>
+            {m.sessionsMonth >= m.sessionsLastMonth ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+            <span className="font-mono">{signedCount(m.sessionsMonth, m.sessionsLastMonth)}</span>
+          </div>
+        )}
+        {weightDeltaLabel && (
+          <div className={`flex items-center gap-1.5 text-[11px] ${m.weightDelta! <= 0 ? 'text-success' : 'text-warn'}`}>
+            {m.weightDelta! <= 0 ? <TrendingDown size={12} /> : <TrendingUp size={12} />}
+            <span className="font-mono">{weightDeltaLabel} total</span>
+          </div>
+        )}
       </div>
     </>
   );
