@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { randomUUID } from 'crypto'
 import type { DbPool, DbClient } from '@enclave/sdk'
 import { SEED_SESSIONS, SEED_BODY_LOG } from './seed'
+import { buildBodyResponse, type BodyRow } from './service'
 
 type Row = Record<string, unknown>
 
@@ -42,6 +43,27 @@ function dateStrOf(raw: unknown): string {
   return raw instanceof Date ? localDateStr(raw) : String(raw).slice(0, 10)
 }
 
+function todayLocal(): string {
+  return localDateStr(new Date())
+}
+
+// Latest logged session, or the seed's when the table is empty — so freshness
+// agrees with what GET /sessions is serving at that moment.
+async function latestSessionDate(pool: DbPool): Promise<string | null> {
+  try {
+    const { rows } = await pool.query('SELECT MAX(date) AS d FROM workout_sessions')
+    const raw = rows[0]?.['d']
+    return raw ? dateStrOf(raw) : seedLastSessionDate()
+  } catch {
+    return seedLastSessionDate()
+  }
+}
+
+function seedLastSessionDate(): string | null {
+  const dates = SEED_SESSIONS.map(s => s.date).sort()
+  return dates[dates.length - 1] ?? null
+}
+
 function numOrUndef(v: unknown): number | undefined {
   return v === null || v === undefined ? undefined : Number(v)
 }
@@ -73,7 +95,19 @@ function mapSession(row: Row, exerciseRows: Row[], setsByExercise: Map<string, R
   }
 }
 
-function mapBodyEntry(row: Row) {
+// Optional props (not `| undefined`) so DB rows and seed literals share one type.
+interface BodyEntryOut extends BodyRow {
+  id: string
+  chest?: number
+  hip?: number
+  bicepL?: number
+  bicepR?: number
+  thighL?: number
+  thighR?: number
+  notes?: string
+}
+
+function mapBodyEntry(row: Row): BodyEntryOut {
   return {
     id: row['id'] as string,
     date: dateStrOf(row['date']),
@@ -266,14 +300,17 @@ export function createWorkoutRouter(pool: DbPool): Router {
   })
 
   // ── GET /body ────────────────────────────────────────────────────────────
+  // Also reads workout_sessions: freshness (weight/waist/session) is one concept,
+  // so daysSinceSession is served here instead of being cross-joined by consumers.
   router.get('/body', async (_req, res) => {
     try {
       const { rows } = await pool.query('SELECT * FROM workout_body_log ORDER BY date')
-      if (rows.length === 0) return res.json(SEED_BODY_LOG)
-      return res.json(rows.map(mapBodyEntry))
+      const entries: BodyEntryOut[] = rows.length === 0 ? SEED_BODY_LOG : rows.map(mapBodyEntry)
+      const lastSession = await latestSessionDate(pool)
+      return res.json(buildBodyResponse(entries, lastSession, todayLocal()))
     } catch (err) {
       console.warn('[workout] GET /body db unavailable, using seed:', err)
-      return res.json(SEED_BODY_LOG)
+      return res.json(buildBodyResponse(SEED_BODY_LOG, seedLastSessionDate(), todayLocal()))
     }
   })
 

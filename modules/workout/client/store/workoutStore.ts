@@ -1,5 +1,14 @@
 import { create } from 'zustand'
-import type { WorkoutSession, BodyEntry } from '../types/workout'
+import type { WorkoutSession, BodyEntry, BodyResponse } from '../types/workout'
+
+const EMPTY_BODY: BodyResponse = {
+  entries: [],
+  trend: [],
+  summary: {
+    count: 0, minWeight: null, maxWeight: null, totalDelta: null,
+    daysSinceWeight: null, daysSinceWaist: null, daysSinceSession: null,
+  },
+}
 
 const BASE = '/api/workout'
 
@@ -14,7 +23,7 @@ async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
 
 interface WorkoutState {
   sessions: WorkoutSession[]
-  bodyLog: BodyEntry[]
+  body: BodyResponse
 
   loading: boolean
   error: string | null
@@ -33,16 +42,16 @@ interface WorkoutState {
 }
 
 async function fetchAll() {
-  const [sessions, bodyLog] = await Promise.all([
+  const [sessions, body] = await Promise.all([
     apiFetch<WorkoutSession[]>(`${BASE}/sessions`),
-    apiFetch<BodyEntry[]>(`${BASE}/body`),
+    apiFetch<BodyResponse>(`${BASE}/body`),
   ])
-  return { sessions, bodyLog }
+  return { sessions, body }
 }
 
 export const useWorkoutStore = create<WorkoutState>()((set, get) => ({
   sessions: [],
-  bodyLog: [],
+  body: EMPTY_BODY,
 
   loading: false,
   error: null,
