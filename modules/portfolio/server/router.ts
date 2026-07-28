@@ -93,13 +93,22 @@ function assetValueEUR(row: AssetRow): number {
   return value * (FX_TO_EUR[currency] ?? 1);
 }
 
-async function getCurrentHoldings(pool: DbPool): Promise<AssetRow[]> {
+// Write path only — deliberately has NO seed fallback, unlike GET /holdings.
+// Seeds may appear in read responses, but no write path may touch them or
+// derive values from them.
+async function getRealHoldings(pool: DbPool): Promise<AssetRow[]> {
   const { rows } = await pool.query('SELECT * FROM assets ORDER BY type, id');
-  return rows.length > 0 ? rows : INITIAL_ASSETS as AssetRow[];
+  return rows;
 }
 
-async function upsertCurrentSnapshot(pool: DbPool): Promise<AssetRow> {
-  const holdings = await getCurrentHoldings(pool);
+// Returns null when there are no real assets, so the caller writes nothing.
+// A snapshot derived from the seed would persist as a row indistinguishable
+// from a legitimate one, and ensureCurrentMonthSnapshot early-returns once the
+// month exists — so it would never be corrected when real assets arrive.
+async function upsertCurrentSnapshot(pool: DbPool): Promise<AssetRow | null> {
+  const holdings = await getRealHoldings(pool);
+  if (holdings.length === 0) return null;
+
   const total = Math.round(holdings.reduce((sum, asset) => sum + assetValueEUR(asset), 0) * 100) / 100;
   const monthKey = currentMonthKey();
   const snapshotDate = currentDateKey();
@@ -366,6 +375,9 @@ export function createPortfolioRouter(pool: DbPool): Router {
   router.post('/history/snapshot', async (_req, res) => {
     try {
       const row = await upsertCurrentSnapshot(pool);
+      if (!row) {
+        return res.status(409).json({ error: 'No assets to snapshot' });
+      }
       return res.status(201).json(mapSnapshot(row));
     } catch (err) {
       console.warn('[portfolio] POST /history/snapshot db error:', err);
