@@ -59,11 +59,18 @@ function monthLabel(key: string): string {
   return new Date(year, month - 1, 1).toLocaleString('en-US', { month: 'long' });
 }
 
+// pg returns DATE columns as a JS Date at LOCAL midnight — toISOString() (UTC)
+// would shift it back a day in timezones ahead of UTC, so read local parts.
+// Duplicated in budget/workout/strategy — extract to @enclave/sdk when there are more helpers.
+function localDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function mapSnapshot(row: AssetRow) {
   const key = row['month_key'] as string;
   const rawDate = row['snapshot_date'];
   const snapshotDate = rawDate instanceof Date
-    ? rawDate.toISOString().slice(0, 10)
+    ? localDateStr(rawDate)
     : String(rawDate).slice(0, 10);
 
   return {
