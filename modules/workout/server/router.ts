@@ -284,20 +284,32 @@ export function createWorkoutRouter(pool: DbPool): Router {
     if (!body.date) return res.status(400).json({ error: 'date is required' })
     if (!(Number(body.weight) > 0)) return res.status(400).json({ error: 'weight must be greater than 0' })
 
+    // Circumferences COALESCE so a partial re-log (weight now, waist later) never
+    // nulls a value already recorded for that day. notes is the exception: it can
+    // be cleared, so an absent key keeps it but an empty one blanks it.
+    const notesProvided = 'notes' in body
+
     try {
       const { rows: [row] } = await pool.query(
         `INSERT INTO workout_body_log (id, date, weight, waist, chest, hip, bicep_l, bicep_r, thigh_l, thigh_r, notes)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          ON CONFLICT (date) DO UPDATE
-           SET weight=EXCLUDED.weight, waist=EXCLUDED.waist, chest=EXCLUDED.chest, hip=EXCLUDED.hip,
-               bicep_l=EXCLUDED.bicep_l, bicep_r=EXCLUDED.bicep_r, thigh_l=EXCLUDED.thigh_l, thigh_r=EXCLUDED.thigh_r,
-               notes=EXCLUDED.notes
+           SET weight  = EXCLUDED.weight,
+               waist   = COALESCE(EXCLUDED.waist,   workout_body_log.waist),
+               chest   = COALESCE(EXCLUDED.chest,   workout_body_log.chest),
+               hip     = COALESCE(EXCLUDED.hip,     workout_body_log.hip),
+               bicep_l = COALESCE(EXCLUDED.bicep_l, workout_body_log.bicep_l),
+               bicep_r = COALESCE(EXCLUDED.bicep_r, workout_body_log.bicep_r),
+               thigh_l = COALESCE(EXCLUDED.thigh_l, workout_body_log.thigh_l),
+               thigh_r = COALESCE(EXCLUDED.thigh_r, workout_body_log.thigh_r),
+               notes   = CASE WHEN $12 THEN EXCLUDED.notes ELSE workout_body_log.notes END
          RETURNING *`,
         [
           randomUUID(), body.date, body.weight,
           body.waist ?? null, body.chest ?? null, body.hip ?? null,
           body.bicepL ?? null, body.bicepR ?? null, body.thighL ?? null, body.thighR ?? null,
           body.notes?.trim() || null,
+          notesProvided,
         ],
       )
       return res.status(201).json(mapBodyEntry(row))
@@ -314,10 +326,22 @@ export function createWorkoutRouter(pool: DbPool): Router {
     if (!body.date) return res.status(400).json({ error: 'date is required' })
     if (!(Number(body.weight) > 0)) return res.status(400).json({ error: 'weight must be greater than 0' })
 
+    // Same rule as POST: an omitted circumference keeps the stored value.
+    const notesProvided = 'notes' in body
+
     try {
       const { rows } = await pool.query(
         `UPDATE workout_body_log
-         SET date=$2, weight=$3, waist=$4, chest=$5, hip=$6, bicep_l=$7, bicep_r=$8, thigh_l=$9, thigh_r=$10, notes=$11
+         SET date    = $2,
+             weight  = $3,
+             waist   = COALESCE($4,  waist),
+             chest   = COALESCE($5,  chest),
+             hip     = COALESCE($6,  hip),
+             bicep_l = COALESCE($7,  bicep_l),
+             bicep_r = COALESCE($8,  bicep_r),
+             thigh_l = COALESCE($9,  thigh_l),
+             thigh_r = COALESCE($10, thigh_r),
+             notes   = CASE WHEN $12 THEN $11 ELSE notes END
          WHERE id=$1
          RETURNING *`,
         [
@@ -325,6 +349,7 @@ export function createWorkoutRouter(pool: DbPool): Router {
           body.waist ?? null, body.chest ?? null, body.hip ?? null,
           body.bicepL ?? null, body.bicepR ?? null, body.thighL ?? null, body.thighR ?? null,
           body.notes?.trim() || null,
+          notesProvided,
         ],
       )
       if (rows.length === 0) return res.status(404).json({ error: 'Body entry not found' })
