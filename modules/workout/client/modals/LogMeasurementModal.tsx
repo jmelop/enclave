@@ -66,7 +66,9 @@ export default function LogMeasurementModal({ onClose, defaultDate, lastEntry, e
       bicepR: optM.bicepR === '' ? undefined : Number(optM.bicepR),
       thighL: optM.thighL === '' ? undefined : Number(optM.thighL),
       thighR: optM.thighR === '' ? undefined : Number(optM.thighR),
-      notes:  notes.trim() || undefined,
+      // Always send the key: the server reads an absent notes as "keep", so
+      // dropping it when empty would make clearing the field impossible.
+      notes:  notes.trim(),
     };
 
     setSaving(true);
