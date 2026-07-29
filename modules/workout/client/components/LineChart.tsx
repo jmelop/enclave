@@ -46,6 +46,26 @@ function scaleOf(values: number[]): Scale {
   };
 }
 
+// A line, not a dot: raw weight and the 7-day average share a colour and differ
+// only in weight and opacity, so a dot swatch makes them indistinguishable.
+// Opacity is floored — 25% on a 1.5px stroke is invisible at this size.
+function SeriesSwatch({ series: s, dim = false }: { series: ChartSeries; dim?: boolean }) {
+  return (
+    <svg
+      width="16" height="8" viewBox="0 0 16 8" aria-hidden
+      style={{ flexShrink: 0, opacity: dim ? 0.45 : 1 }}
+    >
+      <line
+        x1="1" y1="4" x2="15" y2="4"
+        stroke={s.color}
+        strokeWidth={Math.max(s.width ?? 2, 1.5)}
+        strokeOpacity={Math.max(s.opacity ?? 1, 0.5)}
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export function ChartLegend({
   series,
   hidden,
@@ -68,14 +88,7 @@ export function ChartLegend({
             className="flex items-center gap-1.5 bg-transparent border-0 cursor-pointer p-0 text-[11px]"
             style={{ opacity: off ? 0.4 : 1, color: 'var(--fg-3)' }}
           >
-            <span
-              className="inline-block rounded-full"
-              style={{
-                width: 8, height: 8,
-                background: s.color,
-                opacity: off ? 0.5 : (s.opacity ?? 1),
-              }}
-            />
+            <SeriesSwatch series={s} dim={off} />
             <span style={{ textDecoration: off ? 'line-through' : 'none' }}>
               {s.label}{s.unit ? ` · ${s.unit}` : ''}
             </span>
@@ -335,10 +348,7 @@ export default function LineChart({
           </div>
           {hoverRows.map(({ s, v }) => (
             <div key={s.key} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <span
-                className="inline-block rounded-full"
-                style={{ width: 6, height: 6, background: s.color }}
-              />
+              <SeriesSwatch series={s} />
               <span style={{ color: 'var(--fg-3)' }}>{s.label}</span>
               <span style={{ marginLeft: 'auto' }}>
                 {v}
