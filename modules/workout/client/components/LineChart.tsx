@@ -48,14 +48,24 @@ export default function LineChart({
   note,
   padding,
 }: LineChartProps) {
-  const [hover, setHover] = useState<number | null>(null);
+  // `left` is wrapper-relative px: the svg is letterboxed by preserveAspectRatio,
+  // so viewBox units and element pixels are not interchangeable.
+  const [hover, setHover] = useState<{ i: number; left: number } | null>(null);
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
   const wrapRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
 
   const visible = series.filter(s => !hidden[s.key]);
   const hasRight = visible.some(s => s.axis === 'right');
 
-  const P = padding || { top: 16, right: hasRight ? 52 : 16, bottom: 32, left: 48 };
+  // Extra headroom when units are shown so they clear the topmost tick label.
+  const showsUnits = visible.some(s => s.unit);
+  const P = padding || {
+    top: showsUnits ? 36 : 16,
+    right: hasRight ? 52 : 16,
+    bottom: 32,
+    left: 48,
+  };
   const W = 800;
   const H = height;
   const innerW = W - P.left - P.right;
@@ -128,17 +138,33 @@ export default function LineChart({
     );
   }
 
+  // Map through the SVG's own CTM instead of assuming the drawing fills the
+  // element: on a wide container it is scaled and centred, so element pixels
+  // are offset from viewBox units by the letterbox on each side.
   const onMove = (e: React.MouseEvent) => {
-    if (!wrapRef.current) return;
-    const rect = wrapRef.current.getBoundingClientRect();
-    const xRel = ((e.clientX - rect.left) / rect.width) * W;
+    const svg = svgRef.current;
+    const wrap = wrapRef.current;
+    if (!svg || !wrap) return;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return;
+
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const vx = pt.matrixTransform(ctm.inverse()).x;
+    if (vx < 0 || vx > W) { setHover(null); return; }
+
     let best = 0;
     let bestDist = Infinity;
     for (let i = 0; i < labels.length; i++) {
-      const d = Math.abs(xAt(i) - xRel);
+      const d = Math.abs(xAt(i) - vx);
       if (d < bestDist) { bestDist = d; best = i; }
     }
-    setHover(best);
+
+    pt.x = xAt(best);
+    pt.y = 0;
+    const screenX = pt.matrixTransform(ctm).x;
+    setHover({ i: best, left: screenX - wrap.getBoundingClientRect().left });
   };
 
   // One <path> per segment: the existing curve already uses per-segment control
@@ -177,11 +203,11 @@ export default function LineChart({
   };
 
   const hoverRows = hover == null ? [] : visible
-    .map(s => ({ s, v: s.values[hover] }))
+    .map(s => ({ s, v: s.values[hover.i] }))
     .filter((r): r is { s: ChartSeries; v: number } => r.v != null);
 
-  const hoverX = hover == null ? 0 : xAt(hover);
-  const hoverNote = hover == null || !note ? null : note(hover);
+  const hoverX = hover == null ? 0 : xAt(hover.i);
+  const hoverNote = hover == null || !note ? null : note(hover.i);
 
   return (
     <div>
@@ -191,7 +217,7 @@ export default function LineChart({
         onMouseMove={onMove}
         onMouseLeave={() => setHover(null)}
       >
-        <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ display: 'block' }}>
+        <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ display: 'block' }}>
           {leftScale && ticksOf(leftScale).map((t, i) => (
             <line
               key={`g-${i}`}
@@ -231,7 +257,7 @@ export default function LineChart({
           {/* Axis units — the two scales are independent and must not read as comparable */}
           {leftScale && leftSeries?.unit && (
             <text
-              x={P.left - 8} y={P.top - 4}
+              x={P.left - 8} y={P.top - 18}
               fontSize="10" textAnchor="end"
               fill={leftSeries.color} fontFamily="JetBrains Mono, monospace"
               fontWeight="600"
@@ -241,7 +267,7 @@ export default function LineChart({
           )}
           {rightScale && rightSeries?.unit && (
             <text
-              x={W - P.right + 8} y={P.top - 4}
+              x={W - P.right + 8} y={P.top - 18}
               fontSize="10" textAnchor="start"
               fill={rightSeries.color} fontFamily="JetBrains Mono, monospace"
               fontWeight="600"
@@ -285,7 +311,7 @@ export default function LineChart({
                   <circle
                     key={`${s.key}-d-${i}`}
                     cx={xAt(i)} cy={yAt(v, scale)}
-                    r={hover === i ? 4.5 : 3}
+                    r={hover?.i === i ? 4.5 : 3}
                     fill="var(--bg-1)" stroke={s.color} strokeWidth="2"
                     style={{ transition: 'r 120ms ease' }}
                   />
@@ -307,7 +333,7 @@ export default function LineChart({
           <div
             style={{
               position: 'absolute',
-              left: `${(hoverX / W) * 100}%`,
+              left: `${hover.left}px`,
               top: 8,
               transform: 'translateX(-50%)',
               background: 'var(--bg-2)',
@@ -324,7 +350,7 @@ export default function LineChart({
             }}
           >
             <div style={{ color: 'var(--fg-4)', fontSize: 10, marginBottom: 3 }}>
-              {labels[hover]}
+              {labels[hover.i]}
             </div>
             {hoverRows.map(({ s, v }) => (
               <div key={s.key} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>

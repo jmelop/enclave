@@ -241,8 +241,12 @@ export default function BodyPage() {
           <div className="flex items-center gap-3">
             <span className="font-mono text-[11px] text-fg-4">min {minW}</span>
             <span className="font-mono text-[11px] text-fg-4">max {maxW}</span>
+            {/* Neutral on purpose: during a bulk, losing weight is not "good".
+                The sign is the only signal — the app takes no view on direction. */}
             {delta != null && (
-              <Badge variant="success" className="font-mono">{delta} kg</Badge>
+              <Badge variant="default" className="font-mono">
+                {Number(delta) > 0 ? `+${delta}` : delta} kg
+              </Badge>
             )}
           </div>
         </div>
@@ -309,11 +313,8 @@ export default function BodyPage() {
               // reverse the index to line it up with this descending table.
               const raw = trend[arr.length - 1 - i]?.deltaWeight ?? null;
               const dw = raw == null ? null : raw.toFixed(1);
-              const dwColor =
-                raw == null ? 'var(--fg-4)'
-                : raw < 0 ? 'var(--success)'
-                : raw > 0 ? 'var(--warn)'
-                : 'var(--fg-4)';
+              // Same rule as the total badge: no colour semantics on direction.
+              const dwColor = raw == null ? 'var(--fg-4)' : 'var(--fg-2)';
               return (
                 <TableRow key={b.id}>
                   <TableCell className="font-mono text-fg-4">{formatDate(b.date)}</TableCell>
