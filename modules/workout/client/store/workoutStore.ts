@@ -1,11 +1,20 @@
 import { create } from 'zustand'
-import type { WorkoutSession, BodyEntry, BodyResponse } from '../types/workout'
+import type { BodyEntry, BodyResponse, SessionInput, SessionsResponse } from '../types/workout'
+
+const EMPTY_SESSIONS: SessionsResponse = {
+  sessions: [],
+  summary: {
+    sessionsThisMonth: 0, sessionsLastMonth: null,
+    volumeThisWeek: 0, volumeLastWeek: null,
+    currentStreak: 0, topSetThisWeek: null, mostFrequentExercise: null,
+  },
+}
 
 const EMPTY_BODY: BodyResponse = {
   entries: [],
   trend: [],
   summary: {
-    count: 0, minWeight: null, maxWeight: null, totalDelta: null,
+    count: 0, minWeight: null, maxWeight: null, totalDelta: null, spanDays: null,
     daysSinceWeight: null, daysSinceWaist: null, daysSinceSession: null,
   },
 }
@@ -22,7 +31,7 @@ async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 interface WorkoutState {
-  sessions: WorkoutSession[]
+  workouts: SessionsResponse
   body: BodyResponse
 
   loading: boolean
@@ -32,8 +41,8 @@ interface WorkoutState {
   hydrate: () => Promise<void>
   refetch: () => Promise<void>
 
-  addSession: (s: Omit<WorkoutSession, 'id'>) => Promise<void>
-  updateSession: (id: string, s: Omit<WorkoutSession, 'id'>) => Promise<void>
+  addSession: (s: SessionInput) => Promise<void>
+  updateSession: (id: string, s: SessionInput) => Promise<void>
   deleteSession: (id: string) => Promise<void>
 
   addBodyEntry: (e: Omit<BodyEntry, 'id'>) => Promise<void>
@@ -42,15 +51,15 @@ interface WorkoutState {
 }
 
 async function fetchAll() {
-  const [sessions, body] = await Promise.all([
-    apiFetch<WorkoutSession[]>(`${BASE}/sessions`),
+  const [workouts, body] = await Promise.all([
+    apiFetch<SessionsResponse>(`${BASE}/sessions`),
     apiFetch<BodyResponse>(`${BASE}/body`),
   ])
-  return { sessions, body }
+  return { workouts, body }
 }
 
 export const useWorkoutStore = create<WorkoutState>()((set, get) => ({
-  sessions: [],
+  workouts: EMPTY_SESSIONS,
   body: EMPTY_BODY,
 
   loading: false,

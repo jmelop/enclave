@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { randomUUID } from 'crypto'
 import type { DbPool, DbClient } from '@enclave/sdk'
 import { SEED_SESSIONS, SEED_BODY_LOG } from './seed'
-import { buildBodyResponse, type BodyRow } from './service'
+import { buildBodyResponse, buildSessionsResponse, type BodyRow } from './service'
 
 type Row = Record<string, unknown>
 
@@ -184,7 +184,9 @@ export function createWorkoutRouter(pool: DbPool): Router {
       const { rows: sessionRows } = await pool.query(
         'SELECT * FROM workout_sessions ORDER BY date DESC',
       )
-      if (sessionRows.length === 0) return res.json(SEED_SESSIONS)
+      if (sessionRows.length === 0) {
+        return res.json(buildSessionsResponse(SEED_SESSIONS, todayLocal()))
+      }
 
       const sessionIds = sessionRows.map(r => r['id'] as string)
       const { rows: exerciseRows } = await pool.query(
@@ -212,14 +214,13 @@ export function createWorkoutRouter(pool: DbPool): Router {
         exercisesBySession.set(sessId, arr)
       }
 
-      return res.json(
-        sessionRows.map(r =>
-          mapSession(r, exercisesBySession.get(r['id'] as string) ?? [], setsByExercise),
-        ),
+      const sessions = sessionRows.map(r =>
+        mapSession(r, exercisesBySession.get(r['id'] as string) ?? [], setsByExercise),
       )
+      return res.json(buildSessionsResponse(sessions, todayLocal()))
     } catch (err) {
       console.warn('[workout] GET /sessions db unavailable, using seed:', err)
-      return res.json(SEED_SESSIONS)
+      return res.json(buildSessionsResponse(SEED_SESSIONS, todayLocal()))
     }
   })
 

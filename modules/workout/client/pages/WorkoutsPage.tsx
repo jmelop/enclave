@@ -6,7 +6,7 @@ import LogWorkoutModal from '../modals/LogWorkoutModal';
 import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
 import { HeroActions } from '../components/HeroActions';
 import { useWorkoutStore } from '../store/workoutStore';
-import { workoutVolume, formatDate, dayOfWeek } from '../lib/workoutUtils';
+import { formatDate, dayOfWeek } from '../lib/workoutUtils';
 import type { WorkoutSession } from '../types/workout';
 
 // ── Per-row ··· menu (Edit / Delete) ─────────────────────────────────────────
@@ -123,7 +123,7 @@ function SessionRowMenu({ session, onEdit }: SessionRowMenuProps) {
 interface ModalState { editId?: string; initial?: WorkoutSession }
 
 export default function WorkoutsPage() {
-  const { sessions } = useWorkoutStore();
+  const { sessions } = useWorkoutStore(s => s.workouts);
   const [openId, setOpenId] = useState<string | null>(sessions[0]?.id ?? null);
   const [query, setQuery] = useState('');
   const [modal, setModal] = useState<ModalState | null>(null);
@@ -168,8 +168,8 @@ export default function WorkoutsPage() {
 
         {filtered.map((w, i) => {
           const open = openId === w.id;
-          const vol = workoutVolume(w);
-          const setCount = w.exercises.reduce((n, e) => n + e.sets.length, 0);
+          const vol = w.volume;
+          const setCount = w.setCount;
 
           return (
             <div
@@ -235,7 +235,7 @@ export default function WorkoutsPage() {
                     </TableHeader>
                     <TableBody>
                       {w.exercises.map((ex, ei) => {
-                        const exVol = ex.sets.reduce((n, s) => n + s.reps * s.kg, 0);
+                        const exVol = ex.volume;
                         const repsLine = ex.sets.map(s => s.reps).join(' · ');
                         const kgLine   = ex.sets.map(s => s.kg).join(' · ');
                         return (
