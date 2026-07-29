@@ -90,33 +90,27 @@ function mostFrequentExercise(sessions: WorkoutSession[]): { name: string; count
   return best;
 }
 
-function daysSince(iso: string): number {
-  const then = new Date(iso + 'T00:00:00');
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  return Math.round((now.getTime() - then.getTime()) / 86400000);
+// Date.UTC on the parsed parts: the difference never depends on the process TZ.
+function daysBetweenIso(from: string, to: string): number {
+  const at = (iso: string) =>
+    Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)));
+  return Math.round((at(to) - at(from)) / 86400000);
 }
 
 export default function OverviewPage() {
   const navigate = useNavigate();
-  const { sessions, bodyLog } = useWorkoutStore();
+  const sessions = useWorkoutStore(s => s.sessions);
+  const { entries, trend, summary } = useWorkoutStore(s => s.body);
 
   const m = useMemo(() => {
     const thisMonthKey = monthOffsetKey(0);
     const lastMonthKey = monthOffsetKey(-1);
     const lastMonthSessions = sessionsInMonthKey(sessions, lastMonthKey);
 
-    const first = bodyLog[0];
-    const latest = bodyLog[bodyLog.length - 1];
-    // A delta needs two distinct points; one entry is not a trend.
-    const weightDelta = first && latest && bodyLog.length > 1
-      ? latest.weight - first.weight
-      : null;
-    const spanDays = first && latest && bodyLog.length > 1
-      ? Math.round(
-          (new Date(latest.date + 'T00:00:00').getTime() -
-           new Date(first.date + 'T00:00:00').getTime()) / 86400000,
-        )
+    const first = entries[0];
+    const latest = entries[entries.length - 1];
+    const spanDays = first && latest && summary.count > 1
+      ? daysBetweenIso(first.date, latest.date)
       : null;
 
     const volWeek = volumeThisWeek(sessions);
@@ -127,20 +121,20 @@ export default function OverviewPage() {
       sessionsLastMonth: sessions.length > 0 ? lastMonthSessions.length : null,
       thisMonthKey,
       latestWeight: latest?.weight ?? null,
-      weightDelta,
+      weightDelta: summary.totalDelta,
       spanDays,
       streak: currentStreak(sessions),
       volWeek,
       volPrev,
       topSet: topSetThisWeek(sessions),
       frequent: mostFrequentExercise(sessionsInMonthKey(sessions, thisMonthKey)),
-      daysSinceLast: sessions[0] ? daysSince(sessions[0].date) : null,
+      daysSinceLast: summary.daysSinceSession,
     };
-  }, [sessions, bodyLog]);
+  }, [sessions, entries, summary]);
 
   const chartData = useMemo(() => (
-    bodyLog.slice(-8).map(b => ({ label: formatDate(b.date, { short: true }), y: b.weight }))
-  ), [bodyLog]);
+    trend.slice(-8).map(t => ({ label: formatDate(t.date, { short: true }), y: t.weight }))
+  ), [trend]);
 
   const recentSessions = sessions.slice(0, 4);
 

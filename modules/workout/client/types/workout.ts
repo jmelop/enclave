@@ -1,6 +1,30 @@
 export type WorkoutSet = { reps: number; kg: number }
 export type Exercise = { name: string; sets: WorkoutSet[] }
 export type WorkoutSession = { id: string; date: string; name: string; exercises: Exercise[] }
+// Derived by the server (workout/server/service.ts) — never recomputed here.
+export type TrendPoint = {
+  date: string
+  weight: number
+  ma7: number | null
+  ma7Partial: boolean
+  ma7Count: number
+  waist: number | null
+  deltaWeight: number | null
+}
+export type BodySummary = {
+  count: number
+  minWeight: number | null
+  maxWeight: number | null
+  totalDelta: number | null
+  daysSinceWeight: number | null
+  daysSinceWaist: number | null
+  daysSinceSession: number | null
+}
+export type BodyResponse = {
+  entries: BodyEntry[]
+  trend: TrendPoint[]
+  summary: BodySummary
+}
 export type BodyEntry = {
   id: string
   date: string

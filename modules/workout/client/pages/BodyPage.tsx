@@ -137,13 +137,13 @@ function EntryRowMenu({ entry, onEdit }: EntryRowMenuProps) {
 interface ModalState { editId?: string; initial?: BodyEntry }
 
 export default function BodyPage() {
-  const { bodyLog } = useWorkoutStore();
+  const { entries, trend, summary } = useWorkoutStore(s => s.body);
   const [modal, setModal] = useState<ModalState | null>(null);
-  const latest = bodyLog[bodyLog.length - 1];
+  const latest = entries[entries.length - 1];
 
   const chartData = useMemo(() => (
-    bodyLog.map(b => ({ label: formatDate(b.date, { short: true }), y: b.weight }))
-  ), [bodyLog]);
+    trend.map(t => ({ label: formatDate(t.date, { short: true }), y: t.weight }))
+  ), [trend]);
 
   if (!latest) {
     return (
@@ -173,15 +173,9 @@ export default function BodyPage() {
     );
   }
 
-  // bodyLog is non-empty here (the !latest branch returned above), but a delta
-  // needs two distinct points — with a single entry there is no trend to show.
-  const weights = bodyLog.map(b => b.weight);
-  const minW = Math.min(...weights);
-  const maxW = Math.max(...weights);
-  const first = bodyLog[0];
-  const delta = bodyLog.length > 1 && first
-    ? (latest.weight - first.weight).toFixed(1)
-    : null;
+  const { minWeight: minW, maxWeight: maxW, totalDelta, count } = summary;
+  const delta = totalDelta == null ? null : totalDelta.toFixed(1);
+  const first = entries[0];
 
   return (
     <>
@@ -194,8 +188,8 @@ export default function BodyPage() {
 
       <div className="flex items-center justify-between gap-4 mb-5">
         <p className="text-sm text-fg-3">
-          {bodyLog.length} {bodyLog.length === 1 ? 'entry' : 'entries'}
-          {first && bodyLog.length > 1 && ` · ${formatDate(first.date, { short: true })} → ${formatDate(latest.date, { short: true })}`}
+          {count} {count === 1 ? 'entry' : 'entries'}
+          {first && count > 1 && ` · ${formatDate(first.date, { short: true })} → ${formatDate(latest.date, { short: true })}`}
         </p>
       </div>
 
@@ -207,8 +201,8 @@ export default function BodyPage() {
           <div>
             <h3 className="text-[13px] font-semibold text-fg-2 m-0">Body weight</h3>
             <span className="text-[11px] text-fg-4">
-              {first && bodyLog.length > 1
-                ? `${formatDate(first.date, { short: true })} → ${formatDate(latest.date, { short: true })} · ${bodyLog.length} measurements`
+              {first && count > 1
+                ? `${formatDate(first.date, { short: true })} → ${formatDate(latest.date, { short: true })} · ${count} measurements`
                 : `${formatDate(latest.date, { short: true })} · 1 measurement`}
             </span>
           </div>
@@ -272,13 +266,15 @@ export default function BodyPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {[...bodyLog].reverse().map((b, i, arr) => {
-              const prev = arr[i + 1];
-              const dw = prev ? (b.weight - prev.weight).toFixed(1) : null;
+            {[...entries].reverse().map((b, i, arr) => {
+              // deltaWeight comes from the service; trend is date-ascending, so
+              // reverse the index to line it up with this descending table.
+              const raw = trend[arr.length - 1 - i]?.deltaWeight ?? null;
+              const dw = raw == null ? null : raw.toFixed(1);
               const dwColor =
-                dw == null ? 'var(--fg-4)'
-                : Number(dw) < 0 ? 'var(--success)'
-                : Number(dw) > 0 ? 'var(--warn)'
+                raw == null ? 'var(--fg-4)'
+                : raw < 0 ? 'var(--success)'
+                : raw > 0 ? 'var(--warn)'
                 : 'var(--fg-4)';
               return (
                 <TableRow key={b.id}>
@@ -289,7 +285,7 @@ export default function BodyPage() {
                     {b.waist != null && <span className="text-fg-4">cm</span>}
                   </TableCell>
                   <TableCell className="font-mono" style={{ color: dwColor }}>
-                    {dw == null ? '—' : Number(dw) > 0 ? `+${dw}` : dw}
+                    {dw == null ? '—' : raw! > 0 ? `+${dw}` : dw}
                   </TableCell>
                   <TableCell className="text-fg-4">{b.notes || '—'}</TableCell>
                   <TableCell>
