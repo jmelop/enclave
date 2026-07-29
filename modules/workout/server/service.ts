@@ -35,6 +35,25 @@ export interface BodyResponse<E> {
   summary: BodySummary
 }
 
+export interface SetRow { reps: number; kg: number }
+export interface ExerciseRow { name: string; sets: SetRow[] }
+export interface SessionRow { id: string; date: string; name: string; exercises: ExerciseRow[] }
+
+export interface SessionsSummary {
+  sessionsThisMonth: number
+  sessionsLastMonth: number | null
+  volumeThisWeek: number
+  volumeLastWeek: number | null
+  currentStreak: number
+  topSetThisWeek: { exercise: string; kg: number; reps: number } | null
+  mostFrequentExercise: { name: string; count: number } | null
+}
+
+export interface SessionsResponse<S> {
+  sessions: S[]
+  summary: SessionsSummary
+}
+
 const MA_WINDOW_DAYS = 7
 // Below this many entries the trend line is not drawn at all.
 const MA_MIN_ENTRIES = 4
@@ -57,6 +76,23 @@ export function daysBetween(from: string, to: string): number {
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100
+}
+
+// Monday-based week index. Day 0 (1970-01-01) was a Thursday, hence the +3.
+function weekIndex(iso: string): number {
+  return Math.floor((dayNumber(iso) + 3) / 7)
+}
+
+function monthKey(iso: string): string {
+  return iso.slice(0, 7)
+}
+
+function previousMonthKey(iso: string): string {
+  const y = Number(iso.slice(0, 4))
+  const m = Number(iso.slice(5, 7))
+  return m === 1
+    ? `${y - 1}-12`
+    : `${y}-${String(m - 1).padStart(2, '0')}`
 }
 
 // Rows must be date-ascending. Window is 7 calendar days, not 7 samples: with
@@ -111,6 +147,92 @@ export function freshness(
     daysSinceWeight: since(lastWeightDate),
     daysSinceWaist: since(lastWaistDate),
     daysSinceSession: since(lastSessionDate),
+  }
+}
+
+export function exerciseVolume(sets: SetRow[]): number {
+  return Math.round(sets.reduce((sum, s) => sum + (s.reps || 0) * (s.kg || 0), 0))
+}
+
+export function sessionVolume(exercises: ExerciseRow[]): number {
+  return Math.round(exercises.reduce((sum, ex) => sum + exerciseVolume(ex.sets), 0))
+}
+
+// Consecutive training weeks, counted back from the last week that HAS a session
+// so an untrained Monday doesn't break it. One full empty natural week does.
+export function currentStreak(sessions: SessionRow[], today: string): number {
+  const weeks = new Set(sessions.map(s => weekIndex(s.date)))
+  if (weeks.size === 0) return 0
+
+  const lastActive = Math.max(...weeks)
+  if (weekIndex(today) - lastActive >= 2) return 0
+
+  let streak = 0
+  for (let w = lastActive; weeks.has(w); w--) streak++
+  return streak
+}
+
+function topSetOfWeek(
+  sessions: SessionRow[],
+  week: number,
+): SessionsSummary['topSetThisWeek'] {
+  let best: SessionsSummary['topSetThisWeek'] = null
+  for (const s of sessions) {
+    if (weekIndex(s.date) !== week) continue
+    for (const ex of s.exercises)
+      for (const set of ex.sets)
+        if (!best || set.kg > best.kg) best = { exercise: ex.name, kg: set.kg, reps: set.reps }
+  }
+  return best
+}
+
+function mostFrequentOfMonth(
+  sessions: SessionRow[],
+  month: string,
+): SessionsSummary['mostFrequentExercise'] {
+  const counts = new Map<string, number>()
+  for (const s of sessions) {
+    if (monthKey(s.date) !== month) continue
+    for (const ex of s.exercises) counts.set(ex.name, (counts.get(ex.name) ?? 0) + 1)
+  }
+  let best: SessionsSummary['mostFrequentExercise'] = null
+  for (const [name, count] of counts) if (!best || count > best.count) best = { name, count }
+  return best
+}
+
+function volumeOfWeek(sessions: SessionRow[], week: number): number {
+  return sessions
+    .filter(s => weekIndex(s.date) === week)
+    .reduce((sum, s) => sum + sessionVolume(s.exercises), 0)
+}
+
+// Single assembly point for GET /sessions, shared by the DB and seed paths.
+export function buildSessionsResponse<S extends SessionRow>(
+  sessions: S[],
+  today: string,
+): SessionsResponse<S & { volume: number; exercises: (ExerciseRow & { volume: number })[] }> {
+  const thisWeek = weekIndex(today)
+  const thisMonth = monthKey(today)
+  const any = sessions.length > 0
+
+  return {
+    sessions: sessions.map(s => ({
+      ...s,
+      volume: sessionVolume(s.exercises),
+      exercises: s.exercises.map(ex => ({ ...ex, volume: exerciseVolume(ex.sets) })),
+    })),
+    summary: {
+      sessionsThisMonth: sessions.filter(s => monthKey(s.date) === thisMonth).length,
+      // null rather than 0 when there is nothing at all to compare against.
+      sessionsLastMonth: any
+        ? sessions.filter(s => monthKey(s.date) === previousMonthKey(today)).length
+        : null,
+      volumeThisWeek: volumeOfWeek(sessions, thisWeek),
+      volumeLastWeek: any ? volumeOfWeek(sessions, thisWeek - 1) : null,
+      currentStreak: currentStreak(sessions, today),
+      topSetThisWeek: topSetOfWeek(sessions, thisWeek),
+      mostFrequentExercise: mostFrequentOfMonth(sessions, thisMonth),
+    },
   }
 }
 

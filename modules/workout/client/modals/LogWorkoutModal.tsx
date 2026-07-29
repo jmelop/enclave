@@ -6,7 +6,7 @@ import {
 } from '@venator-ui/ui';
 import { Check, Trash2, Plus, Minus, X } from 'lucide-react';
 import { EXERCISE_LIBRARY } from '../lib/exercises';
-import type { WorkoutSession } from '../types/workout';
+import type { WorkoutSession, SessionInput } from '../types/workout';
 import { useWorkoutStore } from '../store/workoutStore';
 
 interface ExSet { reps: string; kg: string }
@@ -89,7 +89,7 @@ export default function LogWorkoutModal({ onClose, defaultDate, editId, initial 
     setErrors(errs);
     if (Object.keys(errs).length) return;
 
-    const payload: Omit<WorkoutSession, 'id'> = {
+    const payload: SessionInput = {
       date,
       name: name.trim(),
       exercises: valid.map(e => ({

@@ -5,11 +5,7 @@ import { Card, Separator } from '@venator-ui/ui';
 import { Dumbbell, Scale, Flame, TrendingUp, TrendingDown } from 'lucide-react';
 import LineChart from '../components/LineChart';
 import { useWorkoutStore } from '../store/workoutStore';
-import {
-  workoutVolume, formatDate, dayOfWeek,
-  currentStreak, sessionsThisMonth, volumeThisWeek,
-} from '../lib/workoutUtils';
-import type { WorkoutSession } from '../types/workout';
+import { formatDate, dayOfWeek } from '../lib/workoutUtils';
 
 const NO_DATA = 'no data yet';
 
@@ -27,98 +23,27 @@ function signedPct(current: number, previous: number | null): string | null {
   return `${diff > 0 ? '+' : ''}${diff}% vs last week`;
 }
 
-// ── Derived metrics ───────────────────────────────────────────────────────────
-// PR 3 migration candidates: these derive from raw store data on the client.
-// They move to workout/server/service.ts when the derived-metrics layer lands.
-
-function monthOffsetKey(offset: number): string {
-  const d = new Date();
-  d.setDate(1);
-  d.setMonth(d.getMonth() + offset);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
-
-function sessionsInMonthKey(sessions: WorkoutSession[], key: string): WorkoutSession[] {
-  return sessions.filter(w => w.date.slice(0, 7) === key);
-}
-
-function weekStartOffset(offset: number): Date {
-  const now = new Date();
-  const dow = now.getDay() === 0 ? 7 : now.getDay();
-  const start = new Date(now);
-  start.setDate(now.getDate() - dow + 1 + offset * 7);
-  start.setHours(0, 0, 0, 0);
-  return start;
-}
-
-function volumeLastWeek(sessions: WorkoutSession[]): number {
-  const start = weekStartOffset(-1);
-  const end = weekStartOffset(0);
-  return sessions
-    .filter(w => {
-      const d = new Date(w.date + 'T00:00:00');
-      return d >= start && d < end;
-    })
-    .reduce((sum, w) => sum + workoutVolume(w), 0);
-}
-
-interface TopSet { kg: number; reps: number; exercise: string }
-
-function topSetThisWeek(sessions: WorkoutSession[]): TopSet | null {
-  const start = weekStartOffset(0);
-  let best: TopSet | null = null;
-  for (const w of sessions) {
-    if (new Date(w.date + 'T00:00:00') < start) continue;
-    for (const ex of w.exercises) {
-      for (const s of ex.sets) {
-        if (!best || s.kg > best.kg) best = { kg: s.kg, reps: s.reps, exercise: ex.name };
-      }
-    }
-  }
-  return best;
-}
-
-function mostFrequentExercise(sessions: WorkoutSession[]): { name: string; count: number } | null {
-  const counts = new Map<string, number>();
-  for (const w of sessions)
-    for (const ex of w.exercises)
-      counts.set(ex.name, (counts.get(ex.name) ?? 0) + 1);
-
-  let best: { name: string; count: number } | null = null;
-  for (const [name, count] of counts)
-    if (!best || count > best.count) best = { name, count };
-  return best;
-}
-
 export default function OverviewPage() {
   const navigate = useNavigate();
-  const sessions = useWorkoutStore(s => s.sessions);
+  const { sessions, summary: w } = useWorkoutStore(s => s.workouts);
   const { entries, trend, summary } = useWorkoutStore(s => s.body);
 
   const m = useMemo(() => {
-    const thisMonthKey = monthOffsetKey(0);
-    const lastMonthKey = monthOffsetKey(-1);
-    const lastMonthSessions = sessionsInMonthKey(sessions, lastMonthKey);
-
     const latest = entries[entries.length - 1];
-    const volWeek = volumeThisWeek(sessions);
-    const volPrev = sessions.length > 0 ? volumeLastWeek(sessions) : null;
-
     return {
-      sessionsMonth: sessionsThisMonth(sessions),
-      sessionsLastMonth: sessions.length > 0 ? lastMonthSessions.length : null,
-      thisMonthKey,
+      sessionsMonth: w.sessionsThisMonth,
+      sessionsLastMonth: w.sessionsLastMonth,
       latestWeight: latest?.weight ?? null,
       weightDelta: summary.totalDelta,
       spanDays: summary.spanDays,
-      streak: currentStreak(sessions),
-      volWeek,
-      volPrev,
-      topSet: topSetThisWeek(sessions),
-      frequent: mostFrequentExercise(sessionsInMonthKey(sessions, thisMonthKey)),
+      streak: w.currentStreak,
+      volWeek: w.volumeThisWeek,
+      volPrev: w.volumeLastWeek,
+      topSet: w.topSetThisWeek,
+      frequent: w.mostFrequentExercise,
       daysSinceLast: summary.daysSinceSession,
     };
-  }, [sessions, entries, summary]);
+  }, [w, entries, summary]);
 
   const chartData = useMemo(() => (
     trend.slice(-8).map(t => ({ label: formatDate(t.date, { short: true }), y: t.weight }))
@@ -208,7 +133,6 @@ export default function OverviewPage() {
               </div>
             )}
             {recentSessions.map(w => {
-              const vol = workoutVolume(w);
               return (
                 <div
                   key={w.id}
@@ -227,7 +151,7 @@ export default function OverviewPage() {
                     className="inline-flex items-center font-mono font-medium text-[11px] px-2.5 py-0.5 rounded-full whitespace-nowrap ml-3"
                     style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}
                   >
-                    {vol.toLocaleString()} kg
+                    {w.volume.toLocaleString()} kg
                   </span>
                 </div>
               );
