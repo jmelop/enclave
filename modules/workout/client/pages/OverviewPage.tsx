@@ -90,13 +90,6 @@ function mostFrequentExercise(sessions: WorkoutSession[]): { name: string; count
   return best;
 }
 
-// Date.UTC on the parsed parts: the difference never depends on the process TZ.
-function daysBetweenIso(from: string, to: string): number {
-  const at = (iso: string) =>
-    Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)));
-  return Math.round((at(to) - at(from)) / 86400000);
-}
-
 export default function OverviewPage() {
   const navigate = useNavigate();
   const sessions = useWorkoutStore(s => s.sessions);
@@ -107,12 +100,7 @@ export default function OverviewPage() {
     const lastMonthKey = monthOffsetKey(-1);
     const lastMonthSessions = sessionsInMonthKey(sessions, lastMonthKey);
 
-    const first = entries[0];
     const latest = entries[entries.length - 1];
-    const spanDays = first && latest && summary.count > 1
-      ? daysBetweenIso(first.date, latest.date)
-      : null;
-
     const volWeek = volumeThisWeek(sessions);
     const volPrev = sessions.length > 0 ? volumeLastWeek(sessions) : null;
 
@@ -122,7 +110,7 @@ export default function OverviewPage() {
       thisMonthKey,
       latestWeight: latest?.weight ?? null,
       weightDelta: summary.totalDelta,
-      spanDays,
+      spanDays: summary.spanDays,
       streak: currentStreak(sessions),
       volWeek,
       volPrev,

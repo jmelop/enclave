@@ -5,7 +5,7 @@ const EMPTY_BODY: BodyResponse = {
   entries: [],
   trend: [],
   summary: {
-    count: 0, minWeight: null, maxWeight: null, totalDelta: null,
+    count: 0, minWeight: null, maxWeight: null, totalDelta: null, spanDays: null,
     daysSinceWeight: null, daysSinceWaist: null, daysSinceSession: null,
   },
 }

@@ -23,6 +23,7 @@ export interface BodySummary {
   minWeight: number | null
   maxWeight: number | null
   totalDelta: number | null
+  spanDays: number | null
   daysSinceWeight: number | null
   daysSinceWaist: number | null
   daysSinceSession: number | null
@@ -136,6 +137,8 @@ export function buildBodyResponse<E extends BodyRow>(
   const first = entries[0]
   const last = entries[entries.length - 1]
   const lastWaist = [...entries].reverse().find(e => e.waist != null)
+  // A span, like a delta, needs two distinct points.
+  const spanned = first && last && entries.length > 1
 
   return {
     entries,
@@ -144,8 +147,8 @@ export function buildBodyResponse<E extends BodyRow>(
       count: entries.length,
       minWeight: weights.length > 0 ? Math.min(...weights) : null,
       maxWeight: weights.length > 0 ? Math.max(...weights) : null,
-      // A delta needs two distinct points; one entry is not a trend.
-      totalDelta: first && last && entries.length > 1 ? round2(last.weight - first.weight) : null,
+      totalDelta: spanned ? round2(last.weight - first.weight) : null,
+      spanDays: spanned ? daysBetween(first.date, last.date) : null,
       ...freshness(today, last?.date ?? null, lastWaist?.date ?? null, lastSessionDate),
     },
   }
