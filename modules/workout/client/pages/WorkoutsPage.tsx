@@ -169,7 +169,7 @@ export default function WorkoutsPage() {
         {filtered.map((w, i) => {
           const open = openId === w.id;
           const vol = w.volume;
-          const setCount = w.exercises.reduce((n, e) => n + e.sets.length, 0);
+          const setCount = w.setCount;
 
           return (
             <div

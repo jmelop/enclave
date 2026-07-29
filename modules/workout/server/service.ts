@@ -176,12 +176,15 @@ function topSetOfWeek(
   sessions: SessionRow[],
   week: number,
 ): SessionsSummary['topSetThisWeek'] {
+  // Heaviest kg, then most reps at that kg. 125x5 and 125x3 are not the same top
+  // set — e1RM ranks them apart, and both must point at the same one.
   let best: SessionsSummary['topSetThisWeek'] = null
   for (const s of sessions) {
     if (weekIndex(s.date) !== week) continue
     for (const ex of s.exercises)
       for (const set of ex.sets)
-        if (!best || set.kg > best.kg) best = { exercise: ex.name, kg: set.kg, reps: set.reps }
+        if (!best || set.kg > best.kg || (set.kg === best.kg && set.reps > best.reps))
+          best = { exercise: ex.name, kg: set.kg, reps: set.reps }
   }
   return best
 }
@@ -210,7 +213,9 @@ function volumeOfWeek(sessions: SessionRow[], week: number): number {
 export function buildSessionsResponse<S extends SessionRow>(
   sessions: S[],
   today: string,
-): SessionsResponse<S & { volume: number; exercises: (ExerciseRow & { volume: number })[] }> {
+): SessionsResponse<
+  S & { volume: number; setCount: number; exercises: (ExerciseRow & { volume: number })[] }
+> {
   const thisWeek = weekIndex(today)
   const thisMonth = monthKey(today)
   const any = sessions.length > 0
@@ -219,6 +224,7 @@ export function buildSessionsResponse<S extends SessionRow>(
     sessions: sessions.map(s => ({
       ...s,
       volume: sessionVolume(s.exercises),
+      setCount: s.exercises.reduce((n, ex) => n + ex.sets.length, 0),
       exercises: s.exercises.map(ex => ({ ...ex, volume: exerciseVolume(ex.sets) })),
     })),
     summary: {

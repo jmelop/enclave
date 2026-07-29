@@ -6,6 +6,7 @@ export type WorkoutSession = {
   name: string
   exercises: Exercise[]
   volume: number
+  setCount: number
 }
 
 // Write shape: volume is server-derived, so it is never sent.

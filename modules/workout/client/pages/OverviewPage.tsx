@@ -144,7 +144,7 @@ export default function OverviewPage() {
                     </span>
                     <span className="text-[13px] text-fg font-medium">{w.name}</span>
                     <span className="text-[11px] text-fg-4">
-                      {w.exercises.length} exercises · {w.exercises.reduce((n, e) => n + e.sets.length, 0)} sets
+                      {w.exercises.length} exercises · {w.setCount} sets
                     </span>
                   </div>
                   <span
