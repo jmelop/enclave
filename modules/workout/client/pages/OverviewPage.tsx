@@ -53,12 +53,12 @@ export default function OverviewPage() {
       labels: recent.map(t => formatDate(t.date, { short: true })),
       series: [
         {
-          key: 'raw', label: 'weight (raw)', unit: 'kg', axis: 'left' as const,
+          key: 'raw', label: 'weight (raw)', unit: 'kg',
           values: recent.map(t => t.weight),
           color: 'var(--accent)', opacity: 0.25, width: 1.5, dots: false,
         },
         {
-          key: 'ma7', label: '7-day average', unit: 'kg', axis: 'left' as const,
+          key: 'ma7', label: '7-day average', unit: 'kg',
           values: recent.map(t => t.ma7),
           color: 'var(--accent)', width: 2.5, gaps: 'break' as const,
           dashed: recent.map(t => t.ma7Partial),

@@ -24,6 +24,8 @@ export interface BodySummary {
   maxWeight: number | null
   totalDelta: number | null
   spanDays: number | null
+  /** cm of waist per kg of bodyweight gained. Low = the gain is mostly muscle. */
+  waistPerKg: number | null
   daysSinceWeight: number | null
   daysSinceWaist: number | null
   daysSinceSession: number | null
@@ -242,6 +244,21 @@ export function buildSessionsResponse<S extends SessionRow>(
   }
 }
 
+// cm of waist per kg of bodyweight. Needs two weights and two waist readings,
+// and a non-zero weight change to divide by.
+function waistPerKg(
+  first: BodyRow | undefined,
+  last: BodyRow | undefined,
+  firstWaist: BodyRow | undefined,
+  lastWaist: BodyRow | undefined,
+): number | null {
+  if (!first || !last || !firstWaist || !lastWaist) return null
+  if (firstWaist === lastWaist) return null
+  const dWeight = last.weight - first.weight
+  if (dWeight === 0) return null
+  return round2(((lastWaist.waist as number) - (firstWaist.waist as number)) / dWeight)
+}
+
 // Single assembly point for GET /body, shared by the DB and seed paths.
 export function buildBodyResponse<E extends BodyRow>(
   entries: E[],
@@ -264,6 +281,7 @@ export function buildBodyResponse<E extends BodyRow>(
   const weights = entries.map(e => e.weight)
   const first = entries[0]
   const last = entries[entries.length - 1]
+  const firstWaist = entries.find(e => e.waist != null)
   const lastWaist = [...entries].reverse().find(e => e.waist != null)
   // A span, like a delta, needs two distinct points.
   const spanned = first && last && entries.length > 1
@@ -277,6 +295,7 @@ export function buildBodyResponse<E extends BodyRow>(
       maxWeight: weights.length > 0 ? Math.max(...weights) : null,
       totalDelta: spanned ? round2(last.weight - first.weight) : null,
       spanDays: spanned ? daysBetween(first.date, last.date) : null,
+      waistPerKg: waistPerKg(first, last, firstWaist, lastWaist),
       ...freshness(today, last?.date ?? null, lastWaist?.date ?? null, lastSessionDate),
     },
   }

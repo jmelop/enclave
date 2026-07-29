@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { StatCard } from '@venator-ui/patterns';
 import { Button, Separator, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, useToast } from '@venator-ui/ui';
 import { Plus } from 'lucide-react';
-import LineChart from '../components/LineChart';
+import LineChart, { ChartLegend } from '../components/LineChart';
 import LogMeasurementModal from '../modals/LogMeasurementModal';
 import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
 import { FreshnessChips } from '../components/FreshnessChips';
@@ -140,37 +140,48 @@ interface ModalState { editId?: string; initial?: BodyEntry }
 export default function BodyPage() {
   const { entries, trend, summary } = useWorkoutStore(s => s.body);
   const [modal, setModal] = useState<ModalState | null>(null);
+  // Hover and legend live here so both stacked panels share one cursor.
+  const [hover, setHover] = useState<number | null>(null);
+  const [hidden, setHidden] = useState<Record<string, boolean>>({});
   const latest = entries[entries.length - 1];
 
-  const chart = useMemo(() => ({
-    labels: trend.map(t => formatDate(t.date, { short: true })),
-    series: [
+  // Two stacked panels sharing an x-domain, not a dual Y axis: independent
+  // autoscaling made the two lines look correlated whatever the real magnitudes.
+  const chart = useMemo(() => {
+    const labels = trend.map(t => formatDate(t.date, { short: true }));
+    const weight = [
       {
-        key: 'raw', label: 'weight (raw)', unit: 'kg', axis: 'left' as const,
+        key: 'raw', label: 'weight (raw)', unit: 'kg',
         values: trend.map(t => t.weight),
         color: 'var(--accent)', opacity: 0.25, width: 1.5, dots: false,
       },
       {
-        key: 'ma7', label: '7-day average', unit: 'kg', axis: 'left' as const,
+        key: 'ma7', label: '7-day average', unit: 'kg',
         // null below the 4-entry gate: the line is absent, not interpolated.
         values: trend.map(t => t.ma7),
         color: 'var(--accent)', width: 2.5, gaps: 'break' as const,
         dashed: trend.map(t => t.ma7Partial),
       },
+    ];
+    const waist = [
       {
-        key: 'waist', label: 'waist', unit: 'cm', axis: 'right' as const,
+        key: 'waist', label: 'waist', unit: 'cm',
         // bridge: days without a waist reading join across, never drop to zero.
         values: trend.map(t => t.waist),
         color: 'var(--fg-3)', width: 2, gaps: 'bridge' as const,
       },
-    ],
-  }), [trend]);
+    ];
+    return { labels, weight, waist, all: [...weight, ...waist] };
+  }, [trend]);
 
   const chartNote = (i: number) => {
     const t = trend[i];
     if (!t || t.ma7 == null) return null;
     return `average of ${t.ma7Count} ${t.ma7Count === 1 ? 'reading' : 'readings'}${t.ma7Partial ? ' · partial' : ''}`;
   };
+
+  const visible = (s: { key: string }) => !hidden[s.key];
+  const toggleSeries = (key: string) => setHidden(h => ({ ...h, [key]: !h[key] }));
 
   if (!latest) {
     return (
@@ -248,16 +259,35 @@ export default function BodyPage() {
                 {Number(delta) > 0 ? `+${delta}` : delta} kg
               </Badge>
             )}
+            {summary.waistPerKg != null && (
+              <Badge variant="default" className="font-mono" title="Waist change per kg of bodyweight change">
+                {summary.waistPerKg > 0 ? `+${summary.waistPerKg.toFixed(1)}` : summary.waistPerKg.toFixed(1)} cm/kg
+              </Badge>
+            )}
           </div>
         </div>
-        <div className="p-[18px]">
+        <div className="px-[18px] pt-[18px] pb-2">
           <LineChart
             labels={chart.labels}
-            series={chart.series}
+            series={chart.weight.filter(visible)}
             height={280}
-            legend
+            showXLabels={false}
             note={chartNote}
+            hoverIndex={hover}
+            onHoverChange={setHover}
+            tooltipSeries={chart.all.filter(visible)}
           />
+        </div>
+        <div className="px-[18px] pb-[18px]">
+          <LineChart
+            labels={chart.labels}
+            series={chart.waist.filter(visible)}
+            height={120}
+            hoverIndex={hover}
+            onHoverChange={setHover}
+            tooltip={false}
+          />
+          <ChartLegend series={chart.all} hidden={hidden} onToggle={toggleSeries} />
         </div>
       </div>
 
