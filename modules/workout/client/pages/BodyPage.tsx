@@ -6,6 +6,7 @@ import { Plus } from 'lucide-react';
 import LineChart from '../components/LineChart';
 import LogMeasurementModal from '../modals/LogMeasurementModal';
 import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
+import { FreshnessChips } from '../components/FreshnessChips';
 import { HeroActions } from '../components/HeroActions';
 import { useWorkoutStore } from '../store/workoutStore';
 import { formatDate, todayIso } from '../lib/workoutUtils';
@@ -141,9 +142,35 @@ export default function BodyPage() {
   const [modal, setModal] = useState<ModalState | null>(null);
   const latest = entries[entries.length - 1];
 
-  const chartData = useMemo(() => (
-    trend.map(t => ({ label: formatDate(t.date, { short: true }), y: t.weight }))
-  ), [trend]);
+  const chart = useMemo(() => ({
+    labels: trend.map(t => formatDate(t.date, { short: true })),
+    series: [
+      {
+        key: 'raw', label: 'weight (raw)', unit: 'kg', axis: 'left' as const,
+        values: trend.map(t => t.weight),
+        color: 'var(--accent)', opacity: 0.25, width: 1.5, dots: false,
+      },
+      {
+        key: 'ma7', label: '7-day average', unit: 'kg', axis: 'left' as const,
+        // null below the 4-entry gate: the line is absent, not interpolated.
+        values: trend.map(t => t.ma7),
+        color: 'var(--accent)', width: 2.5, gaps: 'break' as const,
+        dashed: trend.map(t => t.ma7Partial),
+      },
+      {
+        key: 'waist', label: 'waist', unit: 'cm', axis: 'right' as const,
+        // bridge: days without a waist reading join across, never drop to zero.
+        values: trend.map(t => t.waist),
+        color: 'var(--fg-3)', width: 2, gaps: 'bridge' as const,
+      },
+    ],
+  }), [trend]);
+
+  const chartNote = (i: number) => {
+    const t = trend[i];
+    if (!t || t.ma7 == null) return null;
+    return `average of ${t.ma7Count} ${t.ma7Count === 1 ? 'reading' : 'readings'}${t.ma7Partial ? ' · partial' : ''}`;
+  };
 
   if (!latest) {
     return (
@@ -167,6 +194,7 @@ export default function BodyPage() {
             editId={modal.editId}
             initial={modal.initial}
             defaultDate={todayIso()}
+            daysSinceWaist={summary.daysSinceWaist}
           />
         )}
       </>
@@ -191,6 +219,10 @@ export default function BodyPage() {
           {count} {count === 1 ? 'entry' : 'entries'}
           {first && count > 1 && ` · ${formatDate(first.date, { short: true })} → ${formatDate(latest.date, { short: true })}`}
         </p>
+        <FreshnessChips
+          daysSinceWeight={summary.daysSinceWeight}
+          daysSinceWaist={summary.daysSinceWaist}
+        />
       </div>
 
       {/* Weight chart */}
@@ -199,7 +231,7 @@ export default function BodyPage() {
       >
         <div className="flex items-center justify-between px-[18px] py-3.5 border-b border-[var(--border-subtle)]">
           <div>
-            <h3 className="text-[13px] font-semibold text-fg-2 m-0">Body weight</h3>
+            <h3 className="text-[13px] font-semibold text-fg-2 m-0">Body composition</h3>
             <span className="text-[11px] text-fg-4">
               {first && count > 1
                 ? `${formatDate(first.date, { short: true })} → ${formatDate(latest.date, { short: true })} · ${count} measurements`
@@ -215,7 +247,13 @@ export default function BodyPage() {
           </div>
         </div>
         <div className="p-[18px]">
-          <LineChart data={chartData} height={280} unit="kg" />
+          <LineChart
+            labels={chart.labels}
+            series={chart.series}
+            height={280}
+            legend
+            note={chartNote}
+          />
         </div>
       </div>
 
@@ -305,6 +343,7 @@ export default function BodyPage() {
           initial={modal.initial}
           defaultDate={todayIso()}
           lastEntry={latest}
+          daysSinceWaist={summary.daysSinceWaist}
         />
       )}
     </>

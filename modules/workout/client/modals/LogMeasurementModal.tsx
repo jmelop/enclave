@@ -15,7 +15,10 @@ interface Props {
   lastEntry?: BodyEntry;
   editId?: string;
   initial?: BodyEntry;
+  daysSinceWaist?: number | null;
 }
+
+const WAIST_STALE_DAYS = 7;
 
 type OptMeasurements = {
   chest: string; hip: string;
@@ -23,7 +26,7 @@ type OptMeasurements = {
   thighL: string; thighR: string;
 };
 
-export default function LogMeasurementModal({ onClose, defaultDate, lastEntry, editId, initial }: Props) {
+export default function LogMeasurementModal({ onClose, defaultDate, lastEntry, editId, initial, daysSinceWaist }: Props) {
   const { toast } = useToast();
   const addBodyEntry = useWorkoutStore(s => s.addBodyEntry);
   const updateBodyEntry = useWorkoutStore(s => s.updateBodyEntry);
@@ -48,6 +51,9 @@ export default function LogMeasurementModal({ onClose, defaultDate, lastEntry, e
 
   const setOpt = (key: keyof OptMeasurements, val: string) =>
     setOptM(prev => ({ ...prev, [key]: val }));
+
+  // Stale waist? Land the cursor there. Editing an existing row focuses neither.
+  const focusWaist = !isEdit && (daysSinceWaist == null || daysSinceWaist > WAIST_STALE_DAYS);
 
   const submit = async () => {
     const errs: Record<string, boolean> = {};
@@ -132,6 +138,7 @@ export default function LogMeasurementModal({ onClose, defaultDate, lastEntry, e
               placeholder="80.0"
               error={errors.weight}
               className="wm-mono"
+              autoFocus={!isEdit && !focusWaist}
             />
           </div>
           <div className="flex flex-col gap-1.5 flex-1">
@@ -144,6 +151,7 @@ export default function LogMeasurementModal({ onClose, defaultDate, lastEntry, e
               onChange={e => setWaist(e.target.value)}
               placeholder="—"
               className="wm-mono"
+              autoFocus={focusWaist}
             />
           </div>
         </div>

@@ -1,100 +1,131 @@
 import { useState, useRef } from 'react';
 
-export interface ChartPoint {
+export interface ChartSeries {
+  key: string;
   label: string;
-  y: number;
+  /** Aligned to `labels`; null means no reading that day. */
+  values: (number | null)[];
+  axis?: 'left' | 'right';
+  color: string;
+  opacity?: number;
+  width?: number;
+  /** 'break' leaves a hole (no trend to draw); 'bridge' joins across it. */
+  gaps?: 'break' | 'bridge';
+  /** Per point: the segment ending here is drawn dashed. */
+  dashed?: boolean[];
+  dots?: boolean;
+  unit?: string;
 }
 
 interface LineChartProps {
-  data: ChartPoint[];
+  labels: string[];
+  series: ChartSeries[];
   height?: number;
-  yKey?: keyof ChartPoint;
-  xKey?: keyof ChartPoint;
-  unit?: string;
-  ySpan?: 'auto' | [number, number];
+  /** Renders a clickable legend that toggles each series. */
+  legend?: boolean;
+  /** Extra tooltip line for the hovered index. */
+  note?: (index: number) => string | null;
   padding?: { top: number; right: number; bottom: number; left: number };
 }
 
+interface Scale { min: number; max: number }
+
+function scaleOf(values: number[]): Scale {
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  return {
+    min: Math.floor((min - range * 0.18) * 2) / 2,
+    max: Math.ceil((max + range * 0.18) * 2) / 2,
+  };
+}
+
 export default function LineChart({
-  data,
+  labels,
+  series,
   height = 260,
-  unit = 'kg',
-  ySpan = 'auto',
+  legend = false,
+  note,
   padding,
 }: LineChartProps) {
   const [hover, setHover] = useState<number | null>(null);
+  const [hidden, setHidden] = useState<Record<string, boolean>>({});
   const wrapRef = useRef<HTMLDivElement>(null);
 
-  const P = padding || { top: 16, right: 16, bottom: 32, left: 44 };
+  const visible = series.filter(s => !hidden[s.key]);
+  const hasRight = visible.some(s => s.axis === 'right');
+
+  const P = padding || { top: 16, right: hasRight ? 52 : 16, bottom: 32, left: 48 };
   const W = 800;
   const H = height;
   const innerW = W - P.left - P.right;
   const innerH = H - P.top - P.bottom;
 
-  if (data.length === 0) {
+  const axisValues = (axis: 'left' | 'right') =>
+    visible
+      .filter(s => (s.axis ?? 'left') === axis)
+      .flatMap(s => s.values.filter((v): v is number => v != null));
+
+  const leftVals = axisValues('left');
+  const rightVals = axisValues('right');
+  const leftScale = leftVals.length > 0 ? scaleOf(leftVals) : null;
+  const rightScale = rightVals.length > 0 ? scaleOf(rightVals) : null;
+
+  const leftSeries = visible.find(s => (s.axis ?? 'left') === 'left');
+  const rightSeries = visible.find(s => s.axis === 'right');
+
+  const xAt = (i: number) => P.left + (innerW * i) / Math.max(1, labels.length - 1);
+  const yAt = (v: number, scale: Scale) =>
+    P.top + innerH - ((v - scale.min) / (scale.max - scale.min)) * innerH;
+
+  const scaleFor = (s: ChartSeries) => ((s.axis ?? 'left') === 'right' ? rightScale : leftScale);
+
+  const empty = labels.length === 0 || visible.length === 0 || (!leftScale && !rightScale);
+
+  const legendRow = legend && (
+    <div className="flex items-center justify-center gap-4 flex-wrap pt-2">
+      {series.map(s => {
+        const off = !!hidden[s.key];
+        return (
+          <button
+            key={s.key}
+            type="button"
+            onClick={() => setHidden(h => ({ ...h, [s.key]: !h[s.key] }))}
+            aria-pressed={!off}
+            className="flex items-center gap-1.5 bg-transparent border-0 cursor-pointer p-0 text-[11px]"
+            style={{ opacity: off ? 0.4 : 1, color: 'var(--fg-3)' }}
+          >
+            <span
+              className="inline-block rounded-full"
+              style={{
+                width: 8, height: 8,
+                background: s.color,
+                opacity: off ? 0.5 : (s.opacity ?? 1),
+              }}
+            />
+            <span style={{ textDecoration: off ? 'line-through' : 'none' }}>
+              {s.label}{s.unit ? ` · ${s.unit}` : ''}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  if (empty) {
     return (
-      <div
-        style={{
-          display: 'grid',
-          placeItems: 'center',
-          height: H,
-          color: 'var(--fg-4)',
-          fontFamily: 'JetBrains Mono, monospace',
-          fontSize: 11,
-        }}
-      >
-        no data yet
+      <div>
+        <div
+          style={{
+            display: 'grid', placeItems: 'center', height: H,
+            color: 'var(--fg-4)', fontFamily: 'JetBrains Mono, monospace', fontSize: 11,
+          }}
+        >
+          no data yet
+        </div>
+        {legendRow}
       </div>
     );
-  }
-
-  const ys = data.map(d => d.y);
-  let yMin: number, yMax: number;
-  if (ySpan === 'auto') {
-    const min = Math.min(...ys);
-    const max = Math.max(...ys);
-    const range = max - min || 1;
-    yMin = Math.floor((min - range * 0.18) * 2) / 2;
-    yMax = Math.ceil((max + range * 0.18) * 2) / 2;
-  } else {
-    [yMin, yMax] = ySpan;
-  }
-
-  const xScale = (i: number) => P.left + (innerW * i) / Math.max(1, data.length - 1);
-  const yScale = (v: number) => P.top + innerH - ((v - yMin) / (yMax - yMin)) * innerH;
-
-  const points = data.map((d, i) => ({
-    x: xScale(i),
-    y: yScale(d.y),
-    v: d.y,
-    label: d.label,
-  }));
-
-  const buildPath = (): string => {
-    if (points.length === 0) return '';
-    let d = `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
-    for (let i = 1; i < points.length; i++) {
-      const prev = points[i - 1];
-      const curr = points[i];
-      const cpx = (prev.x + curr.x) / 2;
-      d += ` C ${cpx.toFixed(2)} ${prev.y.toFixed(2)}, ${cpx.toFixed(2)} ${curr.y.toFixed(2)}, ${curr.x.toFixed(2)} ${curr.y.toFixed(2)}`;
-    }
-    return d;
-  };
-
-  const areaPath = (): string => {
-    if (points.length === 0) return '';
-    let d = buildPath();
-    d += ` L ${points[points.length - 1].x.toFixed(2)} ${(P.top + innerH).toFixed(2)}`;
-    d += ` L ${points[0].x.toFixed(2)} ${(P.top + innerH).toFixed(2)} Z`;
-    return d;
-  };
-
-  const tickCount = 4;
-  const yTicks: { v: number; y: number }[] = [];
-  for (let i = 0; i <= tickCount; i++) {
-    const v = yMin + ((yMax - yMin) * i) / tickCount;
-    yTicks.push({ v: Math.round(v * 10) / 10, y: yScale(v) });
   }
 
   const onMove = (e: React.MouseEvent) => {
@@ -103,113 +134,218 @@ export default function LineChart({
     const xRel = ((e.clientX - rect.left) / rect.width) * W;
     let best = 0;
     let bestDist = Infinity;
-    for (let i = 0; i < points.length; i++) {
-      const dist = Math.abs(points[i].x - xRel);
-      if (dist < bestDist) { bestDist = dist; best = i; }
+    for (let i = 0; i < labels.length; i++) {
+      const d = Math.abs(xAt(i) - xRel);
+      if (d < bestDist) { bestDist = d; best = i; }
     }
     setHover(best);
   };
 
+  // One <path> per segment: the existing curve already uses per-segment control
+  // points, so this renders identically while allowing per-segment dashing.
+  const segmentsOf = (s: ChartSeries) => {
+    const scale = scaleFor(s);
+    if (!scale) return [];
+    const pts: { i: number; x: number; y: number }[] = [];
+    for (let i = 0; i < s.values.length; i++) {
+      const v = s.values[i];
+      if (v == null) continue;
+      pts.push({ i, x: xAt(i), y: yAt(v, scale) });
+    }
+    const out: { d: string; dashed: boolean }[] = [];
+    for (let k = 1; k < pts.length; k++) {
+      const a = pts[k - 1]!;
+      const b = pts[k]!;
+      // 'break' only joins points that are adjacent in the source array.
+      if ((s.gaps ?? 'break') === 'break' && b.i !== a.i + 1) continue;
+      const cpx = (a.x + b.x) / 2;
+      out.push({
+        d: `M ${a.x.toFixed(2)} ${a.y.toFixed(2)} C ${cpx.toFixed(2)} ${a.y.toFixed(2)}, ${cpx.toFixed(2)} ${b.y.toFixed(2)}, ${b.x.toFixed(2)} ${b.y.toFixed(2)}`,
+        dashed: !!s.dashed?.[b.i],
+      });
+    }
+    return out;
+  };
+
+  const ticksOf = (scale: Scale) => {
+    const out: { v: number; y: number }[] = [];
+    for (let i = 0; i <= 4; i++) {
+      const v = scale.min + ((scale.max - scale.min) * i) / 4;
+      out.push({ v: Math.round(v * 10) / 10, y: yAt(v, scale) });
+    }
+    return out;
+  };
+
+  const hoverRows = hover == null ? [] : visible
+    .map(s => ({ s, v: s.values[hover] }))
+    .filter((r): r is { s: ChartSeries; v: number } => r.v != null);
+
+  const hoverX = hover == null ? 0 : xAt(hover);
+  const hoverNote = hover == null || !note ? null : note(hover);
+
   return (
-    <div
-      ref={wrapRef}
-      style={{ position: 'relative', width: '100%' }}
-      onMouseMove={onMove}
-      onMouseLeave={() => setHover(null)}
-    >
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ display: 'block' }}>
-        <defs>
-          <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.22" />
-            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
-          </linearGradient>
-        </defs>
+    <div>
+      <div
+        ref={wrapRef}
+        style={{ position: 'relative', width: '100%' }}
+        onMouseMove={onMove}
+        onMouseLeave={() => setHover(null)}
+      >
+        <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ display: 'block' }}>
+          {leftScale && ticksOf(leftScale).map((t, i) => (
+            <line
+              key={`g-${i}`}
+              x1={P.left} x2={W - P.right}
+              y1={t.y} y2={t.y}
+              stroke="var(--border-subtle)" strokeWidth="1"
+              strokeDasharray={i === 0 || i === 4 ? '0' : '3 4'}
+            />
+          ))}
 
-        {yTicks.map((t, i) => (
-          <line
-            key={i}
-            x1={P.left} x2={W - P.right}
-            y1={t.y} y2={t.y}
-            stroke="var(--border-subtle)"
-            strokeWidth="1"
-            strokeDasharray={i === 0 || i === tickCount ? '0' : '3 4'}
-          />
-        ))}
-
-        {yTicks.map((t, i) => (
-          <text
-            key={`yl-${i}`}
-            x={P.left - 8} y={t.y + 3}
-            fontSize="10" textAnchor="end"
-            fill="var(--fg-4)"
-            fontFamily="JetBrains Mono, monospace"
-          >
-            {t.v}
-          </text>
-        ))}
-
-        {points.map((pt, i) => {
-          if (data.length > 8 && i % 2 !== 0 && i !== data.length - 1) return null;
-          return (
+          {/* Left axis ticks, tinted with their series colour */}
+          {leftScale && ticksOf(leftScale).map((t, i) => (
             <text
-              key={`xl-${i}`}
-              x={pt.x} y={H - P.bottom + 18}
-              fontSize="10" textAnchor="middle"
-              fill="var(--fg-4)"
+              key={`ly-${i}`}
+              x={P.left - 8} y={t.y + 3}
+              fontSize="10" textAnchor="end"
+              fill={leftSeries?.color ?? 'var(--fg-4)'}
               fontFamily="JetBrains Mono, monospace"
             >
-              {pt.label}
+              {t.v}
             </text>
-          );
-        })}
+          ))}
 
-        <path d={areaPath()} fill="url(#chartFill)" />
-        <path d={buildPath()} fill="none" stroke="var(--accent)" strokeWidth="2" />
+          {/* Right axis ticks */}
+          {rightScale && ticksOf(rightScale).map((t, i) => (
+            <text
+              key={`ry-${i}`}
+              x={W - P.right + 8} y={t.y + 3}
+              fontSize="10" textAnchor="start"
+              fill={rightSeries?.color ?? 'var(--fg-4)'}
+              fontFamily="JetBrains Mono, monospace"
+            >
+              {t.v}
+            </text>
+          ))}
 
-        {points.map((pt, i) => (
-          <g key={`p-${i}`}>
-            <circle
-              cx={pt.x} cy={pt.y}
-              r={hover === i ? 5 : 3.2}
-              fill="var(--bg-1)" stroke="var(--accent)" strokeWidth="2"
-              style={{ transition: 'r 120ms ease' }}
+          {/* Axis units — the two scales are independent and must not read as comparable */}
+          {leftScale && leftSeries?.unit && (
+            <text
+              x={P.left - 8} y={P.top - 4}
+              fontSize="10" textAnchor="end"
+              fill={leftSeries.color} fontFamily="JetBrains Mono, monospace"
+              fontWeight="600"
+            >
+              {leftSeries.unit}
+            </text>
+          )}
+          {rightScale && rightSeries?.unit && (
+            <text
+              x={W - P.right + 8} y={P.top - 4}
+              fontSize="10" textAnchor="start"
+              fill={rightSeries.color} fontFamily="JetBrains Mono, monospace"
+              fontWeight="600"
+            >
+              {rightSeries.unit}
+            </text>
+          )}
+
+          {labels.map((label, i) => {
+            if (labels.length > 8 && i % 2 !== 0 && i !== labels.length - 1) return null;
+            return (
+              <text
+                key={`xl-${i}`}
+                x={xAt(i)} y={H - P.bottom + 18}
+                fontSize="10" textAnchor="middle"
+                fill="var(--fg-4)" fontFamily="JetBrains Mono, monospace"
+              >
+                {label}
+              </text>
+            );
+          })}
+
+          {visible.map(s => (
+            <g key={s.key} opacity={s.opacity ?? 1}>
+              {segmentsOf(s).map((seg, i) => (
+                <path
+                  key={`${s.key}-${i}`}
+                  d={seg.d}
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth={s.width ?? 2}
+                  strokeDasharray={seg.dashed ? '5 4' : undefined}
+                  strokeLinecap="round"
+                />
+              ))}
+              {(s.dots ?? true) && s.values.map((v, i) => {
+                if (v == null) return null;
+                const scale = scaleFor(s);
+                if (!scale) return null;
+                return (
+                  <circle
+                    key={`${s.key}-d-${i}`}
+                    cx={xAt(i)} cy={yAt(v, scale)}
+                    r={hover === i ? 4.5 : 3}
+                    fill="var(--bg-1)" stroke={s.color} strokeWidth="2"
+                    style={{ transition: 'r 120ms ease' }}
+                  />
+                );
+              })}
+            </g>
+          ))}
+
+          {hover !== null && (
+            <line
+              x1={hoverX} x2={hoverX}
+              y1={P.top} y2={P.top + innerH}
+              stroke="var(--border-default)" strokeDasharray="3 3"
             />
-          </g>
-        ))}
+          )}
+        </svg>
 
-        {hover !== null && (
-          <line
-            x1={points[hover].x} x2={points[hover].x}
-            y1={P.top} y2={P.top + innerH}
-            stroke="var(--border-default)" strokeDasharray="3 3"
-          />
+        {hover !== null && hoverRows.length > 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              left: `${(hoverX / W) * 100}%`,
+              top: 8,
+              transform: 'translateX(-50%)',
+              background: 'var(--bg-2)',
+              border: '1px solid var(--border-default)',
+              color: 'var(--fg)',
+              padding: '6px 10px',
+              borderRadius: 6,
+              fontFamily: 'JetBrains Mono, monospace',
+              fontSize: 11,
+              whiteSpace: 'nowrap',
+              pointerEvents: 'none',
+              boxShadow: '0 6px 18px rgba(0,0,0,0.35)',
+              zIndex: 2,
+            }}
+          >
+            <div style={{ color: 'var(--fg-4)', fontSize: 10, marginBottom: 3 }}>
+              {labels[hover]}
+            </div>
+            {hoverRows.map(({ s, v }) => (
+              <div key={s.key} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <span
+                  className="inline-block rounded-full"
+                  style={{ width: 6, height: 6, background: s.color }}
+                />
+                <span style={{ color: 'var(--fg-3)' }}>{s.label}</span>
+                <span style={{ marginLeft: 'auto' }}>
+                  {v}
+                  {s.unit && <span style={{ color: 'var(--fg-4)' }}> {s.unit}</span>}
+                </span>
+              </div>
+            ))}
+            {hoverNote && (
+              <div style={{ color: 'var(--fg-4)', fontSize: 10, marginTop: 3 }}>{hoverNote}</div>
+            )}
+          </div>
         )}
-      </svg>
-
-      {hover !== null && (
-        <div
-          style={{
-            position: 'absolute',
-            left: `${(points[hover].x / W) * 100}%`,
-            top: `${(points[hover].y / H) * 100}%`,
-            transform: 'translate(-50%, calc(-100% - 12px))',
-            background: 'var(--bg-2)',
-            border: '1px solid var(--border-default)',
-            color: 'var(--fg)',
-            padding: '6px 10px',
-            borderRadius: 6,
-            fontFamily: 'JetBrains Mono, monospace',
-            fontSize: 11,
-            whiteSpace: 'nowrap',
-            pointerEvents: 'none',
-            boxShadow: '0 6px 18px rgba(0,0,0,0.35)',
-            zIndex: 2,
-          }}
-        >
-          <div style={{ color: 'var(--fg-4)', fontSize: 10, marginBottom: 2 }}>{points[hover].label}</div>
-          <div>{points[hover].v} <span style={{ color: 'var(--fg-4)' }}>{unit}</span></div>
-        </div>
-      )}
+      </div>
+      {legendRow}
     </div>
   );
 }
