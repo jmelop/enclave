@@ -34,7 +34,9 @@ export default function LogMeasurementModal({ onClose, defaultDate, lastEntry, e
   const base = initial ?? lastEntry;
 
   const [date, setDate]     = useState(initial?.date ?? defaultDate ?? todayIso());
-  const [weight, setWeight] = useState(initial ? String(initial.weight) : '80.0');
+  // Empty, not a default: a prefilled weight is one Save away from being logged
+  // as if it were measured, and any fixed number is wrong for most bodies.
+  const [weight, setWeight] = useState(initial ? String(initial.weight) : '');
   const [waist, setWaist]   = useState(base?.waist != null ? String(base.waist) : '');
   const [notes, setNotes]   = useState(initial?.notes ?? '');
   const [expanded, setExpanded] = useState(false);
@@ -135,7 +137,7 @@ export default function LogMeasurementModal({ onClose, defaultDate, lastEntry, e
               type="number" step="0.1"
               value={weight}
               onChange={e => setWeight(e.target.value)}
-              placeholder="80.0"
+              placeholder={base?.weight != null ? String(base.weight) : '—'}
               error={errors.weight}
               className="wm-mono"
               autoFocus={!isEdit && !focusWaist}
