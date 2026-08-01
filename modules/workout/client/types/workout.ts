@@ -45,6 +45,7 @@ export type BodySummary = {
   maxWeight: number | null
   totalDelta: number | null
   spanDays: number | null
+  waistPerKg: number | null
   daysSinceWeight: number | null
   daysSinceWaist: number | null
   daysSinceSession: number | null

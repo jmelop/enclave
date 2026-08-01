@@ -4,6 +4,7 @@ import { StatCard } from '@venator-ui/patterns';
 import { Card, Separator } from '@venator-ui/ui';
 import { Dumbbell, Scale, Flame, TrendingUp, TrendingDown } from 'lucide-react';
 import LineChart from '../components/LineChart';
+import { FreshnessChips } from '../components/FreshnessChips';
 import { useWorkoutStore } from '../store/workoutStore';
 import { formatDate, dayOfWeek } from '../lib/workoutUtils';
 
@@ -45,9 +46,26 @@ export default function OverviewPage() {
     };
   }, [w, entries, summary]);
 
-  const chartData = useMemo(() => (
-    trend.slice(-8).map(t => ({ label: formatDate(t.date, { short: true }), y: t.weight }))
-  ), [trend]);
+  // Overview shows the trend line only — the full three-series view lives on Body.
+  const chart = useMemo(() => {
+    const recent = trend.slice(-8);
+    return {
+      labels: recent.map(t => formatDate(t.date, { short: true })),
+      series: [
+        {
+          key: 'raw', label: 'weight (raw)', unit: 'kg',
+          values: recent.map(t => t.weight),
+          color: 'var(--accent)', opacity: 0.25, width: 1.5, dots: false,
+        },
+        {
+          key: 'ma7', label: '7-day average', unit: 'kg',
+          values: recent.map(t => t.ma7),
+          color: 'var(--accent)', width: 2.5, gaps: 'break' as const,
+          dashed: recent.map(t => t.ma7Partial),
+        },
+      ],
+    };
+  }, [trend]);
 
   const recentSessions = sessions.slice(0, 4);
 
@@ -61,6 +79,14 @@ export default function OverviewPage() {
 
   return (
     <>
+      {/* Freshness — on the landing page, where it can remind before logging */}
+      <div className="flex items-center justify-end mb-3">
+        <FreshnessChips
+          daysSinceWeight={summary.daysSinceWeight}
+          daysSinceWaist={summary.daysSinceWaist}
+        />
+      </div>
+
       {/* Stat cards */}
       <div className="grid grid-cols-4 gap-3 mb-5">
         <StatCard
@@ -107,11 +133,11 @@ export default function OverviewPage() {
             </div>
             <div className="flex items-center gap-3 text-[11px] text-fg-4">
               <span className="w-2 h-2 rounded-full inline-block" style={{ background: 'var(--accent)' }} />
-              <span className="font-mono">weight · kg</span>
+              <span className="font-mono">7-day average · kg</span>
             </div>
           </div>
           <div className="p-[18px]">
-            <LineChart data={chartData} height={240} unit="kg" />
+            <LineChart labels={chart.labels} series={chart.series} height={240} />
           </div>
         </Card>
 

@@ -1,46 +1,171 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
 
-export interface ChartPoint {
+export interface ChartSeries {
+  key: string;
   label: string;
-  y: number;
+  /** Aligned to `labels`; null means no reading that day. */
+  values: (number | null)[];
+  color: string;
+  opacity?: number;
+  width?: number;
+  /** 'break' leaves a hole (no trend to draw); 'bridge' joins across it. */
+  gaps?: 'break' | 'bridge';
+  /** Per point: the segment ending here is drawn dashed. */
+  dashed?: boolean[];
+  dots?: boolean;
+  unit?: string;
 }
 
 interface LineChartProps {
-  data: ChartPoint[];
+  labels: string[];
+  series: ChartSeries[];
   height?: number;
-  yKey?: keyof ChartPoint;
-  xKey?: keyof ChartPoint;
-  unit?: string;
-  ySpan?: 'auto' | [number, number];
+  /** Off for a stacked panel that is not the bottom one. */
+  showXLabels?: boolean;
+  /** Extra tooltip line for the hovered index. */
+  note?: (index: number) => string | null;
+  /** Controlled hover, so stacked panels share one cursor. */
+  hoverIndex?: number | null;
+  onHoverChange?: (index: number | null) => void;
+  /** Only one panel in a stack should render the tooltip. */
+  tooltip?: boolean;
+  /** Rows to list in the tooltip; defaults to the drawn series. */
+  tooltipSeries?: ChartSeries[];
   padding?: { top: number; right: number; bottom: number; left: number };
 }
 
+interface Scale { min: number; max: number }
+
+function scaleOf(values: number[]): Scale {
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  return {
+    min: Math.floor((min - range * 0.18) * 2) / 2,
+    max: Math.ceil((max + range * 0.18) * 2) / 2,
+  };
+}
+
+// A line, not a dot: raw weight and the 7-day average share a colour and differ
+// only in weight and opacity, so a dot swatch makes them indistinguishable.
+// Opacity is floored — 25% on a 1.5px stroke is invisible at this size.
+function SeriesSwatch({ series: s, dim = false }: { series: ChartSeries; dim?: boolean }) {
+  return (
+    <svg
+      width="16" height="8" viewBox="0 0 16 8" aria-hidden
+      style={{ flexShrink: 0, opacity: dim ? 0.45 : 1 }}
+    >
+      <line
+        x1="1" y1="4" x2="15" y2="4"
+        stroke={s.color}
+        strokeWidth={Math.max(s.width ?? 2, 1.5)}
+        strokeOpacity={Math.max(s.opacity ?? 1, 0.5)}
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function ChartLegend({
+  series,
+  hidden,
+  onToggle,
+}: {
+  series: ChartSeries[];
+  hidden: Record<string, boolean>;
+  onToggle: (key: string) => void;
+}) {
+  return (
+    <div className="flex items-center justify-center gap-4 flex-wrap pt-2">
+      {series.map(s => {
+        const off = !!hidden[s.key];
+        return (
+          <button
+            key={s.key}
+            type="button"
+            onClick={() => onToggle(s.key)}
+            aria-pressed={!off}
+            className="flex items-center gap-1.5 bg-transparent border-0 cursor-pointer p-0 text-[11px]"
+            style={{ opacity: off ? 0.4 : 1, color: 'var(--fg-3)' }}
+          >
+            <SeriesSwatch series={s} dim={off} />
+            <span style={{ textDecoration: off ? 'line-through' : 'none' }}>
+              {s.label}{s.unit ? ` · ${s.unit}` : ''}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function LineChart({
-  data,
+  labels,
+  series,
   height = 260,
-  unit = 'kg',
-  ySpan = 'auto',
+  showXLabels = true,
+  note,
+  hoverIndex,
+  onHoverChange,
+  tooltip = true,
+  tooltipSeries,
   padding,
 }: LineChartProps) {
-  const [hover, setHover] = useState<number | null>(null);
+  const [innerHover, setInnerHover] = useState<number | null>(null);
+  const [tipLeft, setTipLeft] = useState(0);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
 
-  const P = padding || { top: 16, right: 16, bottom: 32, left: 44 };
+  const controlled = hoverIndex !== undefined;
+  const hover = controlled ? hoverIndex ?? null : innerHover;
+  const setHover = (i: number | null) => {
+    if (!controlled) setInnerHover(i);
+    onHoverChange?.(i);
+  };
+
+  const showsUnits = series.some(s => s.unit);
+  const P = padding || {
+    top: showsUnits ? 36 : 16,
+    right: 16,
+    bottom: showXLabels ? 32 : 10,
+    left: 48,
+  };
   const W = 800;
   const H = height;
   const innerW = W - P.left - P.right;
   const innerH = H - P.top - P.bottom;
 
-  if (data.length === 0) {
+  const values = series.flatMap(s => s.values.filter((v): v is number => v != null));
+  const scale = values.length > 0 ? scaleOf(values) : null;
+  const unitSeries = series.find(s => s.unit);
+
+  const xAt = (i: number) => P.left + (innerW * i) / Math.max(1, labels.length - 1);
+  const yAt = (v: number) =>
+    scale ? P.top + innerH - ((v - scale.min) / (scale.max - scale.min)) * innerH : 0;
+
+  // The svg is letterboxed by preserveAspectRatio, so viewBox units and element
+  // pixels differ. Map through the svg's own CTM rather than the element rect.
+  useLayoutEffect(() => {
+    if (hover == null) return;
+    const svg = svgRef.current;
+    const wrap = wrapRef.current;
+    if (!svg || !wrap) return;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return;
+    const pt = svg.createSVGPoint();
+    pt.x = xAt(hover);
+    pt.y = 0;
+    setTipLeft(pt.matrixTransform(ctm).x - wrap.getBoundingClientRect().left);
+  });
+
+  const empty = labels.length === 0 || series.length === 0 || !scale;
+
+  if (empty) {
     return (
       <div
         style={{
-          display: 'grid',
-          placeItems: 'center',
-          height: H,
-          color: 'var(--fg-4)',
-          fontFamily: 'JetBrains Mono, monospace',
-          fontSize: 11,
+          display: 'grid', placeItems: 'center', height: H,
+          color: 'var(--fg-4)', fontFamily: 'JetBrains Mono, monospace', fontSize: 11,
         }}
       >
         no data yet
@@ -48,67 +173,63 @@ export default function LineChart({
     );
   }
 
-  const ys = data.map(d => d.y);
-  let yMin: number, yMax: number;
-  if (ySpan === 'auto') {
-    const min = Math.min(...ys);
-    const max = Math.max(...ys);
-    const range = max - min || 1;
-    yMin = Math.floor((min - range * 0.18) * 2) / 2;
-    yMax = Math.ceil((max + range * 0.18) * 2) / 2;
-  } else {
-    [yMin, yMax] = ySpan;
-  }
-
-  const xScale = (i: number) => P.left + (innerW * i) / Math.max(1, data.length - 1);
-  const yScale = (v: number) => P.top + innerH - ((v - yMin) / (yMax - yMin)) * innerH;
-
-  const points = data.map((d, i) => ({
-    x: xScale(i),
-    y: yScale(d.y),
-    v: d.y,
-    label: d.label,
-  }));
-
-  const buildPath = (): string => {
-    if (points.length === 0) return '';
-    let d = `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
-    for (let i = 1; i < points.length; i++) {
-      const prev = points[i - 1];
-      const curr = points[i];
-      const cpx = (prev.x + curr.x) / 2;
-      d += ` C ${cpx.toFixed(2)} ${prev.y.toFixed(2)}, ${cpx.toFixed(2)} ${curr.y.toFixed(2)}, ${curr.x.toFixed(2)} ${curr.y.toFixed(2)}`;
-    }
-    return d;
-  };
-
-  const areaPath = (): string => {
-    if (points.length === 0) return '';
-    let d = buildPath();
-    d += ` L ${points[points.length - 1].x.toFixed(2)} ${(P.top + innerH).toFixed(2)}`;
-    d += ` L ${points[0].x.toFixed(2)} ${(P.top + innerH).toFixed(2)} Z`;
-    return d;
-  };
-
-  const tickCount = 4;
-  const yTicks: { v: number; y: number }[] = [];
-  for (let i = 0; i <= tickCount; i++) {
-    const v = yMin + ((yMax - yMin) * i) / tickCount;
-    yTicks.push({ v: Math.round(v * 10) / 10, y: yScale(v) });
-  }
-
   const onMove = (e: React.MouseEvent) => {
-    if (!wrapRef.current) return;
-    const rect = wrapRef.current.getBoundingClientRect();
-    const xRel = ((e.clientX - rect.left) / rect.width) * W;
+    const svg = svgRef.current;
+    if (!svg) return;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return;
+
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const vx = pt.matrixTransform(ctm.inverse()).x;
+    if (vx < 0 || vx > W) { setHover(null); return; }
+
     let best = 0;
     let bestDist = Infinity;
-    for (let i = 0; i < points.length; i++) {
-      const dist = Math.abs(points[i].x - xRel);
-      if (dist < bestDist) { bestDist = dist; best = i; }
+    for (let i = 0; i < labels.length; i++) {
+      const d = Math.abs(xAt(i) - vx);
+      if (d < bestDist) { bestDist = d; best = i; }
     }
     setHover(best);
   };
+
+  // One <path> per segment: the curve already uses per-segment control points,
+  // so this renders identically while allowing per-segment dashing.
+  const segmentsOf = (s: ChartSeries) => {
+    const pts: { i: number; x: number; y: number }[] = [];
+    for (let i = 0; i < s.values.length; i++) {
+      const v = s.values[i];
+      if (v == null) continue;
+      pts.push({ i, x: xAt(i), y: yAt(v) });
+    }
+    const out: { d: string; dashed: boolean }[] = [];
+    for (let k = 1; k < pts.length; k++) {
+      const a = pts[k - 1]!;
+      const b = pts[k]!;
+      if ((s.gaps ?? 'break') === 'break' && b.i !== a.i + 1) continue;
+      const cpx = (a.x + b.x) / 2;
+      out.push({
+        d: `M ${a.x.toFixed(2)} ${a.y.toFixed(2)} C ${cpx.toFixed(2)} ${a.y.toFixed(2)}, ${cpx.toFixed(2)} ${b.y.toFixed(2)}, ${b.x.toFixed(2)} ${b.y.toFixed(2)}`,
+        dashed: !!s.dashed?.[b.i],
+      });
+    }
+    return out;
+  };
+
+  const ticks: { v: number; y: number }[] = [];
+  for (let i = 0; i <= 4; i++) {
+    const v = scale.min + ((scale.max - scale.min) * i) / 4;
+    ticks.push({ v: Math.round(v * 10) / 10, y: yAt(v) });
+  }
+
+  const rowSource = tooltipSeries ?? series;
+  const hoverRows = hover == null ? [] : rowSource
+    .map(s => ({ s, v: s.values[hover] }))
+    .filter((r): r is { s: ChartSeries; v: number } => r.v != null);
+
+  const hoverX = hover == null ? 0 : xAt(hover);
+  const hoverNote = hover == null || !note ? null : note(hover);
 
   return (
     <div
@@ -117,82 +238,98 @@ export default function LineChart({
       onMouseMove={onMove}
       onMouseLeave={() => setHover(null)}
     >
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ display: 'block' }}>
-        <defs>
-          <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.22" />
-            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-
-        {yTicks.map((t, i) => (
+      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ display: 'block' }}>
+        {ticks.map((t, i) => (
           <line
-            key={i}
+            key={`g-${i}`}
             x1={P.left} x2={W - P.right}
             y1={t.y} y2={t.y}
-            stroke="var(--border-subtle)"
-            strokeWidth="1"
-            strokeDasharray={i === 0 || i === tickCount ? '0' : '3 4'}
+            stroke="var(--border-subtle)" strokeWidth="1"
+            strokeDasharray={i === 0 || i === 4 ? '0' : '3 4'}
           />
         ))}
 
-        {yTicks.map((t, i) => (
+        {ticks.map((t, i) => (
           <text
-            key={`yl-${i}`}
+            key={`y-${i}`}
             x={P.left - 8} y={t.y + 3}
             fontSize="10" textAnchor="end"
-            fill="var(--fg-4)"
+            fill={unitSeries?.color ?? 'var(--fg-4)'}
             fontFamily="JetBrains Mono, monospace"
           >
             {t.v}
           </text>
         ))}
 
-        {points.map((pt, i) => {
-          if (data.length > 8 && i % 2 !== 0 && i !== data.length - 1) return null;
+        {unitSeries?.unit && (
+          <text
+            x={P.left - 8} y={P.top - 18}
+            fontSize="10" textAnchor="end"
+            fill={unitSeries.color} fontFamily="JetBrains Mono, monospace"
+            fontWeight="600"
+          >
+            {unitSeries.unit}
+          </text>
+        )}
+
+        {showXLabels && labels.map((label, i) => {
+          if (labels.length > 8 && i % 2 !== 0 && i !== labels.length - 1) return null;
           return (
             <text
-              key={`xl-${i}`}
-              x={pt.x} y={H - P.bottom + 18}
+              key={`x-${i}`}
+              x={xAt(i)} y={H - P.bottom + 18}
               fontSize="10" textAnchor="middle"
-              fill="var(--fg-4)"
-              fontFamily="JetBrains Mono, monospace"
+              fill="var(--fg-4)" fontFamily="JetBrains Mono, monospace"
             >
-              {pt.label}
+              {label}
             </text>
           );
         })}
 
-        <path d={areaPath()} fill="url(#chartFill)" />
-        <path d={buildPath()} fill="none" stroke="var(--accent)" strokeWidth="2" />
-
-        {points.map((pt, i) => (
-          <g key={`p-${i}`}>
-            <circle
-              cx={pt.x} cy={pt.y}
-              r={hover === i ? 5 : 3.2}
-              fill="var(--bg-1)" stroke="var(--accent)" strokeWidth="2"
-              style={{ transition: 'r 120ms ease' }}
-            />
+        {series.map(s => (
+          <g key={s.key} opacity={s.opacity ?? 1}>
+            {segmentsOf(s).map((seg, i) => (
+              <path
+                key={`${s.key}-${i}`}
+                d={seg.d}
+                fill="none"
+                stroke={s.color}
+                strokeWidth={s.width ?? 2}
+                strokeDasharray={seg.dashed ? '5 4' : undefined}
+                strokeLinecap="round"
+              />
+            ))}
+            {(s.dots ?? true) && s.values.map((v, i) => {
+              if (v == null) return null;
+              return (
+                <circle
+                  key={`${s.key}-d-${i}`}
+                  cx={xAt(i)} cy={yAt(v)}
+                  r={hover === i ? 4.5 : 3}
+                  fill="var(--bg-1)" stroke={s.color} strokeWidth="2"
+                  style={{ transition: 'r 120ms ease' }}
+                />
+              );
+            })}
           </g>
         ))}
 
         {hover !== null && (
           <line
-            x1={points[hover].x} x2={points[hover].x}
+            x1={hoverX} x2={hoverX}
             y1={P.top} y2={P.top + innerH}
             stroke="var(--border-default)" strokeDasharray="3 3"
           />
         )}
       </svg>
 
-      {hover !== null && (
+      {tooltip && hover !== null && hoverRows.length > 0 && (
         <div
           style={{
             position: 'absolute',
-            left: `${(points[hover].x / W) * 100}%`,
-            top: `${(points[hover].y / H) * 100}%`,
-            transform: 'translate(-50%, calc(-100% - 12px))',
+            left: `${tipLeft}px`,
+            top: 8,
+            transform: 'translateX(-50%)',
             background: 'var(--bg-2)',
             border: '1px solid var(--border-default)',
             color: 'var(--fg)',
@@ -206,8 +343,22 @@ export default function LineChart({
             zIndex: 2,
           }}
         >
-          <div style={{ color: 'var(--fg-4)', fontSize: 10, marginBottom: 2 }}>{points[hover].label}</div>
-          <div>{points[hover].v} <span style={{ color: 'var(--fg-4)' }}>{unit}</span></div>
+          <div style={{ color: 'var(--fg-4)', fontSize: 10, marginBottom: 3 }}>
+            {labels[hover]}
+          </div>
+          {hoverRows.map(({ s, v }) => (
+            <div key={s.key} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <SeriesSwatch series={s} />
+              <span style={{ color: 'var(--fg-3)' }}>{s.label}</span>
+              <span style={{ marginLeft: 'auto' }}>
+                {v}
+                {s.unit && <span style={{ color: 'var(--fg-4)' }}> {s.unit}</span>}
+              </span>
+            </div>
+          ))}
+          {hoverNote && (
+            <div style={{ color: 'var(--fg-4)', fontSize: 10, marginTop: 3 }}>{hoverNote}</div>
+          )}
         </div>
       )}
     </div>

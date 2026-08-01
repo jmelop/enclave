@@ -81,20 +81,20 @@ export const SEED_SESSIONS = [
 ]
 
 export const SEED_BODY_LOG = [
-  { id: 'b1',  date: '2026-03-15', weight: 83.2, waist: 86.5, notes: 'Light bulk, end of phase' },
-  { id: 'b2',  date: '2026-03-22', weight: 83.0, waist: 86.2 },
-  { id: 'b3',  date: '2026-03-30', weight: 82.6, waist: 85.8, notes: 'Starting mild deficit' },
-  { id: 'b4',  date: '2026-04-06', weight: 82.3, waist: 85.4 },
-  { id: 'b5',  date: '2026-04-14', weight: 81.9, waist: 84.8, notes: 'Good cardio week' },
-  { id: 'b6',  date: '2026-04-21', weight: 81.5, waist: 84.5 },
-  { id: 'b7',  date: '2026-04-28', weight: 81.2, waist: 84.0, notes: 'Diet on point' },
-  { id: 'b8',  date: '2026-05-05', weight: 80.8, waist: 83.6 },
-  { id: 'b9',  date: '2026-05-14', weight: 80.4, waist: 83.2, notes: 'Refeed Saturday' },
+  { id: 'b1',  date: '2026-03-15', weight: 77.5, waist: 81.0, notes: 'Light bulk, end of phase' },
+  { id: 'b2',  date: '2026-03-22', weight: 77.2, waist: 80.8 },
+  { id: 'b3',  date: '2026-03-30', weight: 77.4, waist: 80.9, notes: 'Starting mild deficit' },
+  { id: 'b4',  date: '2026-04-06', weight: 76.9, waist: 80.4 },
+  { id: 'b5',  date: '2026-04-14', weight: 76.6, waist: 80.2, notes: 'Good cardio week' },
+  { id: 'b6',  date: '2026-04-21', weight: 76.8, waist: 80.3 },
+  { id: 'b7',  date: '2026-04-28', weight: 76.3, waist: 79.9, notes: 'Diet on point' },
+  { id: 'b8',  date: '2026-05-05', weight: 76.0, waist: 79.6 },
+  { id: 'b9',  date: '2026-05-14', weight: 75.8, waist: 79.5, notes: 'Refeed Saturday' },
   {
-    id: 'b10', date: '2026-05-22', weight: 80.1, waist: 82.8,
-    chest: 102.5, hip: 98.0,
-    bicepL: 38.2, bicepR: 38.5,
-    thighL: 58.4, thighR: 58.6,
+    id: 'b10', date: '2026-05-22', weight: 75.4, waist: 79.2,
+    chest: 99.5, hip: 94.0,
+    bicepL: 35.8, bicepR: 36.0,
+    thighL: 56.5, thighR: 56.8,
     notes: 'Full measurements',
   },
 ]

@@ -3,9 +3,10 @@ import { createPortal } from 'react-dom';
 import { StatCard } from '@venator-ui/patterns';
 import { Button, Separator, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, useToast } from '@venator-ui/ui';
 import { Plus } from 'lucide-react';
-import LineChart from '../components/LineChart';
+import LineChart, { ChartLegend } from '../components/LineChart';
 import LogMeasurementModal from '../modals/LogMeasurementModal';
 import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
+import { FreshnessChips } from '../components/FreshnessChips';
 import { HeroActions } from '../components/HeroActions';
 import { useWorkoutStore } from '../store/workoutStore';
 import { formatDate, todayIso } from '../lib/workoutUtils';
@@ -139,11 +140,48 @@ interface ModalState { editId?: string; initial?: BodyEntry }
 export default function BodyPage() {
   const { entries, trend, summary } = useWorkoutStore(s => s.body);
   const [modal, setModal] = useState<ModalState | null>(null);
+  // Hover and legend live here so both stacked panels share one cursor.
+  const [hover, setHover] = useState<number | null>(null);
+  const [hidden, setHidden] = useState<Record<string, boolean>>({});
   const latest = entries[entries.length - 1];
 
-  const chartData = useMemo(() => (
-    trend.map(t => ({ label: formatDate(t.date, { short: true }), y: t.weight }))
-  ), [trend]);
+  // Two stacked panels sharing an x-domain, not a dual Y axis: independent
+  // autoscaling made the two lines look correlated whatever the real magnitudes.
+  const chart = useMemo(() => {
+    const labels = trend.map(t => formatDate(t.date, { short: true }));
+    const weight = [
+      {
+        key: 'raw', label: 'weight (raw)', unit: 'kg',
+        values: trend.map(t => t.weight),
+        color: 'var(--accent)', opacity: 0.25, width: 1.5, dots: false,
+      },
+      {
+        key: 'ma7', label: '7-day average', unit: 'kg',
+        // null below the 4-entry gate: the line is absent, not interpolated.
+        values: trend.map(t => t.ma7),
+        color: 'var(--accent)', width: 2.5, gaps: 'break' as const,
+        dashed: trend.map(t => t.ma7Partial),
+      },
+    ];
+    const waist = [
+      {
+        key: 'waist', label: 'waist', unit: 'cm',
+        // bridge: days without a waist reading join across, never drop to zero.
+        values: trend.map(t => t.waist),
+        color: 'var(--fg-3)', width: 2, gaps: 'bridge' as const,
+      },
+    ];
+    return { labels, weight, waist, all: [...weight, ...waist] };
+  }, [trend]);
+
+  const chartNote = (i: number) => {
+    const t = trend[i];
+    if (!t || t.ma7 == null) return null;
+    return `average of ${t.ma7Count} ${t.ma7Count === 1 ? 'reading' : 'readings'}${t.ma7Partial ? ' · partial' : ''}`;
+  };
+
+  const visible = (s: { key: string }) => !hidden[s.key];
+  const toggleSeries = (key: string) => setHidden(h => ({ ...h, [key]: !h[key] }));
 
   if (!latest) {
     return (
@@ -167,6 +205,7 @@ export default function BodyPage() {
             editId={modal.editId}
             initial={modal.initial}
             defaultDate={todayIso()}
+            daysSinceWaist={summary.daysSinceWaist}
           />
         )}
       </>
@@ -191,6 +230,10 @@ export default function BodyPage() {
           {count} {count === 1 ? 'entry' : 'entries'}
           {first && count > 1 && ` · ${formatDate(first.date, { short: true })} → ${formatDate(latest.date, { short: true })}`}
         </p>
+        <FreshnessChips
+          daysSinceWeight={summary.daysSinceWeight}
+          daysSinceWaist={summary.daysSinceWaist}
+        />
       </div>
 
       {/* Weight chart */}
@@ -199,7 +242,7 @@ export default function BodyPage() {
       >
         <div className="flex items-center justify-between px-[18px] py-3.5 border-b border-[var(--border-subtle)]">
           <div>
-            <h3 className="text-[13px] font-semibold text-fg-2 m-0">Body weight</h3>
+            <h3 className="text-[13px] font-semibold text-fg-2 m-0">Body composition</h3>
             <span className="text-[11px] text-fg-4">
               {first && count > 1
                 ? `${formatDate(first.date, { short: true })} → ${formatDate(latest.date, { short: true })} · ${count} measurements`
@@ -209,13 +252,42 @@ export default function BodyPage() {
           <div className="flex items-center gap-3">
             <span className="font-mono text-[11px] text-fg-4">min {minW}</span>
             <span className="font-mono text-[11px] text-fg-4">max {maxW}</span>
+            {/* Neutral on purpose: during a bulk, losing weight is not "good".
+                The sign is the only signal — the app takes no view on direction. */}
             {delta != null && (
-              <Badge variant="success" className="font-mono">{delta} kg</Badge>
+              <Badge variant="default" className="font-mono">
+                {Number(delta) > 0 ? `+${delta}` : delta} kg
+              </Badge>
+            )}
+            {summary.waistPerKg != null && (
+              <Badge variant="default" className="font-mono" title="Waist change per kg of bodyweight change">
+                {summary.waistPerKg > 0 ? `+${summary.waistPerKg.toFixed(1)}` : summary.waistPerKg.toFixed(1)} cm/kg
+              </Badge>
             )}
           </div>
         </div>
-        <div className="p-[18px]">
-          <LineChart data={chartData} height={280} unit="kg" />
+        <div className="px-[18px] pt-[18px] pb-2">
+          <LineChart
+            labels={chart.labels}
+            series={chart.weight.filter(visible)}
+            height={280}
+            showXLabels={false}
+            note={chartNote}
+            hoverIndex={hover}
+            onHoverChange={setHover}
+            tooltipSeries={chart.all.filter(visible)}
+          />
+        </div>
+        <div className="px-[18px] pb-[18px]">
+          <LineChart
+            labels={chart.labels}
+            series={chart.waist.filter(visible)}
+            height={120}
+            hoverIndex={hover}
+            onHoverChange={setHover}
+            tooltip={false}
+          />
+          <ChartLegend series={chart.all} hidden={hidden} onToggle={toggleSeries} />
         </div>
       </div>
 
@@ -271,11 +343,8 @@ export default function BodyPage() {
               // reverse the index to line it up with this descending table.
               const raw = trend[arr.length - 1 - i]?.deltaWeight ?? null;
               const dw = raw == null ? null : raw.toFixed(1);
-              const dwColor =
-                raw == null ? 'var(--fg-4)'
-                : raw < 0 ? 'var(--success)'
-                : raw > 0 ? 'var(--warn)'
-                : 'var(--fg-4)';
+              // Same rule as the total badge: no colour semantics on direction.
+              const dwColor = raw == null ? 'var(--fg-4)' : 'var(--fg-2)';
               return (
                 <TableRow key={b.id}>
                   <TableCell className="font-mono text-fg-4">{formatDate(b.date)}</TableCell>
@@ -305,6 +374,7 @@ export default function BodyPage() {
           initial={modal.initial}
           defaultDate={todayIso()}
           lastEntry={latest}
+          daysSinceWaist={summary.daysSinceWaist}
         />
       )}
     </>

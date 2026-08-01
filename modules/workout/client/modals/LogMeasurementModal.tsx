@@ -15,7 +15,10 @@ interface Props {
   lastEntry?: BodyEntry;
   editId?: string;
   initial?: BodyEntry;
+  daysSinceWaist?: number | null;
 }
+
+const WAIST_STALE_DAYS = 7;
 
 type OptMeasurements = {
   chest: string; hip: string;
@@ -23,7 +26,7 @@ type OptMeasurements = {
   thighL: string; thighR: string;
 };
 
-export default function LogMeasurementModal({ onClose, defaultDate, lastEntry, editId, initial }: Props) {
+export default function LogMeasurementModal({ onClose, defaultDate, lastEntry, editId, initial, daysSinceWaist }: Props) {
   const { toast } = useToast();
   const addBodyEntry = useWorkoutStore(s => s.addBodyEntry);
   const updateBodyEntry = useWorkoutStore(s => s.updateBodyEntry);
@@ -31,7 +34,9 @@ export default function LogMeasurementModal({ onClose, defaultDate, lastEntry, e
   const base = initial ?? lastEntry;
 
   const [date, setDate]     = useState(initial?.date ?? defaultDate ?? todayIso());
-  const [weight, setWeight] = useState(initial ? String(initial.weight) : '80.0');
+  // Empty, not a default: a prefilled weight is one Save away from being logged
+  // as if it were measured, and any fixed number is wrong for most bodies.
+  const [weight, setWeight] = useState(initial ? String(initial.weight) : '');
   const [waist, setWaist]   = useState(base?.waist != null ? String(base.waist) : '');
   const [notes, setNotes]   = useState(initial?.notes ?? '');
   const [expanded, setExpanded] = useState(false);
@@ -48,6 +53,9 @@ export default function LogMeasurementModal({ onClose, defaultDate, lastEntry, e
 
   const setOpt = (key: keyof OptMeasurements, val: string) =>
     setOptM(prev => ({ ...prev, [key]: val }));
+
+  // Stale waist? Land the cursor there. Editing an existing row focuses neither.
+  const focusWaist = !isEdit && (daysSinceWaist == null || daysSinceWaist > WAIST_STALE_DAYS);
 
   const submit = async () => {
     const errs: Record<string, boolean> = {};
@@ -129,9 +137,10 @@ export default function LogMeasurementModal({ onClose, defaultDate, lastEntry, e
               type="number" step="0.1"
               value={weight}
               onChange={e => setWeight(e.target.value)}
-              placeholder="80.0"
+              placeholder={base?.weight != null ? String(base.weight) : '—'}
               error={errors.weight}
               className="wm-mono"
+              autoFocus={!isEdit && !focusWaist}
             />
           </div>
           <div className="flex flex-col gap-1.5 flex-1">
@@ -144,6 +153,7 @@ export default function LogMeasurementModal({ onClose, defaultDate, lastEntry, e
               onChange={e => setWaist(e.target.value)}
               placeholder="—"
               className="wm-mono"
+              autoFocus={focusWaist}
             />
           </div>
         </div>
