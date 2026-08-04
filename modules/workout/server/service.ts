@@ -152,6 +152,25 @@ export function freshness(
   }
 }
 
+// Epley drifts too far above ~10 reps to be worth reporting, so those sets
+// yield no estimate rather than a confident wrong one.
+const E1RM_MAX_REPS = 10
+
+export function epley(kg: number, reps: number): number | null {
+  if (reps < 1 || reps > E1RM_MAX_REPS) return null
+  return round2(kg * (1 + reps / 30))
+}
+
+// Best estimate across the exercise's eligible sets; null when none qualify.
+export function exerciseE1rm(sets: SetRow[]): number | null {
+  let best: number | null = null
+  for (const s of sets) {
+    const e = epley(s.kg, s.reps)
+    if (e !== null && (best === null || e > best)) best = e
+  }
+  return best
+}
+
 export function exerciseVolume(sets: SetRow[]): number {
   return Math.round(sets.reduce((sum, s) => sum + (s.reps || 0) * (s.kg || 0), 0))
 }
@@ -216,7 +235,11 @@ export function buildSessionsResponse<S extends SessionRow>(
   sessions: S[],
   today: string,
 ): SessionsResponse<
-  S & { volume: number; setCount: number; exercises: (ExerciseRow & { volume: number })[] }
+  S & {
+    volume: number
+    setCount: number
+    exercises: (ExerciseRow & { volume: number; e1rm: number | null })[]
+  }
 > {
   const thisWeek = weekIndex(today)
   const thisMonth = monthKey(today)
@@ -227,7 +250,11 @@ export function buildSessionsResponse<S extends SessionRow>(
       ...s,
       volume: sessionVolume(s.exercises),
       setCount: s.exercises.reduce((n, ex) => n + ex.sets.length, 0),
-      exercises: s.exercises.map(ex => ({ ...ex, volume: exerciseVolume(ex.sets) })),
+      exercises: s.exercises.map(ex => ({
+        ...ex,
+        volume: exerciseVolume(ex.sets),
+        e1rm: exerciseE1rm(ex.sets),
+      })),
     })),
     summary: {
       sessionsThisMonth: sessions.filter(s => monthKey(s.date) === thisMonth).length,

@@ -231,6 +231,7 @@ export default function WorkoutsPage() {
                         <TableHead>Reps</TableHead>
                         <TableHead>Weight (kg)</TableHead>
                         <TableHead style={{ width: '14%' }}>Volume</TableHead>
+                        <TableHead style={{ width: '12%' }}>e1RM</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -245,6 +246,11 @@ export default function WorkoutsPage() {
                             <TableCell className="font-mono text-[12.5px]">{repsLine}</TableCell>
                             <TableCell className="font-mono text-[12.5px]">{kgLine}</TableCell>
                             <TableCell className="font-mono">{exVol.toLocaleString()}</TableCell>
+                            <TableCell className="font-mono">
+                              {ex.e1rm == null
+                                ? <span className="text-fg-4">—</span>
+                                : ex.e1rm.toFixed(1)}
+                            </TableCell>
                           </TableRow>
                         );
                       })}
