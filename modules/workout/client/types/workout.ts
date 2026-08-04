@@ -1,5 +1,11 @@
 export type WorkoutSet = { reps: number; kg: number }
-export type Exercise = { name: string; sets: WorkoutSet[]; volume: number }
+export type Exercise = {
+  name: string
+  sets: WorkoutSet[]
+  volume: number
+  /** null when no set qualifies (reps outside 1-10). */
+  e1rm: number | null
+}
 export type WorkoutSession = {
   id: string
   date: string
