@@ -4,7 +4,7 @@ import { StatCard } from '@venator-ui/patterns';
 import { Card, Separator } from '@venator-ui/ui';
 import { Dumbbell, Scale, Flame, TrendingUp, TrendingDown } from 'lucide-react';
 import LineChart from '../components/LineChart';
-import { FreshnessChips } from '../components/FreshnessChips';
+import { FreshnessChips, TrendChips } from '../components/FreshnessChips';
 import { useWorkoutStore } from '../store/workoutStore';
 import { formatDate, dayOfWeek } from '../lib/workoutUtils';
 
@@ -80,7 +80,8 @@ export default function OverviewPage() {
   return (
     <>
       {/* Freshness — on the landing page, where it can remind before logging */}
-      <div className="flex items-center justify-end mb-3">
+      <div className="flex items-center justify-end gap-2 flex-wrap mb-3">
+        <TrendChips weeklyDelta={summary.weeklyDelta} waistPerKg={summary.waistPerKg} />
         <FreshnessChips
           daysSinceWeight={summary.daysSinceWeight}
           daysSinceWaist={summary.daysSinceWaist}

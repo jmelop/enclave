@@ -24,6 +24,8 @@ export interface BodySummary {
   maxWeight: number | null
   totalDelta: number | null
   spanDays: number | null
+  /** ma7 now minus ma7 exactly 7 days back. Null without a point at that date. */
+  weeklyDelta: number | null
   /** cm of waist per kg of bodyweight gained. Low = the gain is mostly muscle. */
   waistPerKg: number | null
   daysSinceWeight: number | null
@@ -259,6 +261,20 @@ function waistPerKg(
   return round2(((lastWaist.waist as number) - (firstWaist.waist as number)) / dWeight)
 }
 
+// ma7 now against ma7 exactly one week back. Requires an entry on that precise
+// date — no nearest-match — so an irregular log yields null rather than a
+// comparison across an arbitrary span.
+function weeklyDelta(trend: TrendPoint[]): number | null {
+  const last = trend[trend.length - 1]
+  if (!last || last.ma7 === null) return null
+
+  const target = dayNumber(last.date) - MA_WINDOW_DAYS
+  const prev = trend.find(t => dayNumber(t.date) === target)
+  if (!prev || prev.ma7 === null) return null
+
+  return round2(last.ma7 - prev.ma7)
+}
+
 // Single assembly point for GET /body, shared by the DB and seed paths.
 export function buildBodyResponse<E extends BodyRow>(
   entries: E[],
@@ -295,6 +311,7 @@ export function buildBodyResponse<E extends BodyRow>(
       maxWeight: weights.length > 0 ? Math.max(...weights) : null,
       totalDelta: spanned ? round2(last.weight - first.weight) : null,
       spanDays: spanned ? daysBetween(first.date, last.date) : null,
+      weeklyDelta: weeklyDelta(trend),
       waistPerKg: waistPerKg(first, last, firstWaist, lastWaist),
       ...freshness(today, last?.date ?? null, lastWaist?.date ?? null, lastSessionDate),
     },
