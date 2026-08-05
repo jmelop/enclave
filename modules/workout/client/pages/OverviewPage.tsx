@@ -81,7 +81,7 @@ export default function OverviewPage() {
     <>
       {/* Freshness — on the landing page, where it can remind before logging */}
       <div className="flex items-center justify-end gap-2 flex-wrap mb-3">
-        <TrendChips weeklyDelta={summary.weeklyDelta} waistPerKg={summary.waistPerKg} />
+        <TrendChips weeklyDelta={summary.weeklyDelta} weeklyDeltaDays={summary.weeklyDeltaDays} waistPerKg={summary.waistPerKg} />
         <FreshnessChips
           daysSinceWeight={summary.daysSinceWeight}
           daysSinceWaist={summary.daysSinceWaist}

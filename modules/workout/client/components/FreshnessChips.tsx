@@ -56,17 +56,20 @@ export function FreshnessChips({ daysSinceWeight, daysSinceWaist }: {
 
 // No colour semantics: during a bulk, gaining weight is the point. The sign is
 // the only signal — the app takes no view on direction.
-export function TrendChips({ weeklyDelta, waistPerKg }: {
+export function TrendChips({ weeklyDelta, weeklyDeltaDays, waistPerKg }: {
   weeklyDelta: number | null;
+  weeklyDeltaDays: number | null;
   waistPerKg: number | null;
 }) {
+  // The chip shows the rate normalised to a week; the tooltip shows the real
+  // gap it was measured over, so a 5-day reading isn't mistaken for a 7-day one.
+  const weeklyTitle = weeklyDelta == null || weeklyDeltaDays == null
+    ? 'No comparable reading around one week ago'
+    : `${signed(weeklyDelta, 'kg')}/week · measured over ${weeklyDeltaDays} days`;
+
   return (
     <>
-      <Chip
-        name="7d"
-        value={signed(weeklyDelta, 'kg')}
-        title="Change in the 7-day average against one week ago"
-      />
+      <Chip name="7d" value={signed(weeklyDelta, 'kg')} title={weeklyTitle} />
       <Chip
         name="ratio"
         value={signed(waistPerKg, 'cm/kg')}

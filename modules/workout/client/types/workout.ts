@@ -46,6 +46,7 @@ export type BodySummary = {
   totalDelta: number | null
   spanDays: number | null
   weeklyDelta: number | null
+  weeklyDeltaDays: number | null
   waistPerKg: number | null
   daysSinceWeight: number | null
   daysSinceWaist: number | null

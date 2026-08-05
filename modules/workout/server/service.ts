@@ -24,8 +24,10 @@ export interface BodySummary {
   maxWeight: number | null
   totalDelta: number | null
   spanDays: number | null
-  /** ma7 now minus ma7 exactly 7 days back. Null without a point at that date. */
+  /** ma7 change against ~a week ago, normalised to 7 days. */
   weeklyDelta: number | null
+  /** Actual gap in days between the two points weeklyDelta used. */
+  weeklyDeltaDays: number | null
   /** cm of waist per kg of bodyweight gained. Low = the gain is mostly muscle. */
   waistPerKg: number | null
   daysSinceWeight: number | null
@@ -264,15 +266,40 @@ function waistPerKg(
 // ma7 now against ma7 exactly one week back. Requires an entry on that precise
 // date — no nearest-match — so an irregular log yields null rather than a
 // comparison across an arbitrary span.
-function weeklyDelta(trend: TrendPoint[]): number | null {
+// How far either side of the 7-day mark a comparison point may sit.
+const WEEKLY_DELTA_TOLERANCE = 2
+
+function weeklyDelta(
+  trend: TrendPoint[],
+): Pick<BodySummary, 'weeklyDelta' | 'weeklyDeltaDays'> {
+  const none = { weeklyDelta: null, weeklyDeltaDays: null }
   const last = trend[trend.length - 1]
-  if (!last || last.ma7 === null) return null
+  if (!last || last.ma7 === null) return none
 
-  const target = dayNumber(last.date) - MA_WINDOW_DAYS
-  const prev = trend.find(t => dayNumber(t.date) === target)
-  if (!prev || prev.ma7 === null) return null
+  const lastDay = dayNumber(last.date)
+  const target = lastDay - MA_WINDOW_DAYS
 
-  return round2(last.ma7 - prev.ma7)
+  // trend is date-ascending, so a strict `<` keeps the OLDER point on a tie —
+  // a longer interval carries less noise.
+  let best: TrendPoint | null = null
+  let bestDist = Infinity
+  for (const t of trend) {
+    if (t.ma7 === null) continue
+    const dist = Math.abs(dayNumber(t.date) - target)
+    if (dist > WEEKLY_DELTA_TOLERANCE) continue
+    if (dist < bestDist) { best = t; bestDist = dist }
+  }
+  if (!best) return none
+
+  const gap = lastDay - dayNumber(best.date)
+  if (gap <= 0) return none
+
+  // Normalised to 7 days: a 5-day gap compared against a weekly threshold
+  // would read as a smaller change than it is.
+  return {
+    weeklyDelta: round2(((last.ma7 - (best.ma7 as number)) / gap) * MA_WINDOW_DAYS),
+    weeklyDeltaDays: gap,
+  }
 }
 
 // Single assembly point for GET /body, shared by the DB and seed paths.
@@ -311,7 +338,7 @@ export function buildBodyResponse<E extends BodyRow>(
       maxWeight: weights.length > 0 ? Math.max(...weights) : null,
       totalDelta: spanned ? round2(last.weight - first.weight) : null,
       spanDays: spanned ? daysBetween(first.date, last.date) : null,
-      weeklyDelta: weeklyDelta(trend),
+      ...weeklyDelta(trend),
       waistPerKg: waistPerKg(first, last, firstWaist, lastWaist),
       ...freshness(today, last?.date ?? null, lastWaist?.date ?? null, lastSessionDate),
     },

@@ -231,7 +231,7 @@ export default function BodyPage() {
           {first && count > 1 && ` · ${formatDate(first.date, { short: true })} → ${formatDate(latest.date, { short: true })}`}
         </p>
         <div className="flex items-center gap-2 flex-wrap">
-          <TrendChips weeklyDelta={summary.weeklyDelta} waistPerKg={summary.waistPerKg} />
+          <TrendChips weeklyDelta={summary.weeklyDelta} weeklyDeltaDays={summary.weeklyDeltaDays} waistPerKg={summary.waistPerKg} />
           <FreshnessChips
             daysSinceWeight={summary.daysSinceWeight}
             daysSinceWaist={summary.daysSinceWaist}
