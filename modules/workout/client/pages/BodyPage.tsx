@@ -6,7 +6,7 @@ import { Plus } from 'lucide-react';
 import LineChart, { ChartLegend } from '../components/LineChart';
 import LogMeasurementModal from '../modals/LogMeasurementModal';
 import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
-import { FreshnessChips } from '../components/FreshnessChips';
+import { FreshnessChips, TrendChips } from '../components/FreshnessChips';
 import { HeroActions } from '../components/HeroActions';
 import { useWorkoutStore } from '../store/workoutStore';
 import { formatDate, todayIso } from '../lib/workoutUtils';
@@ -230,10 +230,13 @@ export default function BodyPage() {
           {count} {count === 1 ? 'entry' : 'entries'}
           {first && count > 1 && ` · ${formatDate(first.date, { short: true })} → ${formatDate(latest.date, { short: true })}`}
         </p>
-        <FreshnessChips
-          daysSinceWeight={summary.daysSinceWeight}
-          daysSinceWaist={summary.daysSinceWaist}
-        />
+        <div className="flex items-center gap-2 flex-wrap">
+          <TrendChips weeklyDelta={summary.weeklyDelta} weeklyDeltaDays={summary.weeklyDeltaDays} waistPerKg={summary.waistPerKg} />
+          <FreshnessChips
+            daysSinceWeight={summary.daysSinceWeight}
+            daysSinceWaist={summary.daysSinceWaist}
+          />
+        </div>
       </div>
 
       {/* Weight chart */}
@@ -257,11 +260,6 @@ export default function BodyPage() {
             {delta != null && (
               <Badge variant="default" className="font-mono">
                 {Number(delta) > 0 ? `+${delta}` : delta} kg
-              </Badge>
-            )}
-            {summary.waistPerKg != null && (
-              <Badge variant="default" className="font-mono" title="Waist change per kg of bodyweight change">
-                {summary.waistPerKg > 0 ? `+${summary.waistPerKg.toFixed(1)}` : summary.waistPerKg.toFixed(1)} cm/kg
               </Badge>
             )}
           </div>
