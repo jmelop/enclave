@@ -24,11 +24,10 @@ export function PortfolioValueChart({ snapshots, activeKey, hideValues, onSelect
   const ih = H - padT - padB
 
   const values = data.map((d) => d.value)
-  const minValue = Math.min(...values)
   const maxValue = Math.max(...values)
-  const span = maxValue - minValue || Math.max(maxValue, 1) * 0.08
-  const minDomain = Math.max(0, minValue - span * 0.45)
-  const maxDomain = maxValue + span * 0.25
+  // zero-based domain: bar heights stay proportional to the actual values
+  const minDomain = 0
+  const maxDomain = maxValue * 1.12 || 1
   const domain = maxDomain - minDomain || 1
   const slot = iw / data.length
   const bw = Math.min(20.4, slot * 0.216)
