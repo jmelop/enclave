@@ -1,8 +1,8 @@
 import { Input } from '@venator-ui/ui'
-import { CATEGORIES, useInventoryStore } from '@/store/inventoryStore'
+import { useInventoryStore } from '@/store/inventoryStore'
 import { catDot } from '@/lib/utils'
 import { catBg, catBorder } from '@/lib/utils'
-import type { CategoryId, Density, ItemStatus, ViewMode } from '@/types/inventory'
+import type { Density, ItemStatus, ViewMode } from '@/types/inventory'
 import { useFilteredItems } from '@/store/inventoryStore'
 
 const STATUS_OPTS: { value: ItemStatus | null; label: string }[] = [
@@ -26,6 +26,7 @@ const DENSITY_OPTS: { value: Density; label: string }[] = [
 
 export function Toolbar() {
   const search         = useInventoryStore((s) => s.search)
+  const categories     = useInventoryStore((s) => s.categories)
   const selectedCat    = useInventoryStore((s) => s.selectedCategory)
   const statusFilter   = useInventoryStore((s) => s.statusFilter)
   const sortBy         = useInventoryStore((s) => s.sortBy)
@@ -60,13 +61,13 @@ export function Toolbar() {
             <span className="chip-dot" style={{ background: 'var(--fg-2)' }} />
             All
           </button>
-          {CATEGORIES.map((c) => {
+          {categories.map((c) => {
             const sel = selectedCat === c.id
             return (
               <button
                 key={c.id}
                 className={`chip ${sel ? 'sel' : ''}`}
-                onClick={() => setCategory(sel ? null : (c.id as CategoryId))}
+                onClick={() => setCategory(sel ? null : c.id)}
                 style={
                   sel
                     ? { borderColor: catBorder(c.hue), background: catBg(c.hue) }

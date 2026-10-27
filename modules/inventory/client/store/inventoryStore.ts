@@ -1,10 +1,8 @@
 import { useMemo } from 'react'
 import { create } from 'zustand'
-import type { CategoryId, Density, InventoryItem, ItemInput, ItemStatus, ViewMode } from '@/types/inventory'
+import type { Category, CategoryId, CategoryInput, Density, InventoryItem, ItemInput, ItemStatus, ViewMode } from '@/types/inventory'
 import { CATEGORIES } from '@/lib/seed'
 import { deriveStatus } from '@/lib/utils'
-
-export { CATEGORIES }
 
 // Raw shape returned by the API (no status — derived client-side).
 type ApiItem = Omit<InventoryItem, 'status'>
@@ -16,8 +14,27 @@ async function fetchItems(): Promise<InventoryItem[]> {
   return raw.map((item) => ({ ...item, status: deriveStatus(item.qty) }))
 }
 
+async function fetchCategories(): Promise<Category[]> {
+  const res = await fetch('/api/inventory/categories')
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return (await res.json()) as Category[]
+}
+
+async function sendJson(url: string, method: string, body: unknown): Promise<void> {
+  const res = await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    const data = (await res.json()) as { error?: string }
+    throw new Error(data.error ?? `HTTP ${res.status}`)
+  }
+}
+
 interface InventoryState {
   items: InventoryItem[]
+  categories: Category[]
   loading: boolean
   error: string | null
   hydrated: boolean
@@ -36,6 +53,8 @@ interface InventoryState {
   updateItem: (id: string, input: ItemInput) => Promise<void>
   adjustQty: (id: string, delta: number) => Promise<void>
   deleteItem: (id: string) => Promise<void>
+  createCategory: (input: CategoryInput) => Promise<void>
+  updateCategory: (id: CategoryId, input: CategoryInput) => Promise<void>
 
   setView: (mode: ViewMode) => void
   setDensity: (density: Density) => void
@@ -48,6 +67,7 @@ interface InventoryState {
 
 export const useInventoryStore = create<InventoryState>()((set, get) => ({
   items: [],
+  categories: CATEGORIES,
   loading: false,
   error: null,
   hydrated: false,
@@ -64,8 +84,8 @@ export const useInventoryStore = create<InventoryState>()((set, get) => ({
     if (get().hydrated || get().loading) return
     set({ loading: true, error: null })
     try {
-      const items = await fetchItems()
-      set({ items, hydrated: true, error: null, loading: false })
+      const [items, categories] = await Promise.all([fetchItems(), fetchCategories()])
+      set({ items, categories, hydrated: true, error: null, loading: false })
     } catch (err) {
       set({ error: err instanceof Error ? err.message : 'Network error', hydrated: false, loading: false })
     }
@@ -74,8 +94,8 @@ export const useInventoryStore = create<InventoryState>()((set, get) => ({
   refetch: async () => {
     set({ loading: true, error: null })
     try {
-      const items = await fetchItems()
-      set({ items, hydrated: true, error: null, loading: false })
+      const [items, categories] = await Promise.all([fetchItems(), fetchCategories()])
+      set({ items, categories, hydrated: true, error: null, loading: false })
     } catch (err) {
       set({ error: err instanceof Error ? err.message : 'Network error', loading: false })
     }
@@ -130,6 +150,16 @@ export const useInventoryStore = create<InventoryState>()((set, get) => ({
     await get().refetch()
   },
 
+  createCategory: async (input: CategoryInput) => {
+    await sendJson('/api/inventory/categories', 'POST', input)
+    set({ categories: await fetchCategories() })
+  },
+
+  updateCategory: async (id: CategoryId, input: CategoryInput) => {
+    await sendJson(`/api/inventory/categories/${id}`, 'PUT', input)
+    set({ categories: await fetchCategories() })
+  },
+
   setView: (mode) => set({ viewMode: mode }),
   setDensity: (density) => set({ density }),
   setSearch: (search) => set({ search }),
@@ -145,6 +175,10 @@ export function useSelectedItem(): InventoryItem | null {
   return useInventoryStore((s) =>
     s.selectedId == null ? null : (s.items.find((i) => i.id === s.selectedId) ?? null)
   )
+}
+
+export function useCategory(id: CategoryId | undefined): Category | undefined {
+  return useInventoryStore((s) => s.categories.find((c) => c.id === id))
 }
 
 export function useFilteredItems() {

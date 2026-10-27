@@ -1,17 +1,18 @@
 import type { ModuleClientConfig } from '@enclave/sdk';
 import '../client/styles/globals.css';
 import { inventoryMeta } from './meta';
-import { InventoryPage } from '../client/pages/Inventory';
+import InventoryApp from '../client/InventoryApp';
 
 export const inventoryClient: ModuleClientConfig = {
   id: inventoryMeta.id,
   navLabel: 'Inventory',
   basePath: inventoryMeta.basePath,
   routes: [
-    { index: true, element: <InventoryPage /> },
+    { path: '*', element: <InventoryApp /> },
   ],
   nav: [
-    { label: 'Inventory', path: '', icon: 'grid' },
+    { label: 'Inventory',  path: '',           icon: 'grid' },
+    { label: 'Categories', path: 'categories', icon: 'pie-chart' },
   ],
   accent: 'linear-gradient(135deg, #6ee7b7, #059669)',
   portal: {

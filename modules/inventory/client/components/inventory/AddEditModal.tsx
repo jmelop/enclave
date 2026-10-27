@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { Button, Input, Modal, ModalContent, ModalFooter, ModalHeader } from '@venator-ui/ui'
-import { CATEGORIES } from '@/store/inventoryStore'
+import { useInventoryStore } from '@/store/inventoryStore'
 import { catBg, catBorder, catDot } from '@/lib/utils'
+import { useDismissOnOutsideClick } from '@/lib/useDismissOnOutsideClick'
 import type { CategoryId, ItemStatus } from '@/types/inventory'
 
 export interface ItemDraft {
@@ -36,6 +37,8 @@ interface AddEditModalProps {
 
 export function AddEditModal({ open, draft, isEdit, onChange, onCancel, onSave }: AddEditModalProps) {
   const firstRef = useRef<HTMLInputElement>(null)
+  useDismissOnOutsideClick(open, onCancel)
+  const categories = useInventoryStore((s) => s.categories)
 
   useEffect(() => {
     if (open && firstRef.current) firstRef.current.focus()
@@ -51,7 +54,7 @@ export function AddEditModal({ open, draft, isEdit, onChange, onCancel, onSave }
       open={open}
       onClose={onCancel}
       size="xl"
-      className="inventory-modal !border-[var(--border-default)] !rounded-[12px]"
+      className="inventory-modal !rounded-[12px]"
       backdropClassName="inventory-modal-backdrop"
     >
       <ModalHeader
@@ -77,13 +80,13 @@ export function AddEditModal({ open, draft, isEdit, onChange, onCancel, onSave }
           <div className="field f-full">
             <label>Category</label>
             <div className="cat-grid">
-              {CATEGORIES.map((c) => {
+              {categories.map((c) => {
                 const sel = draft.category === c.id
                 return (
                   <button
                     type="button"
                     key={c.id}
-                    onClick={() => set('category', c.id as CategoryId)}
+                    onClick={() => set('category', c.id)}
                     className={`cat-chip ${sel ? 'sel' : ''}`}
                     style={sel ? { background: catBg(c.hue), borderColor: catBorder(c.hue) } : {}}
                   >
@@ -176,11 +179,10 @@ export function AddEditModal({ open, draft, isEdit, onChange, onCancel, onSave }
 
       <ModalFooter className="inventory-modal-footer">
         <div className="modal-hint mono">↵ to save · ESC to cancel</div>
-        <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-        <Button variant="ghost" disabled={!valid} onClick={onSave}
-          style={{ background: 'var(--enclave-amber)', color: '#000', borderColor: 'var(--enclave-amber)' }}>
+        <button type="button" className="inv-btn inv-btn-ghost" onClick={onCancel}>Cancel</button>
+        <button type="button" className="inv-btn inv-btn-primary" disabled={!valid} onClick={onSave}>
           {isEdit ? 'Save changes' : 'Add item'}
-        </Button>
+        </button>
       </ModalFooter>
     </Modal>
   )

@@ -4,7 +4,7 @@ import { CatBadge } from '@/components/ui/CatBadge'
 import { StatusPill } from '@/components/ui/StatusPill'
 // TODO: historial fuera de alcance — ver rama futura feat/inventory-history
 // import { HistoryChart } from './HistoryChart'
-import { CATEGORIES, useInventoryStore } from '@/store/inventoryStore'
+import { useCategory, useInventoryStore } from '@/store/inventoryStore'
 import { catAccent } from '@/lib/utils'
 import type { InventoryItem } from '@/types/inventory'
 import { ConfirmDeleteModal } from './ConfirmDeleteModal'
@@ -24,7 +24,7 @@ export function DetailPanel({ item, displayIndex, onClose, onEdit }: DetailPanel
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
-  const c = item ? CATEGORIES.find((x) => x.id === item.category) : null
+  const c = useCategory(item?.category)
   const accent = c ? catAccent(c.hue) : 'var(--fg)'
 
   useEffect(() => {

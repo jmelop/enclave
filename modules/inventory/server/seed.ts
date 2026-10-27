@@ -36,3 +36,13 @@ export const INITIAL_ITEMS: SeedItem[] = [
   { id:'021', name:'SKB Organizer Case',          category:'other', model:'SKB-iSeries-1209',qty:2,  location:'Under table',              notes:'Water-resistant. For taking to hackathons.', updated:'2025-07-12' },
   { id:'022', name:'Transistor 2N2222 NPN',       category:'elec',  model:'2N2222A-TO92',    qty:18, location:'Yellow bag',               notes:'General purpose switching.', updated:'2026-02-25' },
 ]
+
+// Fallback served by GET /categories when inventory_categories is empty or unavailable.
+export const SEED_CATEGORIES = [
+  { id: 'pc',    label: 'PC Components',    short: 'PC',    hue: 220 },
+  { id: 'mcu',   label: 'Microcontrollers', short: 'MCU',   hue: 160 },
+  { id: 'elec',  label: 'Electronics',      short: 'ELEC',  hue: 80  },
+  { id: 'tools', label: 'Tools',            short: 'TOOLS', hue: 300 },
+  { id: 'cable', label: 'Cables & Conn.',   short: 'CABLE', hue: 350 },
+  { id: 'other', label: 'Other',            short: 'OTHER', hue: 260 },
+]

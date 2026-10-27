@@ -1,4 +1,4 @@
-import { CATEGORIES } from '@/store/inventoryStore'
+import { useCategory } from '@/store/inventoryStore'
 import { catBg, catBorder, catDot, catFg } from '@/lib/utils'
 import type { CategoryId } from '@/types/inventory'
 
@@ -8,7 +8,7 @@ interface CatBadgeProps {
 }
 
 export function CatBadge({ catId, dense }: CatBadgeProps) {
-  const c = CATEGORIES.find((x) => x.id === catId)
+  const c = useCategory(catId)
   if (!c) return null
   return (
     <span

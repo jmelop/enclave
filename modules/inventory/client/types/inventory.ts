@@ -1,9 +1,17 @@
 export type ItemStatus = 'in' | 'low' | 'out'
 
-export type CategoryId = 'pc' | 'mcu' | 'elec' | 'tools' | 'cable' | 'other'
+// User-defined slug from inventory_categories (e.g. 'elec', 'pla-filament').
+export type CategoryId = string
 
 export interface Category {
   id: CategoryId
+  label: string
+  short: string
+  hue: number
+}
+
+// Fields accepted by POST /categories and PUT /categories/:id
+export interface CategoryInput {
   label: string
   short: string
   hue: number
