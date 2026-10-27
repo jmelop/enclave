@@ -494,7 +494,7 @@ button { font-family: inherit; }
 }
 .list-head, .item-row {
   display: grid;
-  grid-template-columns: 48px 110px minmax(160px, 1.4fr) minmax(140px, 1fr) 70px 90px minmax(140px, 1fr) 24px;
+  grid-template-columns: 48px 110px minmax(160px, 1.4fr) minmax(120px, 1fr) 70px 90px minmax(120px, 1fr) minmax(140px, 1.2fr) 24px;
   gap: 14px; align-items: center; padding: 10px 16px;
 }
 .list-head {
@@ -512,10 +512,22 @@ button { font-family: inherit; }
 .ir-idx { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--fg-4); }
 .ir-name { font-weight: 500; }
 .ir-model { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--fg-3); }
+.ir-name, .ir-model, .ir-notes { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ir-notes { font-size: 12px; color: var(--fg-3); }
 .ir-qty { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--fg); }
 .ir-qty-u { font-size: 10px; color: var(--fg-4); margin-left: 2px; }
 .ir-loc { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ir-arrow { color: var(--fg-4); font-size: 13px; }
+
+/* sortable headers — namespaced (inv-) to avoid cross-module collisions */
+.list-head .inv-sort {
+  appearance: none; background: none; border: 0; padding: 0; margin: 0;
+  font: inherit; letter-spacing: inherit; color: var(--fg-3); text-align: left;
+  display: inline-flex; align-items: center; gap: 5px; min-width: 0; cursor: pointer;
+}
+.list-head .inv-sort:hover, .list-head .inv-sort.active { color: var(--fg); }
+.inv-sort-arrow { font-size: 8px; opacity: 0.35; }
+.inv-sort.active .inv-sort-arrow { opacity: 1; color: var(--fg-2); }
 
 .catalog-list.dense-compact .item-row { padding: 6px 16px; font-size: 12.5px; }
 .catalog-list.dense-comfy .item-row { padding: 14px 16px; }

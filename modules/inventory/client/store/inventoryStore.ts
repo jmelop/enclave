@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { create } from 'zustand'
-import type { Category, CategoryId, CategoryInput, Density, InventoryItem, ItemInput, ItemStatus, ViewMode } from '@/types/inventory'
+import type { Category, CategoryId, CategoryInput, Density, InventoryItem, ItemInput, ItemStatus, SortDir, SortKey, ViewMode } from '@/types/inventory'
 import { CATEGORIES } from '@/lib/seed'
 import { deriveStatus } from '@/lib/utils'
 
@@ -43,7 +43,8 @@ interface InventoryState {
   density: Density
   selectedCategory: CategoryId | null
   statusFilter: ItemStatus | null
-  sortBy: 'id' | 'name' | 'qty'
+  sortBy: SortKey
+  sortDir: SortDir
   search: string
   selectedId: string | null   // stores only the id; item is derived live from items[]
 
@@ -61,7 +62,7 @@ interface InventoryState {
   setSearch: (q: string) => void
   setCategory: (cat: CategoryId | null) => void
   setStatusFilter: (s: ItemStatus | null) => void
-  setSortBy: (s: 'id' | 'name' | 'qty') => void
+  setSortBy: (key: SortKey) => void   // same key flips the direction
   setSelectedId: (id: string | null) => void
 }
 
@@ -77,6 +78,7 @@ export const useInventoryStore = create<InventoryState>()((set, get) => ({
   selectedCategory: null,
   statusFilter: null,
   sortBy: 'id',
+  sortDir: 'asc',
   search: '',
   selectedId: null,
 
@@ -165,7 +167,11 @@ export const useInventoryStore = create<InventoryState>()((set, get) => ({
   setSearch: (search) => set({ search }),
   setCategory: (selectedCategory) => set({ selectedCategory }),
   setStatusFilter: (statusFilter) => set({ statusFilter }),
-  setSortBy: (sortBy) => set({ sortBy }),
+  setSortBy: (key) => set((s) =>
+    s.sortBy === key
+      ? { sortDir: s.sortDir === 'asc' ? 'desc' : 'asc' }
+      : { sortBy: key, sortDir: key === 'qty' ? 'desc' : 'asc' }
+  ),
   setSelectedId: (selectedId) => set({ selectedId }),
 }))
 
@@ -181,12 +187,27 @@ export function useCategory(id: CategoryId | undefined): Category | undefined {
   return useInventoryStore((s) => s.categories.find((c) => c.id === id))
 }
 
+const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
+
+const STATUS_RANK: Record<ItemStatus, number> = { in: 0, low: 1, out: 2 }
+
+function sortValue(it: InventoryItem, key: SortKey, catLabel: Map<string, string>): string | number {
+  switch (key) {
+    case 'qty':      return it.qty
+    case 'status':   return STATUS_RANK[it.status]
+    case 'category': return catLabel.get(it.category) ?? it.category
+    default:         return it[key].trim()
+  }
+}
+
 export function useFilteredItems() {
   const items            = useInventoryStore((s: InventoryState) => s.items)
   const search           = useInventoryStore((s: InventoryState) => s.search)
   const selectedCategory = useInventoryStore((s: InventoryState) => s.selectedCategory)
   const statusFilter     = useInventoryStore((s: InventoryState) => s.statusFilter)
   const sortBy           = useInventoryStore((s: InventoryState) => s.sortBy)
+  const sortDir          = useInventoryStore((s: InventoryState) => s.sortDir)
+  const categories       = useInventoryStore((s: InventoryState) => s.categories)
 
   return useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -198,11 +219,18 @@ export function useFilteredItems() {
         (v) => v && v.toLowerCase().includes(q),
       )
     })
+    const catLabel = new Map(categories.map((c) => [c.id, c.label]))
+    const sign = sortDir === 'asc' ? 1 : -1
     out.sort((a, b) => {
-      if (sortBy === 'name') return a.name.localeCompare(b.name)
-      if (sortBy === 'qty') return b.qty - a.qty
-      return a.id.localeCompare(b.id)
+      const va = sortValue(a, sortBy, catLabel)
+      const vb = sortValue(b, sortBy, catLabel)
+      // Empty text cells stay at the bottom in both directions.
+      if (va === '' || vb === '') return va === vb ? 0 : va === '' ? 1 : -1
+      const cmp = typeof va === 'number' && typeof vb === 'number'
+        ? va - vb
+        : collator.compare(String(va), String(vb))
+      return cmp * sign || collator.compare(a.name, b.name)
     })
     return out
-  }, [items, search, selectedCategory, statusFilter, sortBy])
+  }, [items, search, selectedCategory, statusFilter, sortBy, sortDir, categories])
 }
