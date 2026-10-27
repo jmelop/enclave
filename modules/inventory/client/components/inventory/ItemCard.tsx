@@ -2,7 +2,7 @@ import { CatBadge } from '@/components/ui/CatBadge'
 import { StatusPill } from '@/components/ui/StatusPill'
 import { Bracket } from '@/components/ui/Bracket'
 import { catAccent } from '@/lib/utils'
-import { CATEGORIES } from '@/store/inventoryStore'
+import { useCategory } from '@/store/inventoryStore'
 import type { InventoryItem } from '@/types/inventory'
 
 interface ItemCardProps {
@@ -13,7 +13,7 @@ interface ItemCardProps {
 }
 
 export function ItemCard({ item, index, showCoord = true, onOpen }: ItemCardProps) {
-  const c = CATEGORIES.find((x) => x.id === item.category)
+  const c = useCategory(item.category)
   const accent = c ? catAccent(c.hue) : 'var(--fg)'
 
   return (

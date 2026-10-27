@@ -1,8 +1,9 @@
 import { StatCard } from '@venator-ui/patterns'
-import { useInventoryStore, CATEGORIES } from '@/store/inventoryStore'
+import { useInventoryStore } from '@/store/inventoryStore'
 
 export function StatCards() {
   const items = useInventoryStore((s) => s.items)
+  const catCount = useInventoryStore((s) => s.categories.length)
 
   const total      = items.length
   const cats       = new Set(items.map((i) => i.category)).size
@@ -13,7 +14,7 @@ export function StatCards() {
   return (
     <div className="grid grid-cols-4 gap-3.5 mb-8">
       <StatCard title="Total Items"       value={total}    description={`${totalUnits} units across all categories`} />
-      <StatCard title="Active Categories" value={cats}     description={`of ${CATEGORIES.length} available · all populated`} />
+      <StatCard title="Active Categories" value={cats}     description={`of ${catCount} available`} />
       <StatCard title="Low Stock"         value={lowCount} description="needs reorder soon"              valueClassName="!text-warn" />
       <StatCard title="Out of Stock"      value={outCount} description="quantity = 0 · action required"  valueClassName="!text-danger" />
     </div>

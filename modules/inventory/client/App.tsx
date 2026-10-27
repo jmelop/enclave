@@ -1,10 +1,10 @@
 import { AppShell } from '@/components/layout/AppShell'
-import { InventoryPage } from '@/pages/Inventory'
+import InventoryApp from './InventoryApp'
 
 export default function App() {
   return (
     <AppShell>
-      <InventoryPage />
+      <InventoryApp />
     </AppShell>
   )
 }

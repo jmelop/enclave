@@ -1,4 +1,5 @@
 import { Modal, ModalHeader, ModalContent, ModalFooter, Button } from '@venator-ui/ui'
+import { useDismissOnOutsideClick } from '@/lib/useDismissOnOutsideClick'
 
 interface ConfirmDeleteModalProps {
   open: boolean
@@ -17,8 +18,9 @@ export function ConfirmDeleteModal({
   onConfirm,
   onCancel,
 }: ConfirmDeleteModalProps) {
+  useDismissOnOutsideClick(open, () => !loading && onCancel())
   return (
-    <Modal open={open} onClose={() => !loading && onCancel()} size="sm" backdropClassName="!bg-[color-mix(in_oklab,var(--bg)_28%,transparent)] backdrop-blur-[3px]">
+    <Modal open={open} onClose={() => !loading && onCancel()} size="sm" backdropClassName="inventory-modal-backdrop">
       <ModalHeader title={title} onClose={() => !loading && onCancel()} />
       <ModalContent>
         <p style={{ margin: 0, fontSize: 14, color: 'var(--fg-2)', lineHeight: 1.55 }}>

@@ -612,16 +612,13 @@ button { font-family: inherit; }
   animation: fadeIn 160ms ease-out;
 }
 .inventory-modal-backdrop {
-  background: color-mix(in oklab, var(--bg) 28%, transparent) !important;
+  background: rgba(0, 0, 0, 0.55) !important;
   backdrop-filter: blur(3px) !important;
   -webkit-backdrop-filter: blur(3px) !important;
 }
-html[data-theme="light"] .inventory-modal-backdrop {
-  background: color-mix(in oklab, var(--bg) 28%, transparent) !important;
-}
 .inventory-modal {
   --bg:   #08090b;
-  --bg-1: #0c0d10;
+  --bg-1: #111214;
   --bg-2: #111317;
   --bg-3: #1c2028;
   --fg:   #f5f6f7;
@@ -636,13 +633,16 @@ html[data-theme="light"] .inventory-modal-backdrop {
   --danger:  #f87171;
   --border-subtle:  rgba(255, 255, 255, 0.08);
   --border-default: rgba(255, 255, 255, 0.14);
+  --modal-border:   rgba(255, 255, 255, 0.11);
   max-width: min(760px, calc(100vw - 32px)) !important;
   max-height: calc(100vh - 32px);
   display: flex;
   flex-direction: column;
   color: var(--fg);
   font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  box-shadow: 0 34px 90px rgba(0, 0, 0, 0.68), 0 0 0 1px var(--border-subtle) !important;
+  /* Same surface as budget's .modal so it stands out from the scrim */
+  border: 1px solid var(--modal-border) !important;
+  box-shadow: 0 34px 90px rgba(0, 0, 0, 0.68) !important;
 }
 html[data-theme="light"] .inventory-modal {
   --bg:   #fafafa;
@@ -661,6 +661,7 @@ html[data-theme="light"] .inventory-modal {
   --danger:  #dc2626;
   --border-subtle:  rgba(0, 0, 0, 0.08);
   --border-default: rgba(0, 0, 0, 0.14);
+  --modal-border:   rgba(0, 0, 0, 0.11);
 }
 .inventory-modal-header {
   flex-shrink: 0;
@@ -752,3 +753,54 @@ html[data-theme="light"] .inventory-modal {
   .list-head { display: none; }
   .item-row { grid-template-columns: 1fr; gap: 4px; }
 }
+
+/* ============================================================
+   CATEGORIES PAGE — namespaced (inv-) to avoid cross-module collisions
+   ============================================================ */
+.inv-cat-layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: start; }
+.inv-cat-stack { display: flex; gap: 2px; height: 10px; border-radius: 5px; overflow: hidden; background: var(--bg-3); }
+.inv-cat-row {
+  display: grid;
+  grid-template-columns: 36px minmax(120px, 1fr) 180px 110px;
+  gap: 16px; align-items: center;
+  padding: 14px 4px; border-bottom: 1px solid var(--border-subtle);
+}
+.inv-cat-row:last-child { border-bottom: none; }
+.inv-cat-glyph {
+  width: 34px; height: 34px; border-radius: 9px; border: 1px solid;
+  display: grid; place-items: center;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+}
+.inv-cat-share { display: flex; align-items: center; gap: 8px; }
+.inv-cat-track { flex: 1; height: 6px; border-radius: 3px; background: var(--bg-3); overflow: hidden; }
+.inv-cat-fill { height: 100%; border-radius: 3px; }
+.inv-cat-edit {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 10px; border-radius: 8px; background: none; color: var(--fg);
+  border: 1px solid var(--border-subtle); cursor: pointer; transition: 120ms;
+}
+.inv-cat-edit:hover { border-color: var(--border-default); }
+@media (max-width: 860px) { .inv-cat-layout { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) {
+  .inv-cat-row { grid-template-columns: 36px minmax(0, 1fr) auto; }
+  .inv-cat-share { display: none; }
+}
+
+/* ============================================================
+   BUTTONS — sized like budget's .btn; double class beats other modules' globals
+   ============================================================ */
+.inv-btn {
+  /* Matches the amber budget renders in the dashboard (strategy's --accent wins there) */
+  --inv-amber:     #fbbf24;
+  --inv-amber-ink: #000000;
+}
+.inv-btn.inv-btn-ghost, .inv-btn.inv-btn-primary {
+  appearance: none; height: 36px; padding: 0 14px; border-radius: 7px;
+  font: inherit; font-size: 13px; font-weight: 500; letter-spacing: -0.005em;
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer; transition: 120ms;
+}
+.inv-btn.inv-btn-ghost { background: transparent; color: var(--fg); border: 1px solid var(--border-subtle); }
+.inv-btn.inv-btn-ghost:hover { background: var(--bg-2); border-color: var(--border-default); }
+.inv-btn.inv-btn-primary { background: var(--inv-amber); color: var(--inv-amber-ink); border: 1px solid var(--inv-amber); }
+.inv-btn.inv-btn-primary:hover { filter: brightness(0.92); }
+.inv-btn.inv-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; filter: none; }
