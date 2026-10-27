@@ -17,7 +17,7 @@ export function StockPage() {
 
       <footer className="stk-page-foot mono">
         <span>END · {rows.length} / {total} products</span>
-        <span className="dim">table stock_products · build 2026.10</span>
+        <span className="dim">enclave/stock · build 2026.10</span>
       </footer>
     </>
   )

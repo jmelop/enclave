@@ -231,8 +231,8 @@ button { font-family: inherit; }
 /* ── canvas ── */
 .stk-canvas {
   flex: 1;
-  padding: 26px 40px 56px;
-  max-width: 1480px;
+  padding: 22px 28px 60px;
+  max-width: 1920px;
   width: 100%;
   margin: 0 auto;
   min-width: 0;
@@ -313,7 +313,7 @@ button { font-family: inherit; }
 }
 .stk-hero-tag { font-size: 10.5px; color: var(--fg-3); letter-spacing: 0.08em; margin-bottom: 12px; text-transform: uppercase; }
 .stk-hero-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
-.stk-hero-title { font-size: 56px; line-height: 1; font-weight: 500; letter-spacing: -0.035em; margin: 0; color: var(--fg); }
+.stk-hero-title { font-size: 30px; line-height: 1.1; font-weight: 600; letter-spacing: -0.02em; margin: 0; color: var(--fg); }
 .stk-hero-dot { color: var(--warn); }
 .stk-hero-actions { display: flex; gap: 10px; }
 .stk-hero-sub { color: var(--fg-3); font-size: 14px; margin-top: 12px; max-width: 640px; }
@@ -591,10 +591,9 @@ button { font-family: inherit; }
   .stk-ticker { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .stk-tk-cell:nth-child(4) { border-left: 0; }
   .stk-tk-cell:nth-child(n + 4) { border-top: 1px solid var(--border-subtle); }
-  .stk-canvas { padding: 22px 24px 40px; }
+  .stk-canvas { padding: 28px 24px 40px; }
 }
 @media (max-width: 880px) {
-  .stk-hero-title { font-size: 40px; }
   .stk-ticker { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .stk-tk-cell:nth-child(4) { border-left: 1px solid var(--border-subtle); }
   .stk-tk-cell:nth-child(odd) { border-left: 0; }
