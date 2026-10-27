@@ -40,6 +40,7 @@ const chains = new Map<string, Promise<void>>()
 interface StockState {
   products: StockProduct[]
   draftIds: string[]      // local rows waiting for a name before the first POST
+  rowKeys: Record<string, string>  // real id → its draft id, so the row isn't remounted mid-typing
   loading: boolean
   error: string | null
   saveError: string | null
@@ -90,9 +91,10 @@ export const useStockStore = create<StockState>()((set, get) => {
         set((s) => ({
           products: s.products.map((x) => (x.id === id ? { ...x, id: saved.id, created_at: saved.created_at, updated_at: saved.updated_at } : x)),
           draftIds: s.draftIds.filter((d) => d !== id),
+          rowKeys: { ...s.rowKeys, [saved.id]: id },
           newIds: s.newIds.map(swap),
           openId: s.openId && swap(s.openId),
-          focusId: s.focusId && swap(s.focusId),
+          focusId: null,
         }))
         // Edits typed while the POST was in flight still need saving under the real id.
         const now = get().products.find((x) => x.id === saved.id)
@@ -150,6 +152,7 @@ export const useStockStore = create<StockState>()((set, get) => {
   return {
     products: [],
     draftIds: [],
+    rowKeys: {},
     loading: false,
     error: null,
     saveError: null,

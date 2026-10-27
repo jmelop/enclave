@@ -20,6 +20,7 @@ export function Ledger({ rows }: { rows: LedgerProduct[] }) {
   const openId          = useStockStore((s) => s.openId)
   const focusId         = useStockStore((s) => s.focusId)
   const newIds          = useStockStore((s) => s.newIds)
+  const rowKeys         = useStockStore((s) => s.rowKeys)
   const sortBy          = useStockStore((s) => s.sortBy)
   const sortDir         = useStockStore((s) => s.sortDir)
   const setSortBy       = useStockStore((s) => s.setSortBy)
@@ -77,7 +78,7 @@ export function Ledger({ rows }: { rows: LedgerProduct[] }) {
           {rows.map((p) => {
             const open = openId === p.id
             return (
-              <Fragment key={p.id}>
+              <Fragment key={rowKeys[p.id] ?? p.id}>
                 <LedgerRow
                   p={p}
                   open={open}
