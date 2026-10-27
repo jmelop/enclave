@@ -1,6 +1,7 @@
 import type { Pool } from 'pg';
 import { createPortfolioServer } from '../../../modules/portfolio/module/server.config';
 import { createInventoryServer } from '../../../modules/inventory/module/server.config';
+import { createStockServer } from '../../../modules/stock/module/server.config';
 import { createLabServer } from '../../../modules/lab/module/server.config';
 import { createBudgetServer } from '../../../modules/budget/module/server.config';
 import { createStrategyServer } from '../../../modules/strategy/module/server.config';
@@ -11,6 +12,7 @@ export function createModules(pool: Pool) {
   return [
     createPortfolioServer(pool),
     createInventoryServer(pool),
+    createStockServer(pool),
     createLabServer(pool),
     createBudgetServer(pool),
     createStrategyServer(pool),
