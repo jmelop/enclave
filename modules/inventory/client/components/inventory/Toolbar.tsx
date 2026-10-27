@@ -2,7 +2,7 @@ import { Input } from '@venator-ui/ui'
 import { useInventoryStore } from '@/store/inventoryStore'
 import { catDot } from '@/lib/utils'
 import { catBg, catBorder } from '@/lib/utils'
-import type { Density, ItemStatus, ViewMode } from '@/types/inventory'
+import type { Density, ItemStatus, SortKey, ViewMode } from '@/types/inventory'
 import { useFilteredItems } from '@/store/inventoryStore'
 
 const STATUS_OPTS: { value: ItemStatus | null; label: string }[] = [
@@ -12,7 +12,7 @@ const STATUS_OPTS: { value: ItemStatus | null; label: string }[] = [
   { value: 'out', label: 'OUT' },
 ]
 
-const SORT_OPTS: { value: 'id' | 'name' | 'qty'; label: string }[] = [
+const SORT_OPTS: { value: SortKey; label: string }[] = [
   { value: 'id',   label: 'SKU'  },
   { value: 'name', label: 'NAME' },
   { value: 'qty',  label: 'QTY'  },

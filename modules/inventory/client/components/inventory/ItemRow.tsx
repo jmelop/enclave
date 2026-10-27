@@ -14,11 +14,12 @@ export function ItemRow({ item, index, showCoord = true, onOpen }: ItemRowProps)
     <button className="item-row" onClick={() => onOpen(item)}>
       {showCoord && <span className="ir-idx">#{String(index).padStart(3, '0')}</span>}
       <span className="ir-cat"><CatBadge catId={item.category} dense /></span>
-      <span className="ir-name">{item.name}</span>
-      <span className="ir-model">{item.model}</span>
+      <span className="ir-name" title={item.name}>{item.name}</span>
+      <span className="ir-model" title={item.model}>{item.model}</span>
       <span className="ir-qty">{item.qty}<span className="ir-qty-u">u</span></span>
       <span className="ir-status"><StatusPill status={item.status} micro /></span>
-      <span className="ir-loc">{item.location}</span>
+      <span className="ir-loc" title={item.location}>{item.location}</span>
+      <span className="ir-notes" title={item.notes}>{item.notes}</span>
       <span className="ir-arrow">→</span>
     </button>
   )
