@@ -46,6 +46,17 @@ export function RowSheet({ p, known, focusName }: RowSheetProps) {
           <NumField label="Unit cost (all-in)" prefix="€" step={0.5} value={p.unit_cost}  onChange={(v) => set({ unit_cost: v })} />
           <NumField label="Sale price"         prefix="€" step={0.5} value={p.sale_price} onChange={(v) => set({ sale_price: v })} />
         </div>
+        <div className="stk-tf stk-tf-notes">
+          <Label className="stk-field-lbl" htmlFor={`stk-notes-${p.id}`}>Notes</Label>
+          <textarea
+            id={`stk-notes-${p.id}`}
+            className="stk-notes"
+            rows={4}
+            value={p.notes}
+            onChange={(e) => set({ notes: e.target.value })}
+            placeholder="Optional · materials, print settings, buyer notes…"
+          />
+        </div>
       </section>
 
       <section className="stk-sh-col">

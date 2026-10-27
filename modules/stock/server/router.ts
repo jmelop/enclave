@@ -14,6 +14,7 @@ interface ProductInput {
   sale_price?: number
   platforms?: string | null
   sales_count?: number
+  notes?: string
 }
 
 interface ProductFields {
@@ -23,6 +24,7 @@ interface ProductFields {
   sale_price: number
   platforms: string | null
   sales_count: number
+  notes: string
 }
 
 type ProductRow = Record<string, unknown>
@@ -59,6 +61,7 @@ function parseProduct(b: ProductInput): ProductFields | string {
   if (!isMoney(unit_cost))   return 'unit_cost must be a non-negative number'
   if (!isMoney(sale_price))  return 'sale_price must be a non-negative number'
   if (b.platforms != null && typeof b.platforms !== 'string') return 'platforms must be text or null'
+  if (b.notes != null && typeof b.notes !== 'string') return 'notes must be text'
 
   return {
     name,
@@ -67,6 +70,7 @@ function parseProduct(b: ProductInput): ProductFields | string {
     unit_cost:  Math.round(unit_cost * 100) / 100,
     sale_price: Math.round(sale_price * 100) / 100,
     platforms:  normalizePlatforms(b.platforms),
+    notes:      b.notes ?? '',
   }
 }
 
@@ -80,6 +84,7 @@ function mapProduct(row: ProductRow) {
     sale_price:  Number(row['sale_price'] ?? 0),
     platforms:   (row['platforms'] ?? null) as string | null,
     sales_count: Number(row['sales_count'] ?? 0),
+    notes:       (row['notes'] ?? '') as string,
     created_at:  new Date(row['created_at'] as string).toISOString(),
     updated_at:  new Date(row['updated_at'] as string).toISOString(),
   }
@@ -119,10 +124,10 @@ export function createStockRouter(pool: DbPool): Router {
 
     try {
       const { rows } = await pool.query(
-        `INSERT INTO stock_products (id, name, quantity, unit_cost, sale_price, platforms, sales_count, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+        `INSERT INTO stock_products (id, name, quantity, unit_cost, sale_price, platforms, sales_count, notes, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
          RETURNING *`,
-        [randomUUID(), parsed.name, parsed.quantity, parsed.unit_cost, parsed.sale_price, parsed.platforms, parsed.sales_count],
+        [randomUUID(), parsed.name, parsed.quantity, parsed.unit_cost, parsed.sale_price, parsed.platforms, parsed.sales_count, parsed.notes],
       )
       return res.status(201).json(mapProduct(rows[0]))
     } catch (err) {
@@ -139,10 +144,10 @@ export function createStockRouter(pool: DbPool): Router {
     try {
       const { rows } = await pool.query(
         `UPDATE stock_products
-         SET name=$2, quantity=$3, unit_cost=$4, sale_price=$5, platforms=$6, sales_count=$7, updated_at=NOW()
+         SET name=$2, quantity=$3, unit_cost=$4, sale_price=$5, platforms=$6, sales_count=$7, notes=$8, updated_at=NOW()
          WHERE id=$1
          RETURNING *`,
-        [id, parsed.name, parsed.quantity, parsed.unit_cost, parsed.sale_price, parsed.platforms, parsed.sales_count],
+        [id, parsed.name, parsed.quantity, parsed.unit_cost, parsed.sale_price, parsed.platforms, parsed.sales_count, parsed.notes],
       )
       if (rows.length === 0) return res.status(404).json({ error: 'Product not found' })
       return res.status(200).json(mapProduct(rows[0]))

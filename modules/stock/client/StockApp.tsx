@@ -13,7 +13,7 @@ function formatTime(d: Date) {
   return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
 }
 
-const CSV_COLUMNS: (keyof StockProduct)[] = ['id', 'name', 'quantity', 'unit_cost', 'sale_price', 'platforms', 'sales_count', 'created_at', 'updated_at']
+const CSV_COLUMNS: (keyof StockProduct)[] = ['id', 'name', 'quantity', 'unit_cost', 'sale_price', 'platforms', 'sales_count', 'notes', 'created_at', 'updated_at']
 
 function exportCsv(products: StockProduct[]) {
   const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`

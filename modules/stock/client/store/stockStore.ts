@@ -26,8 +26,8 @@ async function send(url: string, method: string, body?: unknown): Promise<StockP
 }
 
 function toInput(p: StockProduct): ProductInput {
-  const { name, quantity, unit_cost, sale_price, platforms, sales_count } = p
-  return { name, quantity, unit_cost, sale_price, platforms, sales_count }
+  const { name, quantity, unit_cost, sale_price, platforms, sales_count, notes } = p
+  return { name, quantity, unit_cost, sale_price, platforms, sales_count, notes }
 }
 
 const sameInput = (a: ProductInput, b: ProductInput) =>
@@ -191,7 +191,7 @@ export const useStockStore = create<StockState>()((set, get) => {
       const id = `draft-${Date.now()}`
       const ts = new Date().toISOString()
       set((s) => ({
-        products: [...s.products, { id, name: '', quantity: 0, unit_cost: 0, sale_price: 0, platforms: null, sales_count: 0, created_at: ts, updated_at: ts }],
+        products: [...s.products, { id, name: '', quantity: 0, unit_cost: 0, sale_price: 0, platforms: null, sales_count: 0, notes: '', created_at: ts, updated_at: ts }],
         draftIds: [...s.draftIds, id],
         newIds: [...s.newIds, id],
         openId: id,

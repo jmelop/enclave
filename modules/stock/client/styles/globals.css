@@ -528,6 +528,17 @@ button { font-family: inherit; }
 }
 .stk-sheet input:focus { box-shadow: none; border-color: var(--border-default); }
 
+/* notes grows into the free space under the economics fields */
+.stk-tf-notes { flex: 1; }
+.stk-notes {
+  flex: 1; min-height: 96px; resize: vertical;
+  background: var(--bg); color: var(--fg);
+  border: 1px solid var(--border-subtle); border-radius: 6px;
+  padding: 8px 11px; font: inherit; font-size: 13px; line-height: 1.5; outline: none;
+}
+.stk-notes:focus { border-color: var(--border-default); }
+.stk-notes::placeholder { color: var(--fg-4); }
+
 .stk-nf-box {
   display: flex; align-items: center; height: 36px;
   border: 1px solid var(--border-subtle); border-radius: 6px; background: var(--bg); overflow: hidden;
