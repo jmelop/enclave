@@ -10,8 +10,8 @@ interface CatalogGridProps {
 export function CatalogGrid({ items, density, onOpen }: CatalogGridProps) {
   return (
     <div className={`catalog-grid dense-${density}`}>
-      {items.map((item, idx) => (
-        <ItemCard key={item.id} item={item} index={idx + 1} onOpen={onOpen} />
+      {items.map((item) => (
+        <ItemCard key={item.id} item={item} onOpen={onOpen} />
       ))}
     </div>
   )

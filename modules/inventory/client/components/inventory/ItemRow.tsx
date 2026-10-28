@@ -4,15 +4,12 @@ import type { InventoryItem } from '@/types/inventory'
 
 interface ItemRowProps {
   item: InventoryItem
-  index: number
-  showCoord?: boolean
   onOpen: (item: InventoryItem) => void
 }
 
-export function ItemRow({ item, index, showCoord = true, onOpen }: ItemRowProps) {
+export function ItemRow({ item, onOpen }: ItemRowProps) {
   return (
     <button className="item-row" onClick={() => onOpen(item)}>
-      {showCoord && <span className="ir-idx">#{String(index).padStart(3, '0')}</span>}
       <span className="ir-cat"><CatBadge catId={item.category} dense /></span>
       <span className="ir-name" title={item.name}>{item.name}</span>
       <span className="ir-model" title={item.model}>{item.model}</span>

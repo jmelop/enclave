@@ -453,7 +453,6 @@ button { font-family: inherit; }
 .item-card:hover .brk { opacity: 0.6; color: var(--fg); }
 .card-accent { position: absolute; top: 0; left: 0; width: 2px; height: 64px; opacity: 0.6; }
 .ic-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.ic-coord { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-4); letter-spacing: 0.04em; margin-right: 2px; }
 .ic-name { font-size: 16px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.25; text-wrap: balance; }
 .ic-model { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg-3); }
 .ic-qty-row {
@@ -494,7 +493,7 @@ button { font-family: inherit; }
 }
 .list-head, .item-row {
   display: grid;
-  grid-template-columns: 48px 110px minmax(160px, 1.4fr) minmax(120px, 1fr) 70px 90px minmax(120px, 1fr) minmax(140px, 1.2fr) 24px;
+  grid-template-columns: 110px minmax(160px, 1.4fr) minmax(120px, 1fr) 70px 90px minmax(120px, 1fr) minmax(140px, 1.2fr) 24px;
   gap: 14px; align-items: center; padding: 10px 16px;
 }
 .list-head {
@@ -509,7 +508,6 @@ button { font-family: inherit; }
 }
 .item-row:hover { background: var(--bg-2); }
 .item-row:first-of-type { border-top: 0; }
-.ir-idx { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--fg-4); }
 .ir-name { font-weight: 500; }
 .ir-model { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--fg-3); }
 .ir-name, .ir-model, .ir-notes { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -568,8 +566,7 @@ button { font-family: inherit; }
 }
 .detail.open { transform: translateX(0); }
 .dt-head { padding: 22px 26px 18px; border-bottom: 1px solid var(--border-subtle); }
-.dt-head-line { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-.dt-idx { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg-4); padding: 3px 7px; border: 1px solid var(--border-subtle); border-radius: 4px; }
+.dt-head-line { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 14px; }
 .dt-title-row { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
 .dt-title { font-size: 24px; font-weight: 500; line-height: 1.2; letter-spacing: -0.02em; margin: 0 0 6px; text-wrap: balance; }
 .dt-model { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--fg-3); }

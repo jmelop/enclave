@@ -82,7 +82,7 @@ export const useInventoryStore = create<InventoryState>()((set, get) => ({
   density: 'comfy',
   selectedCategory: null,
   statusFilter: null,
-  sortBy: 'id',
+  sortBy: 'category',   // ties fall back to name
   sortDir: 'asc',
   search: '',
   selectedId: null,
