@@ -10,6 +10,7 @@ import { AddEditModal, blankDraft, type ItemDraft } from '@/components/inventory
 import { CategoryModal } from '@/components/inventory/CategoryModal'
 import { DetailPanel } from '@/components/inventory/DetailPanel'
 import { useFilteredItems, useInventoryStore, useSelectedItem } from '@/store/inventoryStore'
+import { parsePrice } from '@/lib/utils'
 import type { Category, CategoryInput, InventoryItem, ItemInput } from '@/types/inventory'
 
 type Section = 'items' | 'categories'
@@ -47,6 +48,7 @@ function toItemDraft(item: InventoryItem): ItemDraft {
     qty: item.qty,
     location: item.location,
     notes: item.notes,
+    price: item.price == null ? '' : String(item.price),
   }
 }
 
@@ -132,6 +134,7 @@ export default function InventoryApp() {
       qty: Number(d.qty) || 0,
       location: d.location,
       notes: d.notes,
+      price: parsePrice(d.price) ?? null,
     }
     try {
       if (itemModal.mode === 'add') await createItem(input)

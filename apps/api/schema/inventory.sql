@@ -37,3 +37,6 @@ ALTER TABLE inventory_items DROP CONSTRAINT IF EXISTS inventory_items_category_c
 -- Items in a category show as low when 0 < qty <= low_threshold.
 ALTER TABLE inventory_categories ADD COLUMN IF NOT EXISTS low_threshold INTEGER NOT NULL DEFAULT 3
   CHECK (low_threshold >= 0);
+
+-- Unit price in EUR; NULL when unknown.
+ALTER TABLE inventory_items ADD COLUMN IF NOT EXISTS price NUMERIC(10, 2) CHECK (price >= 0);

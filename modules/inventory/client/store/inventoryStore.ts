@@ -4,8 +4,8 @@ import type { Category, CategoryId, CategoryInput, Density, InventoryItem, ItemI
 import { CATEGORIES } from '@/lib/seed'
 import { deriveStatus } from '@/lib/utils'
 
-// Raw shape returned by the API (no status — derived client-side).
-type ApiItem = Omit<InventoryItem, 'status'>
+// Raw shape returned by the API (no status — derived client-side; seed rows have no price).
+type ApiItem = Omit<InventoryItem, 'status' | 'price'> & { price?: number | null }
 
 async function fetchItems(): Promise<ApiItem[]> {
   const res = await fetch('/api/inventory/items')
@@ -16,7 +16,7 @@ async function fetchItems(): Promise<ApiItem[]> {
 // Status depends on each item's category threshold, so it is re-derived whenever categories change.
 function withStatus(items: ApiItem[], categories: Category[]): InventoryItem[] {
   const threshold = new Map(categories.map((c) => [c.id, c.lowThreshold]))
-  return items.map((item) => ({ ...item, status: deriveStatus(item.qty, threshold.get(item.category)) }))
+  return items.map((item) => ({ ...item, price: item.price ?? null, status: deriveStatus(item.qty, threshold.get(item.category)) }))
 }
 
 async function fetchCategories(): Promise<Category[]> {

@@ -5,7 +5,7 @@ import { StatusPill } from '@/components/ui/StatusPill'
 // TODO: historial fuera de alcance — ver rama futura feat/inventory-history
 // import { HistoryChart } from './HistoryChart'
 import { useCategory, useInventoryStore } from '@/store/inventoryStore'
-import { catAccent } from '@/lib/utils'
+import { catAccent, formatPrice } from '@/lib/utils'
 import type { InventoryItem } from '@/types/inventory'
 import { ConfirmDeleteModal } from './ConfirmDeleteModal'
 
@@ -82,6 +82,10 @@ export function DetailPanel({ item, displayIndex, onClose, onEdit }: DetailPanel
                 <div><dt>Status</dt><dd><StatusPill status={item.status} /></dd></div>
                 <div><dt>Model / Ref.</dt><dd className="mono">{item.model}</dd></div>
                 <div><dt>Location</dt><dd className="mono">{item.location}</dd></div>
+                <div><dt>Unit price</dt><dd className="mono">{item.price == null ? '—' : formatPrice(item.price)}</dd></div>
+                {item.price != null && (
+                  <div><dt>Stock value</dt><dd className="mono">{formatPrice(item.price * item.qty)}</dd></div>
+                )}
                 <div><dt>Last update</dt><dd className="mono">{item.updated}</dd></div>
               </dl>
             </section>

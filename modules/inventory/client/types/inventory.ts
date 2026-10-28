@@ -35,6 +35,7 @@ export interface InventoryItem {
   status: ItemStatus   // derived client-side via deriveStatus(qty, category threshold); not persisted in DB
   location: string
   notes: string
+  price: number | null   // unit price in EUR; null = unknown
   updated: string
 }
 
@@ -46,6 +47,7 @@ export interface ItemInput {
   qty: number
   location: string
   notes: string
+  price: number | null
 }
 
 export type ViewMode = 'grid' | 'list'

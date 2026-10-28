@@ -11,7 +11,7 @@ export const CATEGORIES: Category[] = [
   { id: 'other', label: 'Other',            short: 'OTHER', hue: 260 , lowThreshold: 3 },
 ]
 
-export const SEED_ITEMS: InventoryItem[] = [
+export const SEED_ITEMS: Omit<InventoryItem, 'price'>[] = [
   { id:'001', name:'Raspberry Pi 5 8GB',         category:'pc',    model:'RPI5-8GB',        qty:2,  status:'in',  location:'Box A1 · shelf 3',         notes:'Reserved for home-server project. Arrived 03/2025.', updated:'2026-05-12' },
   { id:'002', name:'Arduino Uno Rev3',            category:'mcu',   model:'ARD-UNO-R3',      qty:4,  status:'in',  location:'Drawer 2 · section A',     notes:'2 originals + 2 DCcEduino clones.', updated:'2026-04-28' },
   { id:'003', name:'ESP32-WROOM-32',              category:'mcu',   model:'ESP32-WROOM-32',  qty:7,  status:'in',  location:'Shelf B · MCU box',         notes:'Mix DevKit V1 + NodeMCU-32S.', updated:'2026-05-09' },

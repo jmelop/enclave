@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Button, Input, Modal, ModalContent, ModalFooter, ModalHeader } from '@venator-ui/ui'
 import { useInventoryStore } from '@/store/inventoryStore'
-import { catBg, catBorder, catDot, DEFAULT_LOW_THRESHOLD, deriveStatus } from '@/lib/utils'
+import { catBg, catBorder, catDot, DEFAULT_LOW_THRESHOLD, deriveStatus, parsePrice } from '@/lib/utils'
 import { useDismissOnOutsideClick } from '@/lib/useDismissOnOutsideClick'
 import type { CategoryId, ItemStatus } from '@/types/inventory'
 
@@ -13,10 +13,11 @@ export interface ItemDraft {
   qty: number | string
   location: string
   notes: string
+  price: string
 }
 
 export function blankDraft(): ItemDraft {
-  return { id: '', name: '', category: 'elec', model: '', qty: 1, location: '', notes: '' }
+  return { id: '', name: '', category: 'elec', model: '', qty: 1, location: '', notes: '', price: '' }
 }
 
 const STATUS_OPTS: { value: ItemStatus; label: string; token: string }[] = [
@@ -46,7 +47,8 @@ export function AddEditModal({ open, draft, isEdit, onChange, onCancel, onSave }
   const set = <K extends keyof ItemDraft>(k: K, v: ItemDraft[K]) =>
     onChange({ ...draft, [k]: v })
 
-  const valid = draft.name.trim().length > 0
+  const priceValid = parsePrice(draft.price) !== undefined
+  const valid = draft.name.trim().length > 0 && priceValid
   const category = categories.find((c) => c.id === draft.category)
   const lowThreshold = category?.lowThreshold ?? DEFAULT_LOW_THRESHOLD
   const status = deriveStatus(Number(draft.qty) || 0, lowThreshold)
@@ -158,7 +160,19 @@ export function AddEditModal({ open, draft, isEdit, onChange, onCancel, onSave }
             </div>
           </div>
 
-          <div className="field f-full">
+          <div className="field">
+            <label>Unit price (€)</label>
+            <Input
+              className="mono"
+              inputMode="decimal"
+              value={draft.price}
+              onChange={(e) => set('price', e.target.value)}
+              placeholder="Optional · e.g. 19.99"
+              style={priceValid ? undefined : { borderColor: 'var(--danger)' }}
+            />
+          </div>
+
+          <div className="field">
             <label>Location</label>
             <Input
               className="mono"
