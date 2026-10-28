@@ -83,7 +83,7 @@ export function CategoriesPage({ onEdit }: CategoriesPageProps) {
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>{c.label}</div>
                   <div className="mono" style={{ fontSize: 11, color: 'var(--fg-4)', marginTop: 2 }}>
-                    {c.items} items · {c.units} units
+                    {c.items} items · {c.units} units · low ≤ {c.lowThreshold}
                     {c.alerts > 0 && <span style={{ color: 'var(--warn)' }}> · {c.alerts} low/out</span>}
                   </div>
                 </div>

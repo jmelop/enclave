@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Button, Input, Modal, ModalContent, ModalFooter, ModalHeader } from '@venator-ui/ui'
 import { useInventoryStore } from '@/store/inventoryStore'
-import { catBg, catBorder, catDot } from '@/lib/utils'
+import { catBg, catBorder, catDot, DEFAULT_LOW_THRESHOLD, deriveStatus } from '@/lib/utils'
 import { useDismissOnOutsideClick } from '@/lib/useDismissOnOutsideClick'
 import type { CategoryId, ItemStatus } from '@/types/inventory'
 
@@ -11,13 +11,12 @@ export interface ItemDraft {
   category: CategoryId
   model: string
   qty: number | string
-  status: ItemStatus
   location: string
   notes: string
 }
 
 export function blankDraft(): ItemDraft {
-  return { id: '', name: '', category: 'elec', model: '', qty: 1, status: 'in', location: '', notes: '' }
+  return { id: '', name: '', category: 'elec', model: '', qty: 1, location: '', notes: '' }
 }
 
 const STATUS_OPTS: { value: ItemStatus; label: string; token: string }[] = [
@@ -48,6 +47,9 @@ export function AddEditModal({ open, draft, isEdit, onChange, onCancel, onSave }
     onChange({ ...draft, [k]: v })
 
   const valid = draft.name.trim().length > 0
+  const category = categories.find((c) => c.id === draft.category)
+  const lowThreshold = category?.lowThreshold ?? DEFAULT_LOW_THRESHOLD
+  const status = deriveStatus(Number(draft.qty) || 0, lowThreshold)
 
   return (
     <Modal
@@ -136,22 +138,23 @@ export function AddEditModal({ open, draft, isEdit, onChange, onCancel, onSave }
 
           <div className="field f-full">
             <label>Status</label>
-            <div className="seg">
+            <div className="seg inv-seg-static">
               {STATUS_OPTS.map((s) => {
-                const sel = draft.status === s.value
+                const sel = status === s.value
                 return (
-                  <button
-                    type="button"
+                  <span
                     key={s.value}
-                    onClick={() => set('status', s.value)}
                     className={`seg-opt ${sel ? 'sel' : ''}`}
-                    style={{ color: sel ? s.token : 'var(--fg-3)' }}
+                    style={{ color: sel ? s.token : 'var(--fg-4)' }}
                   >
                     <span className="status-dot" style={{ background: s.token }} />
                     {s.label}
-                  </button>
+                  </span>
                 )
               })}
+            </div>
+            <div className="inv-field-hint mono">
+              Set by quantity · low at ≤ {lowThreshold} in {category?.label ?? 'this category'}
             </div>
           </div>
 

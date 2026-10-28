@@ -30,16 +30,19 @@ interface CategoryInput {
   label?: string
   short?: string
   hue?: number
+  lowThreshold?: number
 }
 
 // Returns the normalised fields or an error message.
-function parseCategory(b: CategoryInput): { label: string; short: string; hue: number } | string {
+function parseCategory(b: CategoryInput): { label: string; short: string; hue: number; lowThreshold: number } | string {
   const label = b.label?.trim() ?? ''
   if (!label) return 'label is required'
   const hue = b.hue ?? 260
   if (typeof hue !== 'number' || !Number.isInteger(hue) || hue < 0 || hue > 360) return 'hue must be an integer 0-360'
+  const lowThreshold = b.lowThreshold ?? 3
+  if (typeof lowThreshold !== 'number' || !Number.isInteger(lowThreshold) || lowThreshold < 0) return 'lowThreshold must be a non-negative integer'
   const short = (b.short?.trim() || label.split(/\s+/)[0]).toUpperCase().slice(0, 8)
-  return { label, short, hue }
+  return { label, short, hue, lowThreshold }
 }
 
 function mapCategory(row: ItemRow) {
@@ -48,6 +51,7 @@ function mapCategory(row: ItemRow) {
     label: row['label'] as string,
     short: row['short'] as string,
     hue:   Number(row['hue']),
+    lowThreshold: Number(row['low_threshold'] ?? 3),
   }
 }
 
@@ -104,11 +108,11 @@ export function createInventoryRouter(pool: DbPool): Router {
 
     try {
       const { rows } = await pool.query(
-        `INSERT INTO inventory_categories (id, label, short, hue, sort)
-         VALUES ($1, $2, $3, $4, (SELECT COALESCE(MAX(sort), 0) + 1 FROM inventory_categories))
+        `INSERT INTO inventory_categories (id, label, short, hue, low_threshold, sort)
+         VALUES ($1, $2, $3, $4, $5, (SELECT COALESCE(MAX(sort), 0) + 1 FROM inventory_categories))
          ON CONFLICT (id) DO NOTHING
          RETURNING *`,
-        [id, parsed.label, parsed.short, parsed.hue],
+        [id, parsed.label, parsed.short, parsed.hue, parsed.lowThreshold],
       )
       if (rows.length === 0) return res.status(409).json({ error: `category "${id}" already exists` })
       return res.status(201).json(mapCategory(rows[0]))
@@ -126,10 +130,10 @@ export function createInventoryRouter(pool: DbPool): Router {
 
     try {
       const { rows } = await pool.query(
-        `UPDATE inventory_categories SET label=$2, short=$3, hue=$4
+        `UPDATE inventory_categories SET label=$2, short=$3, hue=$4, low_threshold=$5
          WHERE id=$1
          RETURNING *`,
-        [id, parsed.label, parsed.short, parsed.hue],
+        [id, parsed.label, parsed.short, parsed.hue, parsed.lowThreshold],
       )
       if (rows.length === 0) return res.status(404).json({ error: 'Category not found' })
       return res.status(200).json(mapCategory(rows[0]))

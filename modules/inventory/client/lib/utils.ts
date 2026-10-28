@@ -1,8 +1,10 @@
 import type { ItemStatus } from '@/types/inventory'
 
-export function deriveStatus(qty: number): ItemStatus {
+export const DEFAULT_LOW_THRESHOLD = 3
+
+export function deriveStatus(qty: number, lowThreshold = DEFAULT_LOW_THRESHOLD): ItemStatus {
   if (qty === 0) return 'out'
-  if (qty <= 3) return 'low'
+  if (qty <= lowThreshold) return 'low'
   return 'in'
 }
 

@@ -7,11 +7,16 @@ import { deriveStatus } from '@/lib/utils'
 // Raw shape returned by the API (no status — derived client-side).
 type ApiItem = Omit<InventoryItem, 'status'>
 
-async function fetchItems(): Promise<InventoryItem[]> {
+async function fetchItems(): Promise<ApiItem[]> {
   const res = await fetch('/api/inventory/items')
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  const raw = (await res.json()) as ApiItem[]
-  return raw.map((item) => ({ ...item, status: deriveStatus(item.qty) }))
+  return (await res.json()) as ApiItem[]
+}
+
+// Status depends on each item's category threshold, so it is re-derived whenever categories change.
+function withStatus(items: ApiItem[], categories: Category[]): InventoryItem[] {
+  const threshold = new Map(categories.map((c) => [c.id, c.lowThreshold]))
+  return items.map((item) => ({ ...item, status: deriveStatus(item.qty, threshold.get(item.category)) }))
 }
 
 async function fetchCategories(): Promise<Category[]> {
@@ -86,8 +91,8 @@ export const useInventoryStore = create<InventoryState>()((set, get) => ({
     if (get().hydrated || get().loading) return
     set({ loading: true, error: null })
     try {
-      const [items, categories] = await Promise.all([fetchItems(), fetchCategories()])
-      set({ items, categories, hydrated: true, error: null, loading: false })
+      const [raw, categories] = await Promise.all([fetchItems(), fetchCategories()])
+      set({ items: withStatus(raw, categories), categories, hydrated: true, error: null, loading: false })
     } catch (err) {
       set({ error: err instanceof Error ? err.message : 'Network error', hydrated: false, loading: false })
     }
@@ -96,8 +101,8 @@ export const useInventoryStore = create<InventoryState>()((set, get) => ({
   refetch: async () => {
     set({ loading: true, error: null })
     try {
-      const [items, categories] = await Promise.all([fetchItems(), fetchCategories()])
-      set({ items, categories, hydrated: true, error: null, loading: false })
+      const [raw, categories] = await Promise.all([fetchItems(), fetchCategories()])
+      set({ items: withStatus(raw, categories), categories, hydrated: true, error: null, loading: false })
     } catch (err) {
       set({ error: err instanceof Error ? err.message : 'Network error', loading: false })
     }
@@ -159,7 +164,8 @@ export const useInventoryStore = create<InventoryState>()((set, get) => ({
 
   updateCategory: async (id: CategoryId, input: CategoryInput) => {
     await sendJson(`/api/inventory/categories/${id}`, 'PUT', input)
-    set({ categories: await fetchCategories() })
+    const categories = await fetchCategories()
+    set({ categories, items: withStatus(get().items, categories) })
   },
 
   setView: (mode) => set({ viewMode: mode }),

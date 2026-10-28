@@ -39,10 +39,10 @@ export const INITIAL_ITEMS: SeedItem[] = [
 
 // Fallback served by GET /categories when inventory_categories is empty or unavailable.
 export const SEED_CATEGORIES = [
-  { id: 'pc',    label: 'PC Components',    short: 'PC',    hue: 220 },
-  { id: 'mcu',   label: 'Microcontrollers', short: 'MCU',   hue: 160 },
-  { id: 'elec',  label: 'Electronics',      short: 'ELEC',  hue: 80  },
-  { id: 'tools', label: 'Tools',            short: 'TOOLS', hue: 300 },
-  { id: 'cable', label: 'Cables & Conn.',   short: 'CABLE', hue: 350 },
-  { id: 'other', label: 'Other',            short: 'OTHER', hue: 260 },
+  { id: 'pc',    label: 'PC Components',    short: 'PC',    hue: 220 , lowThreshold: 3 },
+  { id: 'mcu',   label: 'Microcontrollers', short: 'MCU',   hue: 160 , lowThreshold: 3 },
+  { id: 'elec',  label: 'Electronics',      short: 'ELEC',  hue: 80  , lowThreshold: 3 },
+  { id: 'tools', label: 'Tools',            short: 'TOOLS', hue: 300 , lowThreshold: 3 },
+  { id: 'cable', label: 'Cables & Conn.',   short: 'CABLE', hue: 350 , lowThreshold: 3 },
+  { id: 'other', label: 'Other',            short: 'OTHER', hue: 260 , lowThreshold: 3 },
 ]
