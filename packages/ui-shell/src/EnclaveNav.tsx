@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { NavItem } from '@venator-ui/ui';
-import { House, LayoutDashboard, Dumbbell, Activity, Wallet, LayoutGrid, Receipt, HandCoins, CalendarDays, BarChart2, PieChart, Lightbulb, Code2, Kanban, Tag, Archive, RefreshCcw, Target, CheckSquare, BarChart3, FlaskConical, Settings } from 'lucide-react';
+import { House, LayoutDashboard, Dumbbell, Activity, Wallet, LayoutGrid, Receipt, HandCoins, CalendarDays, BarChart2, PieChart, Lightbulb, Code2, Kanban, Tag, Archive, RefreshCcw, Target, CheckSquare, BarChart3, FlaskConical, Settings, ShoppingBag } from 'lucide-react';
 import { clientModules } from '../../../enclave.modules.client';
 import type { ModuleClientConfig } from '@enclave/sdk';
 import { useEnclaveSettings } from './settings';
@@ -44,6 +44,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   'bar-chart-3':       <BarChart3 size={16} />,
   'flask-conical':     <FlaskConical size={16} />,
   'settings':          <Settings size={16} />,
+  'shopping-bag':      <ShoppingBag size={16} />,
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
