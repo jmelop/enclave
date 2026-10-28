@@ -8,6 +8,20 @@ export function deriveStatus(qty: number, lowThreshold = DEFAULT_LOW_THRESHOLD):
   return 'in'
 }
 
+const eur = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' })
+
+export function formatPrice(n: number): string {
+  return eur.format(n)
+}
+
+// '' → null (no price); accepts a decimal comma. Returns undefined when the text is not a valid price.
+export function parsePrice(text: string): number | null | undefined {
+  const t = text.trim().replace(',', '.')
+  if (!t) return null
+  const n = Number(t)
+  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : undefined
+}
+
 export function today(): string {
   return new Date().toISOString().slice(0, 10)
 }

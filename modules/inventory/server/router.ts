@@ -62,6 +62,7 @@ interface ItemInput {
   qty: number
   location: string
   notes: string
+  price?: number | null
 }
 
 type ItemRow = Record<string, unknown>
@@ -76,6 +77,7 @@ function mapItem(row: ItemRow) {
     qty:      Number(row['qty'] ?? 0),
     location: (row['location'] ?? '') as string,
     notes:    (row['notes'] ?? '') as string,
+    price:    row['price'] == null ? null : Number(row['price']),
     updated:  updatedRaw ? new Date(updatedRaw as string).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
   }
 }
@@ -83,6 +85,9 @@ function mapItem(row: ItemRow) {
 async function validateInput(pool: DbPool, input: ItemInput): Promise<string | null> {
   if (!input.name?.trim()) return 'Name is required'
   if (!(await isValidCat(pool, input.category))) return 'Invalid category'
+  if (input.price != null && (typeof input.price !== 'number' || !Number.isFinite(input.price) || input.price < 0)) {
+    return 'price must be a non-negative number'
+  }
   return null
 }
 
@@ -162,8 +167,8 @@ export function createInventoryRouter(pool: DbPool): Router {
 
     try {
       const { rows } = await pool.query(
-        `INSERT INTO inventory_items (id, name, category, model, qty, location, notes, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+        `INSERT INTO inventory_items (id, name, category, model, qty, location, notes, price, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
          RETURNING *`,
         [
           id,
@@ -173,6 +178,7 @@ export function createInventoryRouter(pool: DbPool): Router {
           Number(input.qty) || 0,
           input.location ?? '',
           input.notes ?? '',
+          input.price ?? null,
         ],
       )
       return res.status(201).json(mapItem(rows[0]))
@@ -191,7 +197,7 @@ export function createInventoryRouter(pool: DbPool): Router {
     try {
       const { rows } = await pool.query(
         `UPDATE inventory_items
-         SET name=$2, category=$3, model=$4, qty=$5, location=$6, notes=$7, updated_at=NOW()
+         SET name=$2, category=$3, model=$4, qty=$5, location=$6, notes=$7, price=$8, updated_at=NOW()
          WHERE id=$1
          RETURNING *`,
         [
@@ -202,6 +208,7 @@ export function createInventoryRouter(pool: DbPool): Router {
           Number(input.qty) || 0,
           input.location ?? '',
           input.notes ?? '',
+          input.price ?? null,
         ],
       )
       if (rows.length === 0) return res.status(404).json({ error: 'Item not found' })
