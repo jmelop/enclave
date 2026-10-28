@@ -30,8 +30,9 @@ function toInput(p: StockProduct): ProductInput {
   return { name, quantity, unit_cost, sale_price, platforms, sales_count, notes }
 }
 
+// The server trims the name, so surrounding spaces don't count as a change.
 const sameInput = (a: ProductInput, b: ProductInput) =>
-  (Object.keys(a) as (keyof ProductInput)[]).every((k) => a[k] === b[k])
+  (Object.keys(a) as (keyof ProductInput)[]).every((k) => (k === 'name' ? a.name.trim() === b.name.trim() : a[k] === b[k]))
 
 // Per-product debounce timers and save chains, so saves for one row never overlap.
 const timers = new Map<string, ReturnType<typeof setTimeout>>()
@@ -116,7 +117,8 @@ export const useStockStore = create<StockState>()((set, get) => {
           products: s.products.map((x) => {
             if (x.id !== id) return x
             // Newer local edits win; they have their own save queued.
-            return sameInput(toInput(x), input) ? saved : { ...x, updated_at: saved.updated_at }
+            // Keep the typed name: the trimmed one would eat a trailing space mid-typing.
+            return sameInput(toInput(x), input) ? { ...saved, name: x.name } : { ...x, updated_at: saved.updated_at }
           }),
         }))
       }
