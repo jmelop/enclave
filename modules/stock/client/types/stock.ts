@@ -29,7 +29,7 @@ export interface ProductMetrics {
 // A product as the ledger renders it: display sequence + metrics.
 export interface LedgerProduct extends StockProduct {
   seq: number
-  draft: boolean       // created locally, not persisted until it has a name
+  draft: boolean       // created locally, not persisted until saved
   metrics: ProductMetrics
 }
 

@@ -41,6 +41,7 @@ export default function StockApp() {
   const addProduct     = useStockStore((s) => s.addProduct)
   const setOpenId      = useStockStore((s) => s.setOpenId)
   const clearSaveError = useStockStore((s) => s.clearSaveError)
+  const dirty          = useStockStore((s) => Object.keys(s.edits).length > 0)
   const totals         = useStockTotals()
 
   const [time, setTime]   = useState(() => formatTime(new Date()))
@@ -51,6 +52,14 @@ export default function StockApp() {
   useEffect(() => {
     void hydrate()
   }, [hydrate])
+
+  // Unsaved sheet edits would be lost on reload or tab close.
+  useEffect(() => {
+    if (!dirty) return
+    const onUnload = (e: BeforeUnloadEvent) => e.preventDefault()
+    window.addEventListener('beforeunload', onUnload)
+    return () => window.removeEventListener('beforeunload', onUnload)
+  }, [dirty])
 
   useEffect(() => {
     const id = setInterval(() => setTime(formatTime(new Date())), 1000)
