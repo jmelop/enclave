@@ -1,7 +1,7 @@
 // Content-only component: topbar + hero + routing.
 //   • standalone: App.tsx wraps it with the sidebar shell
 //   • dashboard:  client.config.tsx routes expose this directly
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import { Button } from '@venator-ui/ui'
 import { InventoryPage } from '@/pages/Inventory'
@@ -9,7 +9,7 @@ import { CategoriesPage } from '@/pages/CategoriesPage'
 import { AddEditModal, blankDraft, type ItemDraft } from '@/components/inventory/AddEditModal'
 import { CategoryModal } from '@/components/inventory/CategoryModal'
 import { DetailPanel } from '@/components/inventory/DetailPanel'
-import { useFilteredItems, useInventoryStore, useSelectedItem } from '@/store/inventoryStore'
+import { useInventoryStore, useSelectedItem } from '@/store/inventoryStore'
 import { parsePrice } from '@/lib/utils'
 import type { Category, CategoryInput, InventoryItem, ItemInput } from '@/types/inventory'
 
@@ -64,10 +64,8 @@ export default function InventoryApp() {
   const updateItem     = useInventoryStore((s) => s.updateItem)
   const createCategory = useInventoryStore((s) => s.createCategory)
   const updateCategory = useInventoryStore((s) => s.updateCategory)
-  const selectedId     = useInventoryStore((s) => s.selectedId)
   const setSelectedId  = useInventoryStore((s) => s.setSelectedId)
   const selectedItem   = useSelectedItem()  // live item derived from items[] — stays fresh after refetch
-  const filtered       = useFilteredItems()
 
   const [itemModal, setItemModal]   = useState<ItemModalState | null>(null)
   const [catModal, setCatModal]     = useState<CategoryModalState>(null)
@@ -97,14 +95,6 @@ export default function InventoryApp() {
 
   const section: Section = location.pathname.split('/').filter(Boolean).pop() === 'categories' ? 'categories' : 'items'
   const hero = HERO[section]
-
-  // 1-based display index for the selected item within the visible (filtered) list.
-  // Matches the row number shown in Catalog — used only for SKU display, never for API ops.
-  const displayIndex = useMemo(() => {
-    if (!selectedId) return 0
-    const idx = filtered.findIndex((i) => i.id === selectedId)
-    return idx >= 0 ? idx + 1 : 0
-  }, [filtered, selectedId])
 
   const closeDetail = () => setSelectedId(null)
 
@@ -244,7 +234,6 @@ export default function InventoryApp() {
       {/* Outside .canvas: every module's `.canvas > * { position: relative }` would break its fixed positioning */}
       <DetailPanel
         item={section === 'items' ? selectedItem : null}
-        displayIndex={displayIndex}
         onClose={closeDetail}
         onEdit={(it) => { closeDetail(); openEditItem(it) }}
       />

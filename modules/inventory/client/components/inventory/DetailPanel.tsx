@@ -11,14 +11,13 @@ import { ConfirmDeleteModal } from './ConfirmDeleteModal'
 
 interface DetailPanelProps {
   item: InventoryItem | null
-  displayIndex: number   // 1-based visual index for SKU display; 0 = not found → shows '—'
   // TODO: historial fuera de alcance — ver rama futura feat/inventory-history
   // history: HistoryEntry[] | null
   onClose: () => void
   onEdit: (item: InventoryItem) => void
 }
 
-export function DetailPanel({ item, displayIndex, onClose, onEdit }: DetailPanelProps) {
+export function DetailPanel({ item, onClose, onEdit }: DetailPanelProps) {
   const adjustQty = useInventoryStore((s) => s.adjustQty)
   const deleteItem = useInventoryStore((s) => s.deleteItem)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -52,7 +51,6 @@ export function DetailPanel({ item, displayIndex, onClose, onEdit }: DetailPanel
           <>
             <header className="dt-head">
               <div className="dt-head-line">
-                <span className="dt-idx">SKU #{displayIndex > 0 ? String(displayIndex).padStart(3, '0') : '—'}</span>
                 <button className="icon-btn" onClick={onClose} aria-label="Close">✕</button>
               </div>
               <div className="dt-title-row">

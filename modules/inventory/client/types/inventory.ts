@@ -52,7 +52,7 @@ export interface ItemInput {
 
 export type ViewMode = 'grid' | 'list'
 
-export type SortKey = 'id' | 'category' | 'name' | 'model' | 'qty' | 'status' | 'location' | 'notes'
+export type SortKey = 'category' | 'name' | 'model' | 'qty' | 'status' | 'location' | 'notes'
 
 export type SortDir = 'asc' | 'desc'
 

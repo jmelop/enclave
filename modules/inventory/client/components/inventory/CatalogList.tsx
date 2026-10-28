@@ -9,7 +9,6 @@ interface CatalogListProps {
 }
 
 const COLUMNS: { key: SortKey; label: string }[] = [
-  { key: 'id',       label: '#'        },
   { key: 'category', label: 'CAT'      },
   { key: 'name',     label: 'NAME'     },
   { key: 'model',    label: 'MODEL'    },
@@ -37,7 +36,7 @@ export function CatalogList({ items, density, onOpen }: CatalogListProps) {
               aria-sort={active ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
               className={`inv-sort ${active ? 'active' : ''}`}
               onClick={() => setSortBy(col.key)}
-              title={`Sort by ${col.label === '#' ? 'SKU' : col.label.toLowerCase()}`}
+              title={`Sort by ${col.label.toLowerCase()}`}
             >
               {col.label}
               <span className="inv-sort-arrow">{active ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}</span>
@@ -46,8 +45,8 @@ export function CatalogList({ items, density, onOpen }: CatalogListProps) {
         })}
         <span></span>
       </div>
-      {items.map((item, idx) => (
-        <ItemRow key={item.id} item={item} index={idx + 1} onOpen={onOpen} />
+      {items.map((item) => (
+        <ItemRow key={item.id} item={item} onOpen={onOpen} />
       ))}
     </div>
   )

@@ -13,9 +13,9 @@ const STATUS_OPTS: { value: ItemStatus | null; label: string }[] = [
 ]
 
 const SORT_OPTS: { value: SortKey; label: string }[] = [
-  { value: 'id',   label: 'SKU'  },
-  { value: 'name', label: 'NAME' },
-  { value: 'qty',  label: 'QTY'  },
+  { value: 'category', label: 'CAT'  },
+  { value: 'name',     label: 'NAME' },
+  { value: 'qty',      label: 'QTY'  },
 ]
 
 const DENSITY_OPTS: { value: Density; label: string }[] = [
