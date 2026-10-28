@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Input, Modal, ModalContent, ModalFooter, ModalHeader } from '@venator-ui/ui'
-import { catBg, catBorder, catDot, catFg } from '@/lib/utils'
+import { catBg, catBorder, catDot, catFg, DEFAULT_LOW_THRESHOLD } from '@/lib/utils'
 import { useDismissOnOutsideClick } from '@/lib/useDismissOnOutsideClick'
 import type { Category, CategoryInput } from '@/types/inventory'
 
@@ -22,22 +22,25 @@ export function CategoryModal({ open, initial, error, onClose, onSave }: Categor
   const [label, setLabel] = useState('')
   const [short, setShort] = useState('')
   const [hue, setHue]     = useState(HUE_SWATCHES[0])
+  const [lowThreshold, setLowThreshold] = useState<number | string>(DEFAULT_LOW_THRESHOLD)
 
   useEffect(() => {
     if (!open) return
     setLabel(initial?.label ?? '')
     setShort(initial?.short ?? '')
     setHue(initial?.hue ?? HUE_SWATCHES[0])
+    setLowThreshold(initial?.lowThreshold ?? DEFAULT_LOW_THRESHOLD)
     firstRef.current?.focus()
   }, [open, initial])
 
   const valid = label.trim().length > 0
+  const threshold = Math.max(0, Math.floor(Number(lowThreshold) || 0))
   // Mirrors the server default: first word of the label, uppercased.
   const shortFallback = (label.trim().split(/\s+/)[0] || 'SHORT').toUpperCase().slice(0, 8)
 
   const handleSave = () => {
     if (!valid) return
-    onSave({ label: label.trim(), short: short.trim(), hue })
+    onSave({ label: label.trim(), short: short.trim(), hue, lowThreshold: threshold })
   }
 
   const badgeStyle = { background: catBg(hue), color: catFg(hue), borderColor: catBorder(hue) }
@@ -81,6 +84,29 @@ export function CategoryModal({ open, initial, error, onClose, onSave }: Categor
               onKeyDown={(e) => e.key === 'Enter' && handleSave()}
               placeholder={shortFallback}
             />
+          </div>
+
+          <div className="field f-full">
+            <label>Low stock at</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div className="stepper" style={{ width: 150 }}>
+                <button type="button" onClick={() => setLowThreshold(Math.max(0, threshold - 1))}>−</button>
+                <input
+                  className="mono"
+                  type="number"
+                  min={0}
+                  value={lowThreshold}
+                  onChange={(e) => setLowThreshold(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+                />
+                <button type="button" onClick={() => setLowThreshold(threshold + 1)}>+</button>
+              </div>
+              <span className="inv-field-hint mono">
+                {threshold === 0
+                  ? 'Never low · only out when empty'
+                  : `Items with ${threshold === 1 ? '1 unit' : `1–${threshold} units`} show as low`}
+              </span>
+            </div>
           </div>
 
           <div className="field f-full">

@@ -3,12 +3,12 @@ import type { Category, InventoryItem } from '@/types/inventory'
 // import type { HistoryEntry } from '@/types/inventory'
 
 export const CATEGORIES: Category[] = [
-  { id: 'pc',    label: 'PC Components',    short: 'PC',    hue: 220 },
-  { id: 'mcu',   label: 'Microcontrollers', short: 'MCU',   hue: 160 },
-  { id: 'elec',  label: 'Electronics',      short: 'ELEC',  hue: 80  },
-  { id: 'tools', label: 'Tools',            short: 'TOOLS', hue: 300 },
-  { id: 'cable', label: 'Cables & Conn.',   short: 'CABLE', hue: 350 },
-  { id: 'other', label: 'Other',            short: 'OTHER', hue: 260 },
+  { id: 'pc',    label: 'PC Components',    short: 'PC',    hue: 220 , lowThreshold: 3 },
+  { id: 'mcu',   label: 'Microcontrollers', short: 'MCU',   hue: 160 , lowThreshold: 3 },
+  { id: 'elec',  label: 'Electronics',      short: 'ELEC',  hue: 80  , lowThreshold: 3 },
+  { id: 'tools', label: 'Tools',            short: 'TOOLS', hue: 300 , lowThreshold: 3 },
+  { id: 'cable', label: 'Cables & Conn.',   short: 'CABLE', hue: 350 , lowThreshold: 3 },
+  { id: 'other', label: 'Other',            short: 'OTHER', hue: 260 , lowThreshold: 3 },
 ]
 
 export const SEED_ITEMS: InventoryItem[] = [

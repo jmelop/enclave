@@ -33,3 +33,7 @@ CREATE INDEX IF NOT EXISTS idx_inventory_items_category ON inventory_items(categ
 -- Migration: category values used to be a fixed CHECK list; now they live in
 -- inventory_categories, so drop the old constraint on pre-existing databases.
 ALTER TABLE inventory_items DROP CONSTRAINT IF EXISTS inventory_items_category_check;
+
+-- Items in a category show as low when 0 < qty <= low_threshold.
+ALTER TABLE inventory_categories ADD COLUMN IF NOT EXISTS low_threshold INTEGER NOT NULL DEFAULT 3
+  CHECK (low_threshold >= 0);

@@ -8,6 +8,7 @@ export interface Category {
   label: string
   short: string
   hue: number
+  lowThreshold: number   // items show as low when 0 < qty <= lowThreshold
 }
 
 // Fields accepted by POST /categories and PUT /categories/:id
@@ -15,6 +16,7 @@ export interface CategoryInput {
   label: string
   short: string
   hue: number
+  lowThreshold: number
 }
 
 // TODO: historial fuera de alcance — ver rama futura feat/inventory-history
@@ -30,7 +32,7 @@ export interface InventoryItem {
   category: CategoryId
   model: string
   qty: number
-  status: ItemStatus   // derived client-side via deriveStatus(qty); not persisted in DB
+  status: ItemStatus   // derived client-side via deriveStatus(qty, category threshold); not persisted in DB
   location: string
   notes: string
   updated: string

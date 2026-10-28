@@ -45,7 +45,6 @@ function toItemDraft(item: InventoryItem): ItemDraft {
     category: item.category,
     model: item.model,
     qty: item.qty,
-    status: item.status,
     location: item.location,
     notes: item.notes,
   }

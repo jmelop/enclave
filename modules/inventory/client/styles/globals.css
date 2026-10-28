@@ -748,6 +748,9 @@ html[data-theme="light"] .inventory-modal {
 }
 .seg-opt:hover { color: var(--fg-2); }
 .seg-opt.sel { background: var(--bg-2); }
+.inv-seg-static .seg-opt { cursor: default; }
+.inv-seg-static .seg-opt:not(.sel):hover { color: var(--fg-4); }
+.inv-field-hint { font-size: 10.5px; color: var(--fg-4); letter-spacing: 0.02em; }
 .modal-foot { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px; border-top: 1px solid var(--border-subtle); background: var(--bg); }
 .modal-hint { font-size: 10.5px; color: var(--fg-4); letter-spacing: 0.04em; }
 .modal-actions { display: flex; gap: 8px; }
