@@ -80,6 +80,15 @@ export const useStockStore = create<StockState>()((set, get) => {
     await get().refetch()
   }
 
+  // GET serves seed rows while the table is empty, so drop local rows the DB doesn't list.
+  // Unlike refetch, it keeps local row data, so typing in progress survives.
+  const dropSeedRows = async () => {
+    const serverIds = new Set((await fetchProducts()).map((p) => p.id))
+    set((s) => ({
+      products: s.products.filter((p) => serverIds.has(p.id) || s.draftIds.includes(p.id) || p.id in s.rowKeys),
+    }))
+  }
+
   const persist = async (id: string) => {
     const p = get().products.find((x) => x.id === id)
     if (!p || !p.name.trim()) return   // name is NOT NULL: unnamed rows stay local
@@ -96,6 +105,8 @@ export const useStockStore = create<StockState>()((set, get) => {
           openId: s.openId && swap(s.openId),
           focusId: null,
         }))
+        // The product is saved; a failed resync only leaves the seed rows until the next refetch.
+        await dropSeedRows().catch(() => {})
         // Edits typed while the POST was in flight still need saving under the real id.
         const now = get().products.find((x) => x.id === saved.id)
         if (now && !sameInput(toInput(now), toInput(saved))) schedule(saved.id)
