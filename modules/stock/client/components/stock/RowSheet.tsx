@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Input, Label } from '@venator-ui/ui'
 import { Economics } from './Economics'
 import { NumField } from './NumField'
 import { PlatformEditor } from './PlatformEditor'
-import { useStockStore } from '@/store/stockStore'
+import { productMetrics, useStockStore } from '@/store/stockStore'
 import { fmt, pct, stamp } from '@/lib/utils'
 import type { LedgerProduct } from '@/types/stock'
 
@@ -13,13 +13,17 @@ interface RowSheetProps {
   focusName: boolean
 }
 
-// Inline editor under an open row. Every change saves itself (debounced in the store).
+// Inline editor under an open row. Changes stay local until Save; sales apply at once.
 export function RowSheet({ p, known, focusName }: RowSheetProps) {
-  const patch         = useStockStore((s) => s.patchProduct)
+  const edits         = useStockStore((s) => s.edits)
+  const saving        = useStockStore((s) => s.saving)
+  const editOpen      = useStockStore((s) => s.editOpen)
+  const saveOpen      = useStockStore((s) => s.saveOpen)
+  const cancelOpen    = useStockStore((s) => s.cancelOpen)
+  const setOpenId     = useStockStore((s) => s.setOpenId)
   const sell          = useStockStore((s) => s.sell)
   const undoSale      = useStockStore((s) => s.undoSale)
   const deleteProduct = useStockStore((s) => s.deleteProduct)
-  const setOpenId     = useStockStore((s) => s.setOpenId)
 
   const nameRef = useRef<HTMLInputElement>(null)
   const [armed, setArmed] = useState(false)   // first Delete click arms, second deletes
@@ -34,17 +38,32 @@ export function RowSheet({ p, known, focusName }: RowSheetProps) {
     return () => clearTimeout(t)
   }, [armed])
 
-  const m = p.metrics
-  const set = (changes: Parameters<typeof patch>[1]) => patch(p.id, changes)
+  // What the form shows: the saved product with the pending edits on top.
+  const v = useMemo((): LedgerProduct => {
+    const merged = { ...p, ...edits }
+    return { ...merged, metrics: productMetrics(merged) }
+  }, [p, edits])
+
+  const dirty   = Object.keys(edits).length > 0
+  const named   = v.name.trim().length > 0
+  const canSave = dirty && named && !saving
+  const m = v.metrics
 
   return (
-    <div className="stk-sheet">
+    <div
+      className="stk-sheet"
+      onKeyDown={(e) => {
+        if (e.defaultPrevented) return
+        if (e.key === 'Enter' && !(e.target instanceof HTMLTextAreaElement) && canSave) { e.preventDefault(); void saveOpen() }
+        if (e.key === 'Escape') { e.stopPropagation(); setOpenId(null) }
+      }}
+    >
       <section className="stk-sh-col">
         <div className="stk-sh-h mono"><span>01</span>UNIT ECONOMICS</div>
-        <Economics p={p} />
+        <Economics p={v} />
         <div className="stk-nf-pair">
-          <NumField label="Unit cost (all-in)" prefix="€" step={0.5} value={p.unit_cost}  onChange={(v) => set({ unit_cost: v })} />
-          <NumField label="Sale price"         prefix="€" step={0.5} value={p.sale_price} onChange={(v) => set({ sale_price: v })} />
+          <NumField label="Unit cost (all-in)" prefix="€" step={0.5} value={v.unit_cost}  onChange={(x) => editOpen({ unit_cost: x })} />
+          <NumField label="Sale price"         prefix="€" step={0.5} value={v.sale_price} onChange={(x) => editOpen({ sale_price: x })} />
         </div>
         <div className="stk-tf stk-tf-notes">
           <Label className="stk-field-lbl" htmlFor={`stk-notes-${p.id}`}>Notes</Label>
@@ -52,8 +71,8 @@ export function RowSheet({ p, known, focusName }: RowSheetProps) {
             id={`stk-notes-${p.id}`}
             className="stk-notes"
             rows={4}
-            value={p.notes}
-            onChange={(e) => set({ notes: e.target.value })}
+            value={v.notes}
+            onChange={(e) => editOpen({ notes: e.target.value })}
             placeholder="Optional · materials, print settings, buyer notes…"
           />
         </div>
@@ -67,17 +86,17 @@ export function RowSheet({ p, known, focusName }: RowSheetProps) {
             id={`stk-name-${p.id}`}
             ref={nameRef}
             size="sm"
-            value={p.name}
-            error={!p.draft && !p.name.trim()}
-            onChange={(e) => set({ name: e.target.value })}
+            value={v.name}
+            error={dirty && !named}
+            onChange={(e) => editOpen({ name: e.target.value })}
             placeholder="Product name"
           />
-          {p.draft && <span className="stk-hint mono">not saved yet · type a name to create it</span>}
+          {p.draft && <span className="stk-hint mono">new product · fill it in and save</span>}
         </div>
-        <NumField label="Units available" int value={p.quantity} onChange={(v) => set({ quantity: v })} />
+        <NumField label="Units available" int value={v.quantity} onChange={(x) => editOpen({ quantity: x })} />
         <div className="stk-tf">
           <Label className="stk-field-lbl">Platforms</Label>
-          <PlatformEditor value={p.platforms} known={known} onChange={(v) => set({ platforms: v })} />
+          <PlatformEditor value={v.platforms} known={known} onChange={(x) => editOpen({ platforms: x })} />
         </div>
       </section>
 
@@ -98,19 +117,27 @@ export function RowSheet({ p, known, focusName }: RowSheetProps) {
           <div><dt>Sell-through</dt><dd>{pct(m.through)}</dd></div>
         </dl>
         <div className="stk-sh-meta mono">
-          <span>created {stamp(p.created_at)}</span>
-          <span>updated {stamp(p.updated_at)}</span>
+          {dirty && <span className="stk-hint">unsaved changes</span>}
+          {!p.draft && <span>created {stamp(p.created_at)}</span>}
+          {!p.draft && <span>updated {stamp(p.updated_at)}</span>}
         </div>
         <div className="stk-sh-foot">
-          <Button
-            variant="ghost"
-            size="sm"
-            className={`stk-btn-del ${armed ? 'armed' : ''}`}
-            onClick={() => (armed ? void deleteProduct(p.id) : setArmed(true))}
-          >
-            {armed ? 'Confirm delete' : 'Delete'}
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => setOpenId(null)}>Collapse</Button>
+          {!p.draft && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`stk-btn-del ${armed ? 'armed' : ''}`}
+              onClick={() => (armed ? void deleteProduct(p.id) : setArmed(true))}
+            >
+              {armed ? 'Confirm delete' : 'Delete'}
+            </Button>
+          )}
+          <div className="stk-sh-foot-r">
+            <Button variant="ghost" size="sm" onClick={cancelOpen}>{dirty || p.draft ? 'Cancel' : 'Collapse'}</Button>
+            <Button variant="primary" size="sm" disabled={!canSave} onClick={() => void saveOpen()}>
+              {saving ? 'Saving…' : p.draft ? 'Create' : 'Save'}
+            </Button>
+          </div>
         </div>
       </section>
     </div>

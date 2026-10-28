@@ -585,6 +585,7 @@ button { font-family: inherit; }
 .stk-sales-dl dd.neg { color: var(--danger); }
 .stk-sh-meta { display: flex; flex-direction: column; gap: 2px; font-size: 10px; color: var(--fg-4); }
 .stk-sh-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: auto; }
+.stk-sh-foot-r { display: flex; gap: 8px; margin-left: auto; }
 .stk-sheet .stk-btn-del { color: var(--fg-3); }
 .stk-sheet .stk-btn-del:hover, .stk-sheet .stk-btn-del.armed {
   color: var(--danger); border-color: color-mix(in oklab, var(--danger) 45%, transparent);

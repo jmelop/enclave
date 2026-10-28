@@ -4,7 +4,6 @@ import type { LedgerProduct, ProductInput, ProductMetrics, SortDir, SortKey, Sto
 import { hasPlatform, parsePlatforms } from '@/lib/utils'
 
 const API = '/api/stock/products'
-const SAVE_DEBOUNCE_MS = 400
 
 async function fetchProducts(): Promise<StockProduct[]> {
   const res = await fetch(API)
@@ -30,18 +29,11 @@ function toInput(p: StockProduct): ProductInput {
   return { name, quantity, unit_cost, sale_price, platforms, sales_count, notes }
 }
 
-// The server trims the name, so surrounding spaces don't count as a change.
-const sameInput = (a: ProductInput, b: ProductInput) =>
-  (Object.keys(a) as (keyof ProductInput)[]).every((k) => (k === 'name' ? a.name.trim() === b.name.trim() : a[k] === b[k]))
-
-// Per-product debounce timers and save chains, so saves for one row never overlap.
-const timers = new Map<string, ReturnType<typeof setTimeout>>()
-const chains = new Map<string, Promise<void>>()
-
 interface StockState {
   products: StockProduct[]
-  draftIds: string[]      // local rows waiting for a name before the first POST
-  rowKeys: Record<string, string>  // real id → its draft id, so the row isn't remounted mid-typing
+  draftIds: string[]      // new products not saved yet; they only live while their sheet is open
+  edits: Partial<ProductInput>   // unsaved changes to the open product
+  saving: boolean
   loading: boolean
   error: string | null
   saveError: string | null
@@ -59,15 +51,16 @@ interface StockState {
   hydrate: () => Promise<void>
   refetch: () => Promise<void>
   addProduct: () => void
-  patchProduct: (id: string, changes: Partial<ProductInput>) => void
-  flush: (id: string) => Promise<void>
+  editOpen: (changes: Partial<ProductInput>) => void
+  saveOpen: () => Promise<void>
+  cancelOpen: () => void
   sell: (id: string) => Promise<void>
   undoSale: (id: string) => Promise<void>
   deleteProduct: (id: string) => Promise<void>
   clearSaveError: () => void
 
   toggleOpen: (id: string) => void
-  setOpenId: (id: string | null) => void
+  setOpenId: (id: string | null) => void   // asks before discarding unsaved changes
   setQuery: (q: string) => void
   setPlatformFilter: (p: string | null) => void
   setStockFilter: (f: StockFilter) => void
@@ -81,64 +74,23 @@ export const useStockStore = create<StockState>()((set, get) => {
     await get().refetch()
   }
 
-  // GET serves seed rows while the table is empty, so drop local rows the DB doesn't list.
-  // Unlike refetch, it keeps local row data, so typing in progress survives.
-  const dropSeedRows = async () => {
-    const serverIds = new Set((await fetchProducts()).map((p) => p.id))
+  // Drops the open sheet's edits, and the product itself if it was never saved.
+  const discardOpen = () => {
+    const { openId, draftIds } = get()
+    const draft = openId != null && draftIds.includes(openId)
     set((s) => ({
-      products: s.products.filter((p) => serverIds.has(p.id) || s.draftIds.includes(p.id) || p.id in s.rowKeys),
+      edits: {},
+      products: draft ? s.products.filter((x) => x.id !== openId) : s.products,
+      draftIds: draft ? s.draftIds.filter((d) => d !== openId) : s.draftIds,
+      newIds: draft ? s.newIds.filter((d) => d !== openId) : s.newIds,
     }))
   }
 
-  const persist = async (id: string) => {
-    const p = get().products.find((x) => x.id === id)
-    if (!p || !p.name.trim()) return   // name is NOT NULL: unnamed rows stay local
-    const input = toInput(p)
-    try {
-      if (get().draftIds.includes(id)) {
-        const saved = await send(API, 'POST', input)
-        const swap = (v: string) => (v === id ? saved.id : v)
-        set((s) => ({
-          products: s.products.map((x) => (x.id === id ? { ...x, id: saved.id, created_at: saved.created_at, updated_at: saved.updated_at } : x)),
-          draftIds: s.draftIds.filter((d) => d !== id),
-          rowKeys: { ...s.rowKeys, [saved.id]: id },
-          newIds: s.newIds.map(swap),
-          openId: s.openId && swap(s.openId),
-          focusId: null,
-        }))
-        // The product is saved; a failed resync only leaves the seed rows until the next refetch.
-        await dropSeedRows().catch(() => {})
-        // Edits typed while the POST was in flight still need saving under the real id.
-        const now = get().products.find((x) => x.id === saved.id)
-        if (now && !sameInput(toInput(now), toInput(saved))) schedule(saved.id)
-      } else {
-        const saved = await send(`${API}/${id}`, 'PUT', input)
-        set((s) => ({
-          products: s.products.map((x) => {
-            if (x.id !== id) return x
-            // Newer local edits win; they have their own save queued.
-            // Keep the typed name: the trimmed one would eat a trailing space mid-typing.
-            return sameInput(toInput(x), input) ? { ...saved, name: x.name } : { ...x, updated_at: saved.updated_at }
-          }),
-        }))
-      }
-    } catch (err) {
-      await fail(err)
-    }
-  }
-
-  const enqueue = (id: string): Promise<void> => {
-    const next = (chains.get(id) ?? Promise.resolve()).then(() => persist(id))
-    chains.set(id, next)
-    return next
-  }
-
-  const schedule = (id: string) => {
-    clearTimeout(timers.get(id))
-    timers.set(id, setTimeout(() => {
-      timers.delete(id)
-      void enqueue(id)
-    }, SAVE_DEBOUNCE_MS))
+  // false when the user keeps their unsaved changes.
+  const leaveOpen = (): boolean => {
+    if (Object.keys(get().edits).length > 0 && !window.confirm('Discard unsaved changes?')) return false
+    discardOpen()
+    return true
   }
 
   // Optimistic ±1 sale, confirmed by the atomic endpoint.
@@ -146,7 +98,6 @@ export const useStockStore = create<StockState>()((set, get) => {
     const p = get().products.find((x) => x.id === id)
     if (!p || get().draftIds.includes(id)) return
     if (dir === 1 ? p.quantity === 0 : p.sales_count === 0) return
-    await get().flush(id)
     set((s) => ({
       products: s.products.map((x) => (x.id === id ? { ...x, quantity: x.quantity - dir, sales_count: x.sales_count + dir } : x)),
     }))
@@ -165,7 +116,8 @@ export const useStockStore = create<StockState>()((set, get) => {
   return {
     products: [],
     draftIds: [],
-    rowKeys: {},
+    edits: {},
+    saving: false,
     loading: false,
     error: null,
     saveError: null,
@@ -201,6 +153,7 @@ export const useStockStore = create<StockState>()((set, get) => {
     },
 
     addProduct: () => {
+      if (!leaveOpen()) return
       const id = `draft-${Date.now()}`
       const ts = new Date().toISOString()
       set((s) => ({
@@ -215,28 +168,63 @@ export const useStockStore = create<StockState>()((set, get) => {
       }))
     },
 
-    patchProduct: (id, changes) => {
-      set((s) => ({ products: s.products.map((x) => (x.id === id ? { ...x, ...changes } : x)) }))
-      schedule(id)
+    // Fields set back to the saved value stop counting as changes.
+    editOpen: (changes) => {
+      const p = get().products.find((x) => x.id === get().openId)
+      if (!p) return
+      const edits = { ...get().edits, ...changes }
+      for (const k of Object.keys(edits) as (keyof ProductInput)[]) {
+        if (edits[k] === p[k]) delete edits[k]
+      }
+      set({ edits })
     },
 
-    flush: (id) => {
-      if (!timers.has(id)) return chains.get(id) ?? Promise.resolve()
-      clearTimeout(timers.get(id))
-      timers.delete(id)
-      return enqueue(id)
+    saveOpen: async () => {
+      const { openId, edits, products, draftIds, saving } = get()
+      const p = products.find((x) => x.id === openId)
+      if (!p || saving || Object.keys(edits).length === 0) return
+      const input = { ...toInput(p), ...edits }
+      if (!input.name.trim()) return
+      set({ saving: true })
+      try {
+        if (draftIds.includes(p.id)) {
+          const saved = await send(API, 'POST', input)
+          const swap = (v: string) => (v === p.id ? saved.id : v)
+          set((s) => ({
+            products: s.products.map((x) => (x.id === p.id ? saved : x)),
+            draftIds: s.draftIds.filter((d) => d !== p.id),
+            newIds: s.newIds.map(swap),
+            openId: s.openId && swap(s.openId),
+            edits: {},
+            focusId: null,
+          }))
+          // GET served seed rows while the table was empty; resyncing drops them.
+          await get().refetch()
+        } else {
+          const saved = await send(`${API}/${p.id}`, 'PUT', input)
+          set((s) => ({ products: s.products.map((x) => (x.id === p.id ? saved : x)), edits: {} }))
+        }
+      } catch (err) {
+        await fail(err)
+      } finally {
+        set({ saving: false })
+      }
+    },
+
+    cancelOpen: () => {
+      discardOpen()
+      set({ openId: null, focusId: null })
     },
 
     sell: (id) => moveSale(id, 1),
     undoSale: (id) => moveSale(id, -1),
 
     deleteProduct: async (id) => {
-      clearTimeout(timers.get(id))
-      timers.delete(id)
       const isDraft = get().draftIds.includes(id)
       set((s) => ({
         products: s.products.filter((x) => x.id !== id),
         draftIds: s.draftIds.filter((d) => d !== id),
+        edits: s.openId === id ? {} : s.edits,
         openId: s.openId === id ? null : s.openId,
       }))
       if (isDraft) return
@@ -253,8 +241,15 @@ export const useStockStore = create<StockState>()((set, get) => {
 
     clearSaveError: () => set({ saveError: null }),
 
-    toggleOpen: (id) => set((s) => ({ openId: s.openId === id ? null : id, focusId: null })),
-    setOpenId: (openId) => set({ openId, focusId: null }),
+    toggleOpen: (id) => {
+      const next = get().openId === id ? null : id
+      if (!leaveOpen()) return
+      set({ openId: next, focusId: null })
+    },
+    setOpenId: (openId) => {
+      if (openId === get().openId || !leaveOpen()) return
+      set({ openId, focusId: null })
+    },
     setQuery: (query) => set({ query }),
     setPlatformFilter: (platformFilter) => set({ platformFilter }),
     setStockFilter: (stockFilter) => set({ stockFilter }),
